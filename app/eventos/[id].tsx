@@ -1,0 +1,31 @@
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { useLocalSearchParams, router } from 'expo-router'
+import { ArrowLeft } from 'lucide-react-native'
+import { T, F, S } from '@/lib/tokens'
+
+export default function EventoDetalle() {
+  const { id } = useLocalSearchParams()
+  return (
+    <SafeAreaView style={styles.root} edges={['top']}>
+      <View style={styles.topbar}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.back}>
+          <ArrowLeft size={20} color={T.fg1} />
+        </TouchableOpacity>
+        <Text style={styles.title}>Evento</Text>
+      </View>
+      <View style={styles.center}>
+        <Text style={styles.placeholder}>Detalle de evento — en construcción</Text>
+      </View>
+    </SafeAreaView>
+  )
+}
+
+const styles = StyleSheet.create({
+  root:        { flex: 1, backgroundColor: T.bg },
+  topbar:      { flexDirection: 'row', alignItems: 'center', gap: S.md, backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
+  back:        { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  title:       { fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.fg1 },
+  center:      { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  placeholder: { color: T.fg3 },
+})
