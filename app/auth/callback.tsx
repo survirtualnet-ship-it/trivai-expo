@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { View, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
 import { supabase } from '@/lib/supabase'
+import { ensureProfile } from '@/lib/auth/ensureProfile'
 import { T } from '@/lib/tokens'
 
 export default function AuthCallback() {
@@ -14,7 +15,8 @@ export default function AuthCallback() {
       const hasToken = url.includes('access_token=')
 
       if (hasCode || hasToken) {
-        await supabase.auth.exchangeCodeForSession(url)
+        const { data } = await supabase.auth.exchangeCodeForSession(url)
+        if (data?.user) await ensureProfile(data.user)
       }
 
       router.replace('/')
