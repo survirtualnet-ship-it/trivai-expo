@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router'
-import { Compass, Ticket, Map, Users, User } from 'lucide-react-native'
+import { Compass, Ticket, Map, Users, User, MapPin } from 'lucide-react-native'
 import { T } from '@/lib/tokens'
 
 export default function TabsLayout() {
@@ -30,6 +30,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="mapa"
         options={{ title: 'Mapa', tabBarIcon: ({ color, size }) => <Map size={size} color={color}/> }}
+      />
+      <Tabs.Screen
+        name="lugares"
+        options={{ title: 'Lugares', tabBarIcon: ({ color, size }) => <MapPin size={size} color={color}/> }}
       />
       <Tabs.Screen
         name="amigos"
