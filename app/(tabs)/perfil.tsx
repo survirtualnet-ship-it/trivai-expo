@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
@@ -15,15 +15,18 @@ import { T, F, S, R, getCatEmoji } from '@/lib/tokens'
 type Stats = { eventos: number; lugares: number; amigos: number; resenas: number }
 
 export default function Perfil() {
-  const { profile, loading, displayName, initials, isBusiness, signOut } = useUser()
+  const {
+    profile, user, loading, isAuthenticated, displayName, initials, avatarUrl, isBusiness, signOut,
+  } = useUser()
   const [stats,   setStats]   = useState<Stats>({ eventos: 0, lugares: 0, amigos: 0, resenas: 0 })
   const [favs,    setFavs]    = useState<any[]>([])
   const [resenas, setResenas] = useState<any[]>([])
 
   useEffect(() => {
-    if (!profile) return
-    cargarDatos(profile.id)
-  }, [profile?.id])
+    const userId = profile?.id ?? user?.id
+    if (!userId) return
+    cargarDatos(userId)
+  }, [profile?.id, user?.id])
 
   async function cargarDatos(userId: string) {
     const [
@@ -52,7 +55,7 @@ export default function Perfil() {
   }
 
   // GUEST
-  if (!profile) {
+  if (!isAuthenticated) {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
         <View style={styles.header}>
@@ -76,7 +79,8 @@ export default function Perfil() {
   }
 
   const opciones = [
-    { icon: Ticket,   label: 'Mis entradas',       sub: `${stats.eventos} eventos`, tone: T.purple, href: '/perfil/eventos-asistidos' },
+    { icon: Pencil,   label: 'Editar perfil',       sub: 'Nombre, usuario, bio y foto', tone: T.purple, href: '/perfil/editar' },
+    { icon: Ticket,   label: 'Mis entradas',        sub: `${stats.eventos} eventos`, tone: T.purple, href: '/perfil/eventos-asistidos' },
     { icon: Heart,    label: 'Mis favoritos',       sub: `${stats.lugares} guardados`, tone: T.orange, href: '/perfil/favoritos' },
     { icon: Bell,     label: 'Notificaciones',      sub: '',                          tone: T.green,  href: '/notificaciones' },
   ]
@@ -100,9 +104,22 @@ export default function Perfil() {
 
         {/* HERO */}
         <View style={styles.hero}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
+          <TouchableOpacity
+            style={styles.avatarWrap}
+            onPress={() => router.push('/perfil/editar')}
+            accessibilityLabel="Editar foto de perfil"
+          >
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
+            )}
+            <View style={styles.avatarEditBadge}>
+              <Pencil size={14} color="#fff" />
+            </View>
+          </TouchableOpacity>
           <Text style={styles.name}>{profile.full_name || displayName}</Text>
           {profile.username ? <Text style={styles.username}>@{profile.username}</Text> : null}
           {profile.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
@@ -145,7 +162,7 @@ export default function Perfil() {
 
         {/* MI NEGOCIO */}
         {isBusiness && (
-          <TouchableOpacity style={styles.negocioCard} onPress={() => {}}>
+          <TouchableOpacity style={styles.negocioCard} onPress={() => router.push('/perfil/mi-negocio')}>
             <View style={styles.negocioIcon}><Store size={22} color="#fff" /></View>
             <View style={{ flex: 1 }}>
               <Text style={styles.negocioTitle}>Mi negocio</Text>
@@ -259,7 +276,10 @@ const styles = StyleSheet.create({
   btnSecondaryText:  { fontSize: F.size.lg, fontWeight: F.weight.bold, color: T.purple },
   // Hero
   hero:              { alignItems: 'center', paddingVertical: S.xl, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, paddingHorizontal: S.lg },
-  avatar:            { width: 88, height: 88, borderRadius: 44, backgroundColor: T.purple, alignItems: 'center', justifyContent: 'center', marginBottom: S.md },
+  avatarWrap:        { marginBottom: S.md, position: 'relative' },
+  avatar:            { width: 88, height: 88, borderRadius: 44, backgroundColor: T.purple, alignItems: 'center', justifyContent: 'center' },
+  avatarImage:       { width: 88, height: 88, borderRadius: 44, backgroundColor: T.muted },
+  avatarEditBadge:   { position: 'absolute', right: 0, bottom: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: T.purple, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: T.surface },
   avatarText:        { fontSize: 32, fontWeight: F.weight.bold, color: '#fff' },
   name:              { fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.fg1 },
   username:          { fontSize: F.size.base, color: T.fg3, marginTop: 4 },

@@ -13,13 +13,13 @@ export default function Publicar() {
       Icon: MapPin, titulo: 'Agregar mi negocio',
       desc: 'Registra tu negocio con los datos de Google',
       tone: { bg: T.purpleSoft, fg: T.purple },
-      onPress: () => {},
+      onPress: () => router.push('/perfil/mi-negocio'),
     }] : []),
     {
       Icon: Ticket, titulo: 'Publicar un evento',
       desc: 'Comparte un concierto, feria, exposición...',
       tone: { bg: T.orangeSoft, fg: T.orange },
-      onPress: () => router.push('/eventos'),
+      onPress: () => router.push('/publicar/evento'),
     },
     {
       Icon: Star, titulo: 'Escribir una reseña',
