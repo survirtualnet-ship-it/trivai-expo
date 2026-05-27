@@ -11,12 +11,8 @@ import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
 
 type Tab = 'todos' | 'lugares' | 'eventos' | 'personas'
 
-const personas = [
-  { id: 'p1', nombre: 'Valentina Rojas', usuario: 'vale.r',   color: T.greenSoft,  text: T.greenInk,  ini: 'V', comunes: 12 },
-  { id: 'p2', nombre: 'Diego Luna',      usuario: 'diego.l',  color: T.orangeSoft, text: T.orange,    ini: 'D', comunes: 8  },
-  { id: 'p3', nombre: 'Sofía Mendoza',   usuario: 'sofia.m',  color: T.purpleSoft, text: T.purple,    ini: 'S', comunes: 5  },
-  { id: 'p4', nombre: 'Pedro Álvarez',   usuario: 'pedro.a',  color: T.orangeSoft, text: T.orangeInk, ini: 'P', comunes: 7  },
-]
+const PERSON_COLORS = [T.greenSoft, T.orangeSoft, T.purpleSoft, T.muted]
+const PERSON_TEXTS  = [T.greenInk,  T.orangeInk,  T.purple,     T.fg2  ]
 
 const CATEGORIAS = [
   { emoji: '📍', label: 'Lugares',  href: '/lugares',       color: '#1a1a2e' },
@@ -45,19 +41,20 @@ function highlight(text: string, q: string) {
 }
 
 export default function Buscar() {
-  const [query, setQuery]     = useState('')
-  const [tab, setTab]         = useState<Tab>('todos')
-  const [lugares, setLugares] = useState<any[]>([])
-  const [eventos, setEventos] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const inputRef              = useRef<TextInput>(null)
+  const [query,    setQuery]    = useState('')
+  const [tab,      setTab]      = useState<Tab>('todos')
+  const [lugares,  setLugares]  = useState<any[]>([])
+  const [eventos,  setEventos]  = useState<any[]>([])
+  const [personas, setPersonas] = useState<any[]>([])
+  const [loading,  setLoading]  = useState(false)
+  const inputRef                = useRef<TextInput>(null)
 
   useEffect(() => {
     setTimeout(() => inputRef.current?.focus(), 100)
   }, [])
 
   useEffect(() => {
-    if (!query.trim()) { setLugares([]); setEventos([]); return }
+    if (!query.trim()) { setLugares([]); setEventos([]); setPersonas([]); return }
     const timer = setTimeout(buscar, 300)
     return () => clearTimeout(timer)
   }, [query])
@@ -65,17 +62,26 @@ export default function Buscar() {
   async function buscar() {
     setLoading(true)
     const q = query.trim()
-    const [{ data: lug }, { data: evt }] = await Promise.all([
+    const [{ data: lug }, { data: evt }, { data: per }] = await Promise.all([
       supabase.from('places').select('id, name, category, address, rating_avg, is_open').ilike('name', `%${q}%`).limit(10),
       supabase.from('events').select('id, name, category, start_datetime, is_free, price').ilike('name', `%${q}%`).eq('is_active', true).limit(10),
+      supabase.from('profiles').select('id, full_name, username, avatar_url').or(`full_name.ilike.%${q}%,username.ilike.%${q}%`).limit(8),
     ])
     setLugares(lug ?? [])
     setEventos(evt ?? [])
+    setPersonas((per ?? []).map((p: any, i: number) => ({
+      id:     p.id,
+      nombre: p.full_name ?? p.username ?? 'Usuario',
+      usuario: p.username ?? '',
+      color:  PERSON_COLORS[i % 4],
+      text:   PERSON_TEXTS[i % 4],
+      ini:    (p.full_name ?? p.username ?? 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+    })))
     setLoading(false)
   }
 
   const q = query.trim().toLowerCase()
-  const rPersonas = personas.filter(p => p.nombre.toLowerCase().includes(q) || p.usuario.toLowerCase().includes(q))
+  const rPersonas = personas
   const total = lugares.length + eventos.length + rPersonas.length
 
   const mostrarLugares  = (tab === 'todos' || tab === 'lugares')  && lugares.length > 0

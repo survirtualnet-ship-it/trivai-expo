@@ -119,23 +119,75 @@ function RowLugar({ item }: { item: Place }) {
   )
 }
 
+interface ActividadAmigo {
+  id: string
+  quien: string
+  ini: string
+  accion: string
+  nombre: string
+  tipo: 'evento' | 'lugar'
+  href: string
+  color: string
+}
+
 export default function Inicio() {
   const { displayName } = useUser()
-  const [lugares, setLugares] = useState<Place[]>([])
-  const [eventos, setEventos] = useState<Event[]>([])
-  const [loading, setLoading] = useState(true)
+  const [lugares,   setLugares]   = useState<Place[]>([])
+  const [eventos,   setEventos]   = useState<Event[]>([])
+  const [actividad, setActividad] = useState<ActividadAmigo[]>([])
+  const [loading,   setLoading]   = useState(true)
 
   useEffect(() => {
     const fetch = async () => {
-      const [{ data: lug }, { data: evt }] = await Promise.all([
+      const { data: { user } } = await supabase.auth.getUser()
+
+      const queries: Promise<any>[] = [
         supabase.from('places').select('id,name,category,address,rating_avg,is_open')
           .eq('is_open', true).order('rating_avg', { ascending: false }).limit(6),
         supabase.from('events').select('id,name,category,start_datetime,is_free,price,place:places(name)')
           .eq('is_active', true).gte('start_datetime', new Date().toISOString())
           .order('start_datetime', { ascending: true }).limit(6),
-      ])
+      ]
+
+      if (user) {
+        queries.push(
+          supabase.from('friendships')
+            .select('friend_id')
+            .eq('user_id', user.id)
+            .eq('status', 'accepted')
+        )
+      }
+
+      const [{ data: lug }, { data: evt }, friendsResult] = await Promise.all(queries)
       if (lug) setLugares(lug)
       if (evt) setEventos(evt as Event[])
+
+      if (friendsResult?.data?.length) {
+        const friendIds = (friendsResult.data as any[]).map((f: any) => f.friend_id)
+        const { data: asistencias } = await supabase
+          .from('event_attendees')
+          .select('event:events(id,name), profile:profiles(full_name,username)')
+          .in('user_id', friendIds)
+          .eq('status', 'going')
+          .limit(5)
+        if (asistencias) {
+          const COLORES = [T.purpleSoft, T.orangeSoft, T.greenSoft, T.muted]
+          setActividad((asistencias as any[])
+            .filter(a => a.event?.id && a.profile?.full_name)
+            .map((a, i) => ({
+              id:     a.event.id + i,
+              quien:  a.profile.full_name.split(' ')[0],
+              ini:    a.profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+              accion: 'asistirá a',
+              nombre: a.event.name,
+              tipo:   'evento' as const,
+              href:   `/eventos/${a.event.id}`,
+              color:  COLORES[i % 4],
+            }))
+          )
+        }
+      }
+
       setLoading(false)
     }
     fetch()
@@ -162,7 +214,7 @@ export default function Inicio() {
             />
             <Text style={styles.fecha}>{fechaHoy()}</Text>
           </View>
-          <TouchableOpacity style={styles.notifBtn}>
+          <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/notificaciones')}>
             <Bell size={20} color={T.fg2} />
           </TouchableOpacity>
         </View>
@@ -253,6 +305,35 @@ export default function Inicio() {
           }
         </View>
 
+        {/* ACTIVIDAD DE AMIGOS */}
+        {actividad.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Actividad de amigos</Text>
+              <TouchableOpacity onPress={() => router.push('/amigos')}>
+                <Text style={styles.sectionAction}>Ver amigos</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ paddingHorizontal: S.lg }}>
+              {actividad.map(a => (
+                <TouchableOpacity key={a.id} style={styles.actividadRow} onPress={() => router.push(a.href as any)}>
+                  <View style={[styles.actividadAvatar, { backgroundColor: a.color }]}>
+                    <Text style={styles.actividadIni}>{a.ini}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.actividadTexto}>
+                      <Text style={{ fontWeight: F.weight.bold }}>{a.quien} </Text>
+                      <Text style={{ color: T.fg2 }}>{a.accion} </Text>
+                      <Text style={{ color: T.purple, fontWeight: F.weight.semibold }}>{a.nombre}</Text>
+                    </Text>
+                  </View>
+                  <Text style={{ color: T.fg4, fontSize: 16 }}>›</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
+
       </ScrollView>
     </SafeAreaView>
   )
@@ -283,9 +364,13 @@ const styles = StyleSheet.create({
   cardRow:           { flexDirection: 'row' },
   badge:             { paddingHorizontal: S.sm, paddingVertical: 3, borderRadius: R.full },
   badgeText:         { fontSize: F.size.xs, fontWeight: F.weight.semibold },
-  row:               { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
-  rowIcon:           { width: 52, height: 52, borderRadius: R.md, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  rowContent:        { flex: 1 },
-  rowTitle:          { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
-  rowSub:            { fontSize: F.size.sm, color: T.fg3, marginTop: 2 },
+  row:              { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
+  rowIcon:          { width: 52, height: 52, borderRadius: R.md, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  rowContent:       { flex: 1 },
+  rowTitle:         { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
+  rowSub:           { fontSize: F.size.sm, color: T.fg3, marginTop: 2 },
+  actividadRow:     { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
+  actividadAvatar:  { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  actividadIni:     { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.fg1 },
+  actividadTexto:   { fontSize: F.size.sm, color: T.fg1, lineHeight: 18 },
 })
