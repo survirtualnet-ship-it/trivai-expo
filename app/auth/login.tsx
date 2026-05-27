@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   title:        { fontSize: 26, fontWeight: F.weight.bold, color: T.fg1, marginBottom: S.sm },
   sub:          { fontSize: F.size.base, color: T.fg3, marginBottom: S.xl },
   errorBox:     { backgroundColor: T.orangeSoft, borderWidth: 1, borderColor: T.orange, borderRadius: R.md, padding: S.md, marginBottom: S.lg },
-  errorText:    { fontSize: F.size.sm, color: T.orangeInk, fontWeight: F.weight.medium },
+  errorText:    { fontSize: F.size.sm, color: T.orange, fontWeight: F.weight.medium },
   field:        { marginBottom: S.lg },
   label:        { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.fg1, marginBottom: S.sm },
   input:        { height: 52, borderRadius: R.md, borderWidth: 1.5, borderColor: T.border, backgroundColor: T.surface, paddingHorizontal: S.lg, fontSize: F.size.md, color: T.fg1, marginBottom: 0 },
@@ -178,5 +178,4 @@ const styles = StyleSheet.create({
   registerRow:  { flexDirection: 'row', justifyContent: 'center' },
   registerText: { fontSize: F.size.base, color: T.fg3 },
   registerLink: { fontSize: F.size.base, color: T.purple, fontWeight: F.weight.bold },
-  orangeInk:    T.orange,
 })
