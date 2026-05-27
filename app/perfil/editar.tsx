@@ -1,22 +1,26 @@
 import { useState, useEffect } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, ActivityIndicator, Alert,
+  StyleSheet, ActivityIndicator, Alert, Image,
 } from 'react-native'
+import * as ImagePicker from 'expo-image-picker'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { ArrowLeft } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
+import { uploadAvatarFromUri } from '@/lib/auth/uploadAvatar'
 import { T, F, S, R } from '@/lib/tokens'
 
 export default function EditarPerfil() {
-  const { profile, initials } = useUser()
+  const { profile, initials, avatarUrl, refreshProfile } = useUser()
   const [nombre,   setNombre]   = useState('')
   const [usuario,  setUsuario]  = useState('')
   const [bio,      setBio]      = useState('')
   const [ciudad,   setCiudad]   = useState('')
+  const [fotoUri,  setFotoUri]  = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
+  const [subiendoFoto, setSubiendoFoto] = useState(false)
 
   useEffect(() => {
     if (profile) {
@@ -26,6 +30,46 @@ export default function EditarPerfil() {
       setCiudad(profile.city ?? '')
     }
   }, [profile])
+
+  const cambiarFoto = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (status !== 'granted') {
+      Alert.alert('Permiso necesario', 'Activa el acceso a fotos para cambiar tu avatar.')
+      return
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    })
+
+    if (result.canceled || !result.assets[0]) return
+
+    const uri = result.assets[0].uri
+    setFotoUri(uri)
+    setSubiendoFoto(true)
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Sesión no válida')
+
+      const publicUrl = await uploadAvatarFromUri(user.id, uri)
+      const { error } = await supabase.from('profiles').update({
+        avatar_url: publicUrl,
+        updated_at: new Date().toISOString(),
+      }).eq('id', user.id)
+
+      if (error) throw error
+      await refreshProfile()
+    } catch {
+      Alert.alert('Error', 'No se pudo subir la foto. Verifica el bucket "avatars" en Supabase.')
+      setFotoUri(null)
+    } finally {
+      setSubiendoFoto(false)
+    }
+  }
 
   const guardar = async () => {
     setGuardando(true)
@@ -44,9 +88,12 @@ export default function EditarPerfil() {
     if (error) {
       Alert.alert('Error', 'No se pudo guardar. Intenta de nuevo.')
     } else {
+      await refreshProfile()
       router.back()
     }
   }
+
+  const fotoMostrar = fotoUri ?? avatarUrl
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -67,10 +114,23 @@ export default function EditarPerfil() {
       <ScrollView contentContainerStyle={{ padding: S.lg }} keyboardShouldPersistTaps="handled">
         {/* AVATAR */}
         <View style={styles.avatarArea}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
-          <Text style={styles.avatarHint}>Foto de perfil</Text>
+          <TouchableOpacity style={styles.avatar} onPress={cambiarFoto} disabled={subiendoFoto}>
+            {fotoMostrar ? (
+              <Image source={{ uri: fotoMostrar }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>{initials}</Text>
+            )}
+            {subiendoFoto && (
+              <View style={styles.avatarLoading}>
+                <ActivityIndicator color="#fff" />
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={cambiarFoto} disabled={subiendoFoto}>
+            <Text style={styles.avatarHint}>
+              {subiendoFoto ? 'Subiendo foto...' : 'Toca para cambiar foto'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* CAMPOS */}
@@ -122,7 +182,9 @@ const styles = StyleSheet.create({
   saveBtn:     { paddingHorizontal: S.md, paddingVertical: 8, backgroundColor: T.purple, borderRadius: R.full, minWidth: 72, alignItems: 'center' },
   saveBtnText: { fontSize: F.size.sm, fontWeight: F.weight.bold, color: '#fff' },
   avatarArea:  { alignItems: 'center', paddingVertical: S.xl },
-  avatar:      { width: 88, height: 88, borderRadius: 44, backgroundColor: T.purple, alignItems: 'center', justifyContent: 'center', marginBottom: S.sm },
+  avatar:      { width: 88, height: 88, borderRadius: 44, backgroundColor: T.purple, alignItems: 'center', justifyContent: 'center', marginBottom: S.sm, overflow: 'hidden' },
+  avatarImage: { width: 88, height: 88, borderRadius: 44 },
+  avatarLoading:{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center' },
   avatarText:  { fontSize: 32, fontWeight: F.weight.bold, color: '#fff' },
   avatarHint:  { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold },
   field:       { marginBottom: S.lg },

@@ -2,6 +2,7 @@ import * as Linking from 'expo-linking'
 import * as WebBrowser from 'expo-web-browser'
 import { Platform } from 'react-native'
 import { supabase } from '@/lib/supabase'
+import { ensureProfile } from '@/lib/auth/ensureProfile'
 
 WebBrowser.maybeCompleteAuthSession()
 
@@ -32,8 +33,10 @@ export async function signInWithGoogle(): Promise<void> {
   const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
 
   if (res.type === 'success' && res.url) {
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(res.url)
+    const { data: sessionData, error: exchangeError } =
+      await supabase.auth.exchangeCodeForSession(res.url)
     if (exchangeError) throw exchangeError
+    if (sessionData.user) await ensureProfile(sessionData.user)
     return
   }
 

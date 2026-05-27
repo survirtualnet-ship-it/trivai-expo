@@ -7,6 +7,7 @@ import { router } from 'expo-router'
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { signInWithGoogle } from '@/lib/auth/googleOAuth'
+import { ensureProfile } from '@/lib/auth/ensureProfile'
 import { mapAuthError } from '@/lib/auth/authErrors'
 import { T, F, S, R } from '@/lib/tokens'
 
@@ -22,7 +23,7 @@ export default function Login() {
     if (!email || !password) { setError('Completa todos los campos'); return }
     setLoading(true); setError('')
 
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password })
 
     if (err) {
       setError(mapAuthError(err, 'No se pudo iniciar sesión.'))
@@ -30,6 +31,7 @@ export default function Login() {
       return
     }
 
+    if (data.user) await ensureProfile(data.user)
     router.replace('/')
   }
 
