@@ -6,6 +6,8 @@ import {
 import { router } from 'expo-router'
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
+import { signInWithGoogle } from '@/lib/auth/googleOAuth'
+import { mapAuthError } from '@/lib/auth/authErrors'
 import { T, F, S, R } from '@/lib/tokens'
 
 export default function Login() {
@@ -13,6 +15,7 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [loading,  setLoading]  = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [error,    setError]    = useState('')
 
   const handleLogin = async () => {
@@ -22,16 +25,26 @@ export default function Login() {
     const { error: err } = await supabase.auth.signInWithPassword({ email, password })
 
     if (err) {
-      if (err.message.includes('Email not confirmed'))
-        setError('Confirma tu email antes de iniciar sesión.')
-      else if (err.message.includes('Invalid login credentials'))
-        setError('Email o contraseña incorrectos.')
-      else setError(err.message)
+      setError(mapAuthError(err, 'No se pudo iniciar sesión.'))
       setLoading(false)
       return
     }
 
     router.replace('/')
+  }
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true)
+    setError('')
+
+    try {
+      await signInWithGoogle()
+      router.replace('/')
+    } catch (err) {
+      setError(mapAuthError(err, 'Error al iniciar sesión con Google.'))
+    } finally {
+      setGoogleLoading(false)
+    }
   }
 
   return (
@@ -99,7 +112,7 @@ export default function Login() {
           <TouchableOpacity
             style={[styles.btnPrimary, loading && styles.btnDisabled]}
             onPress={handleLogin}
-            disabled={loading}
+            disabled={loading || googleLoading}
           >
             {loading
               ? <ActivityIndicator color="#fff" />
@@ -112,6 +125,17 @@ export default function Login() {
             <Text style={styles.dividerLabel}>o</Text>
             <View style={styles.dividerLine} />
           </View>
+
+          <TouchableOpacity
+            style={[styles.btnGoogle, googleLoading && styles.btnDisabled]}
+            onPress={handleGoogleLogin}
+            disabled={loading || googleLoading}
+          >
+            {googleLoading
+              ? <ActivityIndicator color={T.purple} />
+              : <Text style={styles.btnGoogleText}>Continuar con Google</Text>
+            }
+          </TouchableOpacity>
 
           <View style={styles.registerRow}>
             <Text style={styles.registerText}>¿No tienes cuenta? </Text>
@@ -149,6 +173,8 @@ const styles = StyleSheet.create({
   divider:      { flexDirection: 'row', alignItems: 'center', gap: S.md, marginBottom: S.lg },
   dividerLine:  { flex: 1, height: 1, backgroundColor: T.border },
   dividerLabel: { fontSize: F.size.sm, color: T.fg4 },
+  btnGoogle:    { height: 52, borderRadius: R.lg, backgroundColor: T.surface, borderWidth: 1.5, borderColor: T.border2, alignItems: 'center', justifyContent: 'center', marginBottom: S.lg },
+  btnGoogleText:{ fontSize: F.size.base, fontWeight: F.weight.semibold, color: T.fg1 },
   registerRow:  { flexDirection: 'row', justifyContent: 'center' },
   registerText: { fontSize: F.size.base, color: T.fg3 },
   registerLink: { fontSize: F.size.base, color: T.purple, fontWeight: F.weight.bold },

@@ -1,8 +1,28 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { useState } from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
+import { signInWithGoogle } from '@/lib/auth/googleOAuth'
+import { mapAuthError } from '@/lib/auth/authErrors'
 import { T, F, S, R } from '@/lib/tokens'
 
 export default function Bienvenida() {
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true)
+    setError('')
+
+    try {
+      await signInWithGoogle()
+      router.replace('/')
+    } catch (err) {
+      setError(mapAuthError(err, 'Error al iniciar sesión con Google.'))
+    } finally {
+      setGoogleLoading(false)
+    }
+  }
+
   return (
     <View style={styles.root}>
 
@@ -27,6 +47,29 @@ export default function Bienvenida() {
 
       {/* BOTONES */}
       <View style={styles.btns}>
+        {error ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
+        <TouchableOpacity
+          style={[styles.btnGoogle, googleLoading && styles.btnDisabled]}
+          onPress={handleGoogleLogin}
+          disabled={googleLoading}
+        >
+          {googleLoading
+            ? <ActivityIndicator color={T.purple} />
+            : <Text style={styles.btnGoogleText}>Continuar con Google</Text>
+          }
+        </TouchableOpacity>
+
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>o</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
         <TouchableOpacity style={styles.btnPrimary} onPress={() => router.push('/auth/registro')}>
           <Text style={styles.btnPrimaryText}>Crear cuenta con email</Text>
         </TouchableOpacity>
@@ -65,7 +108,12 @@ const styles = StyleSheet.create({
   dot:             { width: 8, height: 8, borderRadius: R.full, backgroundColor: T.fg4 },
   dotActive:       { width: 24, backgroundColor: T.purple },
   btns:            { gap: S.md },
+  errorBox:        { backgroundColor: T.orangeSoft, borderWidth: 1, borderColor: T.orange, borderRadius: R.md, padding: S.md },
+  errorText:       { fontSize: F.size.sm, color: T.orange, fontWeight: F.weight.medium },
+  btnGoogle:       { height: 52, borderRadius: R.lg, backgroundColor: '#fff', borderWidth: 1.5, borderColor: T.border2, alignItems: 'center', justifyContent: 'center' },
+  btnGoogleText:   { fontSize: F.size.base, fontWeight: F.weight.semibold, color: T.fg1 },
   btnPrimary:      { height: 52, borderRadius: R.lg, backgroundColor: T.purple, alignItems: 'center', justifyContent: 'center', shadowColor: T.purple, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 6 },
+  btnDisabled:     { opacity: 0.65 },
   btnPrimaryText:  { fontSize: F.size.lg, fontWeight: F.weight.bold, color: '#fff' },
   divider:         { flexDirection: 'row', alignItems: 'center', gap: S.md },
   dividerLine:     { flex: 1, height: 1, backgroundColor: T.border },

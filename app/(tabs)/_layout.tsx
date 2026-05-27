@@ -1,8 +1,16 @@
 import { Tabs } from 'expo-router'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Compass, Ticket, Map, Users, User, MapPin } from 'lucide-react-native'
 import { T } from '@/lib/tokens'
 
+/** Altura base del contenido (iconos + etiquetas), sin barra del sistema */
+const TAB_BAR_CONTENT_HEIGHT = 52
+
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets()
+  const bottomInset = Math.max(insets.bottom, 8)
+  const paddingBottom = bottomInset + 8
+
   return (
     <Tabs
       screenOptions={{
@@ -12,9 +20,9 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: T.surface,
           borderTopColor: T.border,
-          height: 60,
-          paddingBottom: 8,
           paddingTop: 6,
+          paddingBottom,
+          height: TAB_BAR_CONTENT_HEIGHT + 6 + paddingBottom,
         },
         tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
       }}

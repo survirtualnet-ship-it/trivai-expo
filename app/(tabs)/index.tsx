@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   View, Text, ScrollView, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator, TextInput,
+  StyleSheet, ActivityIndicator, TextInput, Image,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
@@ -153,7 +153,13 @@ export default function Inicio() {
         {/* HEADER */}
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.logo}>trivai</Text>
+            <Image
+              source={require('../../assets/logo-trivai.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+              accessibilityRole="header"
+              accessibilityLabel="Trivai"
+            />
             <Text style={styles.fecha}>{fechaHoy()}</Text>
           </View>
           <TouchableOpacity style={styles.notifBtn}>
@@ -255,7 +261,7 @@ export default function Inicio() {
 const styles = StyleSheet.create({
   root:              { flex: 1, backgroundColor: T.bg },
   header:            { flexDirection: 'row', alignItems: 'center', paddingHorizontal: S.lg, paddingVertical: S.md, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
-  logo:              { fontSize: F.size.xxl, fontWeight: F.weight.bold, color: T.purple },
+  logoImage:         { height: 44, width: 170, alignSelf: 'flex-start', marginBottom: S.xs },
   fecha:             { fontSize: F.size.xs, color: T.fg3, marginTop: 2, textTransform: 'capitalize' },
   notifBtn:          { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.muted, alignItems: 'center', justifyContent: 'center' },
   section:           { padding: S.lg },
