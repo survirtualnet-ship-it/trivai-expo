@@ -21,6 +21,8 @@ export const T = {
   danger:      '#E1325A',
   dangerSoft:  '#FBE0E7',
   warning:     '#F2A91F',
+  greenInk:    '#166534',
+  orangeInk:   '#B45309',
 } as const
 
 // Fuentes (usar con fontWeight en lugar de importar fuentes externas)
