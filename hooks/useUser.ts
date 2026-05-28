@@ -10,7 +10,10 @@ export function useUser() {
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
-    const { data: { user: authUser } } = await supabase.auth.getUser()
+    // getSession() lee del caché local (sin red) — más fiable tras un OAuth redirect
+    const { data: { session } } = await supabase.auth.getSession()
+    const authUser = session?.user ?? null
+
     if (!authUser) {
       setUser(null)
       setProfile(null)

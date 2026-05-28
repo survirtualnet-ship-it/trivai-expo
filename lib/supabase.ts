@@ -6,14 +6,17 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl  = process.env.EXPO_PUBLIC_SUPABASE_URL!
 const supabaseKey  = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
 
+// En web usar localStorage nativo directamente para que PKCE funcione
+// (AsyncStorage añade una capa async que puede perder el code_verifier entre redirecciones)
+const webStorage = typeof window !== 'undefined' ? window.localStorage : undefined
+
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    // En web Supabase detecta el token del callback URL automáticamente
+    storage:           Platform.OS === 'web' ? (webStorage as any) : AsyncStorage,
+    autoRefreshToken:  true,
+    persistSession:    true,
     detectSessionInUrl: Platform.OS === 'web',
-    flowType: 'pkce',
+    flowType:          'pkce',
   },
 })
 
