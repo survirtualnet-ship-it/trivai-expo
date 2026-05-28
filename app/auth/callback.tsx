@@ -10,13 +10,28 @@ export default function AuthCallback() {
     const handle = async () => {
       if (typeof window === 'undefined') { router.replace('/'); return }
 
-      const url = window.location.href
-      const hasCode = url.includes('code=')
-      const hasToken = url.includes('access_token=')
+      // PKCE flow: Google returns ?code= in query string
+      const queryParams = new URLSearchParams(window.location.search)
+      const code = queryParams.get('code')
 
-      if (hasCode || hasToken) {
-        const { data } = await supabase.auth.exchangeCodeForSession(url)
-        if (data?.user) await ensureProfile(data.user)
+      if (code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(window.location.href)
+        if (!error && data?.user) await ensureProfile(data.user)
+        router.replace('/')
+        return
+      }
+
+      // Implicit flow: Supabase returns #access_token= in hash fragment
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
+      const accessToken  = hashParams.get('access_token')
+      const refreshToken = hashParams.get('refresh_token')
+
+      if (accessToken && refreshToken) {
+        const { data, error } = await supabase.auth.setSession({
+          access_token:  accessToken,
+          refresh_token: refreshToken,
+        })
+        if (!error && data?.user) await ensureProfile(data.user)
       }
 
       router.replace('/')
