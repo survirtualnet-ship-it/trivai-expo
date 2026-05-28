@@ -8,7 +8,7 @@ import { router } from 'expo-router'
 import {
   LogOut, Settings, Share2, Pencil, Camera, BadgeCheck,
   MapPin, Star, Heart, Ticket, Bell, Store, Calendar, Bookmark, Users,
-  ChevronRight, User,
+  ChevronRight,
 } from 'lucide-react-native'
 import { useUser } from '@/hooks/useUser'
 import { supabase } from '@/lib/supabase'
@@ -65,83 +65,73 @@ export default function Perfil() {
     return <View style={styles.center}><ActivityIndicator color={T.purple} size="large" /></View>
   }
 
-  if (!isAuthenticated) {
-    return (
-      <SafeAreaView style={styles.root} edges={['top']}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Perfil</Text>
-        </View>
-        <View style={styles.guestWrap}>
-          <View style={styles.guestIcon}><User size={40} color={T.fg4} /></View>
-          <Text style={styles.guestTitle}>¡Únete a Trivai!</Text>
-          <Text style={styles.guestSub}>
-            Inicia sesión para guardar tus lugares favoritos, dejar reseñas y conectar con amigos.
-          </Text>
-          <TouchableOpacity style={styles.btnPrimary} onPress={() => router.push('/auth')}>
-            <Text style={styles.btnPrimaryText}>Iniciar sesión</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.btnSecondary} onPress={() => router.push('/auth/registro')}>
-            <Text style={styles.btnSecondaryText}>Crear cuenta gratis</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    )
-  }
-
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
 
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/perfil/configuracion')}>
-          <Settings size={20} color={T.fg1} strokeWidth={1.75} />
-        </TouchableOpacity>
-        <View style={{ flexDirection: 'row', gap: S.sm }}>
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => Share.share({ title: 'Trivai', message: 'Descubre Santa Cruz con Trivai 🌆' })}
-          >
-            <Share2 size={18} color={T.fg1} strokeWidth={1.75} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/perfil/editar')}>
-            <Pencil size={18} color={T.fg1} strokeWidth={1.75} />
-          </TouchableOpacity>
-        </View>
+        {isAuthenticated
+          ? <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/perfil/configuracion')}>
+              <Settings size={20} color={T.fg1} strokeWidth={1.75} />
+            </TouchableOpacity>
+          : <View style={{ width: 36 }} />
+        }
+        {isAuthenticated && (
+          <View style={{ flexDirection: 'row', gap: S.sm }}>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => Share.share({ title: 'Trivai', message: 'Descubre Santa Cruz con Trivai 🌆' })}
+            >
+              <Share2 size={18} color={T.fg1} strokeWidth={1.75} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/perfil/editar')}>
+              <Pencil size={18} color={T.fg1} strokeWidth={1.75} />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
-        {/* HERO — layout horizontal igual que web */}
+        {/* BANNER solo si no hay sesión */}
+        {!isAuthenticated && (
+          <TouchableOpacity style={styles.loginBanner} onPress={() => router.push('/auth')}>
+            <User size={16} color={T.purple} />
+            <Text style={styles.loginBannerText}>Inicia sesión para personalizar tu perfil</Text>
+            <ChevronRight size={16} color={T.purple} />
+          </TouchableOpacity>
+        )}
+
+        {/* HERO */}
         <View style={styles.hero}>
-          <TouchableOpacity style={{ position: 'relative' }} onPress={() => router.push('/perfil/editar')}>
+          <TouchableOpacity
+            style={{ position: 'relative' }}
+            onPress={() => isAuthenticated && router.push('/perfil/editar')}
+          >
             {avatarUrl
               ? <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
-              : (
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{initials}</Text>
-                </View>
-              )
+              : <View style={styles.avatar}><Text style={styles.avatarText}>{initials}</Text></View>
             }
-            <View style={styles.cameraBtn}>
-              <Camera size={13} color={T.purple} strokeWidth={2} />
-            </View>
+            {isAuthenticated && (
+              <View style={styles.cameraBtn}>
+                <Camera size={13} color={T.purple} strokeWidth={2} />
+              </View>
+            )}
           </TouchableOpacity>
 
           <View style={{ flex: 1, minWidth: 0 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
               <Text style={styles.name} numberOfLines={1}>{displayName}</Text>
-              <BadgeCheck size={18} color={T.purple} fill={T.purple} strokeWidth={0} />
+              {isAuthenticated && <BadgeCheck size={18} color={T.purple} fill={T.purple} strokeWidth={0} />}
             </View>
             <Text style={styles.username}>@{profile?.username || 'usuario'}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
               <MapPin size={13} color={T.fg2} strokeWidth={1.5} />
               <Text style={styles.city}>{profile?.city || 'Santa Cruz, Bolivia'}</Text>
             </View>
-            {profile?.bio ? (
-              <Text style={styles.bio} numberOfLines={3}>{profile.bio}</Text>
-            ) : (
-              <Text style={styles.bio}>Amante de la música, el arte y los buenos planes. 💜</Text>
-            )}
+            <Text style={styles.bio} numberOfLines={3}>
+              {profile?.bio || 'Amante de la música, el arte y los buenos planes. 💜'}
+            </Text>
           </View>
         </View>
 
@@ -151,7 +141,7 @@ export default function Perfil() {
             <TouchableOpacity
               key={s.key}
               style={[styles.statTile, i < STAT_TILES.length - 1 && styles.statTileBorder]}
-              onPress={() => router.push(s.href as any)}
+              onPress={() => isAuthenticated && router.push(s.href as any)}
             >
               <View style={[styles.statIcon, { backgroundColor: s.bg }]}>
                 <s.Icon size={16} color={s.fg} strokeWidth={2} />
@@ -171,10 +161,10 @@ export default function Perfil() {
             <Text style={styles.xpTitle}>Nivel Explorador</Text>
             <Text style={styles.xpSub}>Sigue descubriendo y sumando experiencias</Text>
             <View style={styles.xpBarBg}>
-              <View style={[styles.xpBar, { width: `${Math.min((profile?.xp_points ?? 750) / 10, 100)}%` as any }]} />
+              <View style={[styles.xpBar, { width: `${Math.min((profile?.xp_points ?? 0) / 10, 100)}%` as any }]} />
             </View>
           </View>
-          <Text style={styles.xpPoints}>{profile?.xp_points ?? 750} / 1k XP</Text>
+          <Text style={styles.xpPoints}>{profile?.xp_points ?? 0} / 1k XP</Text>
         </TouchableOpacity>
 
         {/* MIS FAVORITOS */}
@@ -248,32 +238,45 @@ export default function Perfil() {
           </TouchableOpacity>
         )}
 
-        {/* OPCIONES */}
-        <View style={styles.opcionesCard}>
-          {OPCIONES.map((op, idx) => (
-            <TouchableOpacity
-              key={op.label}
-              style={[styles.opcionRow, idx < OPCIONES.length - 1 && styles.opcionBorder]}
-              onPress={() => router.push(op.href as any)}
-            >
-              <View style={[styles.opcionIcon, { backgroundColor: op.bg }]}>
-                <op.Icon size={16} color={op.fg} strokeWidth={2} />
-              </View>
-              <Text style={styles.opcionLabel}>{op.label}</Text>
-              <ChevronRight size={18} color={T.fg3} strokeWidth={1.5} />
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* OPCIONES (solo si hay sesión) */}
+        {isAuthenticated && (
+          <View style={styles.opcionesCard}>
+            {OPCIONES.map((op, idx) => (
+              <TouchableOpacity
+                key={op.label}
+                style={[styles.opcionRow, idx < OPCIONES.length - 1 && styles.opcionBorder]}
+                onPress={() => router.push(op.href as any)}
+              >
+                <View style={[styles.opcionIcon, { backgroundColor: op.bg }]}>
+                  <op.Icon size={16} color={op.fg} strokeWidth={2} />
+                </View>
+                <Text style={styles.opcionLabel}>{op.label}</Text>
+                <ChevronRight size={18} color={T.fg3} strokeWidth={1.5} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
-        {/* CERRAR SESIÓN */}
+        {/* CERRAR SESIÓN / INICIAR SESIÓN */}
         <View style={styles.logoutWrap}>
-          <TouchableOpacity
-            style={styles.logoutBtn}
-            onPress={async () => { await signOut(); router.replace('/auth') }}
-          >
-            <Text style={{ fontSize: 18 }}>🚪</Text>
-            <Text style={styles.logoutText}>Cerrar sesión</Text>
-          </TouchableOpacity>
+          {isAuthenticated
+            ? (
+              <TouchableOpacity
+                style={styles.logoutBtn}
+                onPress={async () => { await signOut(); router.replace('/') }}
+              >
+                <Text style={{ fontSize: 18 }}>🚪</Text>
+                <Text style={styles.logoutText}>Cerrar sesión</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.loginBtn}
+                onPress={() => router.push('/auth')}
+              >
+                <Text style={styles.loginBtnText}>Iniciar sesión</Text>
+              </TouchableOpacity>
+            )
+          }
         </View>
 
       </ScrollView>
@@ -286,17 +289,10 @@ const styles = StyleSheet.create({
   center:         { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: T.bg },
   // Header
   header:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.sm, borderBottomWidth: 1, borderBottomColor: T.border },
-  headerTitle:    { fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.fg1 },
   iconBtn:        { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center' },
-  // Guest
-  guestWrap:      { flex: 1, alignItems: 'center', justifyContent: 'center', padding: S.xl, gap: S.md },
-  guestIcon:      { width: 80, height: 80, borderRadius: 40, backgroundColor: T.muted, alignItems: 'center', justifyContent: 'center', marginBottom: S.md },
-  guestTitle:     { fontSize: F.size.xxl, fontWeight: F.weight.bold, color: T.fg1, textAlign: 'center' },
-  guestSub:       { fontSize: F.size.base, color: T.fg3, textAlign: 'center', lineHeight: 22, maxWidth: 300, marginBottom: S.md },
-  btnPrimary:     { width: '100%', height: 52, borderRadius: R.lg, backgroundColor: T.purple, alignItems: 'center', justifyContent: 'center' },
-  btnPrimaryText: { fontSize: F.size.lg, fontWeight: F.weight.bold, color: '#fff' },
-  btnSecondary:   { width: '100%', height: 52, borderRadius: R.lg, borderWidth: 2, borderColor: T.purple, alignItems: 'center', justifyContent: 'center' },
-  btnSecondaryText:{ fontSize: F.size.lg, fontWeight: F.weight.bold, color: T.purple },
+  // Banner login
+  loginBanner:    { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.purpleSoft, paddingHorizontal: S.lg, paddingVertical: S.md },
+  loginBannerText:{ flex: 1, fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold },
   // Hero
   hero:           { flexDirection: 'row', alignItems: 'flex-start', gap: S.md, padding: S.md, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
   avatarImg:      { width: 104, height: 104, borderRadius: 52 },
@@ -347,8 +343,10 @@ const styles = StyleSheet.create({
   opcionBorder:   { borderBottomWidth: 1, borderBottomColor: T.border },
   opcionIcon:     { width: 32, height: 32, borderRadius: R.sm, alignItems: 'center', justifyContent: 'center' },
   opcionLabel:    { flex: 1, fontSize: F.size.md, fontWeight: F.weight.semibold, color: T.fg1 },
-  // Logout
-  logoutWrap:     { marginHorizontal: S.lg, marginTop: S.md },
-  logoutBtn:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: S.sm, paddingVertical: S.md, borderRadius: R.lg, borderWidth: 1, borderColor: T.dangerSoft, backgroundColor: T.dangerSoft },
-  logoutText:     { fontSize: F.size.md, color: T.danger, fontWeight: F.weight.semibold },
+  // Logout / Login
+  logoutWrap:      { marginHorizontal: S.lg, marginTop: S.md },
+  logoutBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: S.sm, paddingVertical: S.md, borderRadius: R.lg, borderWidth: 1, borderColor: T.dangerSoft, backgroundColor: T.dangerSoft },
+  logoutText:      { fontSize: F.size.md, color: T.danger, fontWeight: F.weight.semibold },
+  loginBtn:        { height: 52, borderRadius: R.lg, backgroundColor: T.purple, alignItems: 'center', justifyContent: 'center' },
+  loginBtnText:    { fontSize: F.size.md, fontWeight: F.weight.bold, color: '#fff' },
 })
