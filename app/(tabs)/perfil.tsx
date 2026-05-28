@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import {
-  LogOut, Settings, Share2, Pencil, Camera, BadgeCheck,
+  Settings, Share2, Pencil, Camera, BadgeCheck, User,
   MapPin, Star, Heart, Ticket, Bell, Store, Calendar, Bookmark, Users,
   ChevronRight,
 } from 'lucide-react-native'
