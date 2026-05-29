@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useFocusEffect } from 'expo-router'
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   ActivityIndicator, Image, Share,
@@ -28,10 +29,17 @@ const OPCIONES = [
 ] as const
 
 export default function Perfil() {
-  const { profile, user, loading, isAuthenticated, displayName, initials, avatarUrl, isBusiness, signOut } = useUser()
+  const { profile, user, loading, isAuthenticated, displayName, initials, avatarUrl, isBusiness, signOut, refreshProfile } = useUser()
   const [stats,   setStats]   = useState({ eventos: 0, lugares: 0, amigos: 0, resenas: 0 })
   const [favs,    setFavs]    = useState<any[]>([])
   const [resenas, setResenas] = useState<any[]>([])
+
+  // Refresca la sesión cada vez que el tab gana foco
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile()
+    }, [refreshProfile])
+  )
 
   useEffect(() => {
     const userId = profile?.id ?? user?.id
