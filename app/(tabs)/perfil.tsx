@@ -257,27 +257,18 @@ export default function Perfil() {
           </View>
         )}
 
-        {/* CERRAR SESIÓN / INICIAR SESIÓN */}
-        <View style={styles.logoutWrap}>
-          {isAuthenticated
-            ? (
-              <TouchableOpacity
-                style={styles.logoutBtn}
-                onPress={async () => { await signOut(); router.replace('/') }}
-              >
-                <Text style={{ fontSize: 18 }}>🚪</Text>
-                <Text style={styles.logoutText}>Cerrar sesión</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.loginBtn}
-                onPress={() => router.push('/auth')}
-              >
-                <Text style={styles.loginBtnText}>Iniciar sesión</Text>
-              </TouchableOpacity>
-            )
-          }
-        </View>
+        {/* CERRAR SESIÓN */}
+        {isAuthenticated && (
+          <View style={styles.logoutWrap}>
+            <TouchableOpacity
+              style={styles.logoutBtn}
+              onPress={async () => { await signOut(); router.replace('/') }}
+            >
+              <Text style={{ fontSize: 18 }}>🚪</Text>
+              <Text style={styles.logoutText}>Cerrar sesión</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
       </ScrollView>
     </SafeAreaView>
@@ -343,10 +334,8 @@ const styles = StyleSheet.create({
   opcionBorder:   { borderBottomWidth: 1, borderBottomColor: T.border },
   opcionIcon:     { width: 32, height: 32, borderRadius: R.sm, alignItems: 'center', justifyContent: 'center' },
   opcionLabel:    { flex: 1, fontSize: F.size.md, fontWeight: F.weight.semibold, color: T.fg1 },
-  // Logout / Login
+  // Logout
   logoutWrap:      { marginHorizontal: S.lg, marginTop: S.md },
   logoutBtn:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: S.sm, paddingVertical: S.md, borderRadius: R.lg, borderWidth: 1, borderColor: T.dangerSoft, backgroundColor: T.dangerSoft },
   logoutText:      { fontSize: F.size.md, color: T.danger, fontWeight: F.weight.semibold },
-  loginBtn:        { height: 52, borderRadius: R.lg, backgroundColor: T.purple, alignItems: 'center', justifyContent: 'center' },
-  loginBtnText:    { fontSize: F.size.md, fontWeight: F.weight.bold, color: '#fff' },
 })
