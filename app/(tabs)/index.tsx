@@ -136,56 +136,63 @@ export default function Inicio() {
   const [eventos,   setEventos]   = useState<Event[]>([])
   const [actividad, setActividad] = useState<ActividadAmigo[]>([])
   const [loading,   setLoading]   = useState(true)
+  const [sinLeer,   setSinLeer]   = useState(0)
 
   useEffect(() => {
     const fetch = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       const user = session?.user ?? null
 
-      const queries: Promise<any>[] = [
+      const baseQueries: Promise<any>[] = [
         supabase.from('places').select('id,name,category,address,rating_avg,is_open')
-          .eq('is_open', true).order('rating_avg', { ascending: false }).limit(6),
+          .not('latitude', 'is', null).order('rating_avg', { ascending: false }).limit(6),
         supabase.from('events').select('id,name,category,start_datetime,is_free,price,place:places(name)')
           .eq('is_active', true).gte('start_datetime', new Date().toISOString())
           .order('start_datetime', { ascending: true }).limit(6),
       ]
 
       if (user) {
-        queries.push(
-          supabase.from('friendships')
-            .select('friend_id')
-            .eq('user_id', user.id)
-            .eq('status', 'accepted')
+        baseQueries.push(
+          supabase.from('friendships').select('friend_id').eq('user_id', user.id).eq('status', 'accepted'),
+          supabase.from('friendships').select('user_id').eq('friend_id', user.id).eq('status', 'accepted'),
+          supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false)
         )
       }
 
-      const [{ data: lug }, { data: evt }, friendsResult] = await Promise.all(queries)
-      if (lug) setLugares(lug)
-      if (evt) setEventos(evt as Event[])
+      const results = await Promise.all(baseQueries)
+      const [lugRes, evtRes, f1Res, f2Res, notifRes] = results
 
-      if (friendsResult?.data?.length) {
-        const friendIds = (friendsResult.data as any[]).map((f: any) => f.friend_id)
-        const { data: asistencias } = await supabase
-          .from('event_attendees')
-          .select('event:events(id,name), profile:profiles(full_name,username)')
-          .in('user_id', friendIds)
-          .eq('status', 'going')
-          .limit(5)
-        if (asistencias) {
-          const COLORES = [T.purpleSoft, T.orangeSoft, T.greenSoft, T.muted]
-          setActividad((asistencias as any[])
-            .filter(a => a.event?.id && a.profile?.full_name)
-            .map((a, i) => ({
-              id:     a.event.id + i,
-              quien:  a.profile.full_name.split(' ')[0],
-              ini:    a.profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
-              accion: 'asistirá a',
-              nombre: a.event.name,
-              tipo:   'evento' as const,
-              href:   `/eventos/${a.event.id}`,
-              color:  COLORES[i % 4],
-            }))
-          )
+      if (lugRes?.data) setLugares(lugRes.data)
+      if (evtRes?.data) setEventos(evtRes.data as Event[])
+      if (notifRes?.count) setSinLeer(notifRes.count)
+
+      if (user && (f1Res?.data?.length || f2Res?.data?.length)) {
+        const ids1 = (f1Res?.data ?? []).map((f: any) => f.friend_id)
+        const ids2 = (f2Res?.data ?? []).map((f: any) => f.user_id)
+        const friendIds = [...new Set([...ids1, ...ids2])]
+        if (friendIds.length > 0) {
+          const { data: asistencias } = await supabase
+            .from('event_attendees')
+            .select('event:events(id,name), profile:profiles(full_name,username)')
+            .in('user_id', friendIds)
+            .eq('status', 'going')
+            .limit(5)
+          if (asistencias) {
+            const COLORES = [T.purpleSoft, T.orangeSoft, T.greenSoft, T.muted]
+            setActividad((asistencias as any[])
+              .filter(a => a.event?.id && a.profile?.full_name)
+              .map((a, i) => ({
+                id:     a.event.id + i,
+                quien:  a.profile.full_name.split(' ')[0],
+                ini:    a.profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+                accion: 'asistirá a',
+                nombre: a.event.name,
+                tipo:   'evento' as const,
+                href:   `/eventos/${a.event.id}`,
+                color:  COLORES[i % 4],
+              }))
+            )
+          }
         }
       }
 
@@ -345,7 +352,9 @@ const styles = StyleSheet.create({
   header:            { flexDirection: 'row', alignItems: 'center', paddingHorizontal: S.lg, paddingVertical: S.md, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
   logoImage:         { height: 44, width: 170, alignSelf: 'flex-start', marginBottom: S.xs },
   fecha:             { fontSize: F.size.xs, color: T.fg3, marginTop: 2, textTransform: 'capitalize' },
-  notifBtn:          { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.muted, alignItems: 'center', justifyContent: 'center' },
+  notifBtn:          { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.muted, alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'visible' },
+  notifBadge:        { position: 'absolute', top: -4, right: -4, backgroundColor: T.danger, borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  notifBadgeText:    { fontSize: 9, fontWeight: F.weight.bold, color: '#fff' },
   section:           { padding: S.lg },
   saludo:            { fontSize: F.size.h1, fontWeight: F.weight.bold, color: T.fg1, letterSpacing: -0.5 },
   subSaludo:         { fontSize: F.size.md, color: T.fg2, marginTop: 4, marginBottom: S.md },
