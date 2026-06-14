@@ -139,7 +139,8 @@ export default function Inicio() {
 
   useEffect(() => {
     const fetch = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user ?? null
 
       const queries: Promise<any>[] = [
         supabase.from('places').select('id,name,category,address,rating_avg,is_open')

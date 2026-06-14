@@ -5,36 +5,35 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { ArrowLeft, Calendar, MapPin, DollarSign, AlignLeft } from 'lucide-react-native'
+import { ArrowLeft, Calendar, MapPin, DollarSign, AlignLeft, CheckCircle } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R } from '@/lib/tokens'
+import { grantXP, XP } from '@/lib/xp'
 
 const CATEGORIAS = [
   'Música', 'Arte', 'Gastronomía', 'Deportes',
   'Entretenimiento', 'Cultura', 'Naturaleza', 'Social',
 ]
 
-function Campo({
-  label, value, onChangeText, placeholder, multiline = false, required = false, keyboardType = 'default',
-}: {
+const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+
+function Campo({ label, value, onChangeText, placeholder, multiline = false, required = false, keyboardType = 'default' }: {
   label: string; value: string; onChangeText: (v: string) => void
   placeholder: string; multiline?: boolean; required?: boolean; keyboardType?: any
 }) {
   const [focused, setFocused] = useState(false)
   return (
     <View style={c.campo}>
-      {label ? (
-        <Text style={c.campoLabel}>
-          {label}{required && <Text style={{ color: T.orange }}> *</Text>}
-        </Text>
-      ) : null}
+      <Text style={c.campoLabel}>
+        {label}{required && <Text style={{ color: T.orange }}> *</Text>}
+      </Text>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={T.fg4}
         multiline={multiline}
-        numberOfLines={multiline ? 3 : 1}
+        numberOfLines={multiline ? 4 : 1}
         keyboardType={keyboardType}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
@@ -44,7 +43,37 @@ function Campo({
   )
 }
 
+// Formatea texto DD/MM/AAAA mientras el usuario escribe
+function formatFechaInput(raw: string) {
+  const nums = raw.replace(/\D/g, '').slice(0, 8)
+  if (nums.length <= 2) return nums
+  if (nums.length <= 4) return `${nums.slice(0,2)}/${nums.slice(2)}`
+  return `${nums.slice(0,2)}/${nums.slice(2,4)}/${nums.slice(4)}`
+}
+
+// Convierte DD/MM/AAAA → AAAA-MM-DD para Supabase
+function toISODate(display: string): string | null {
+  const parts = display.split('/')
+  if (parts.length !== 3 || parts[2].length !== 4) return null
+  const [d, m, y] = parts
+  const date = new Date(`${y}-${m}-${d}`)
+  if (isNaN(date.getTime())) return null
+  return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`
+}
+
+// Formatea HH:MM mientras el usuario escribe
+function formatHoraInput(raw: string) {
+  const nums = raw.replace(/\D/g, '').slice(0, 4)
+  if (nums.length <= 2) return nums
+  return `${nums.slice(0,2)}:${nums.slice(2)}`
+}
+
 export default function CrearEvento() {
+  const hoy = new Date()
+  const diaHoy = String(hoy.getDate()).padStart(2,'0')
+  const mesHoy = String(hoy.getMonth()+1).padStart(2,'0')
+  const anoHoy = String(hoy.getFullYear())
+
   const [nombre,      setNombre]      = useState('')
   const [categoria,   setCategoria]   = useState('')
   const [fecha,       setFecha]       = useState('')
@@ -58,23 +87,38 @@ export default function CrearEvento() {
   const [exito,       setExito]       = useState(false)
 
   const handleGuardar = async () => {
-    if (!nombre.trim() || !categoria || !fecha.trim() || !hora.trim()) {
-      setError('Completa los campos obligatorios: nombre, categoría, fecha y hora.')
-      return
+    if (!nombre.trim()) { setError('El nombre del evento es obligatorio.'); return }
+    if (!categoria)      { setError('Selecciona una categoría.'); return }
+    if (!fecha.trim())   { setError('La fecha es obligatoria (DD/MM/AAAA).'); return }
+    if (!hora.trim())    { setError('La hora es obligatoria (HH:MM).'); return }
+
+    const isoDate = toISODate(fecha)
+    if (!isoDate) { setError('La fecha no es válida. Usa el formato DD/MM/AAAA.'); return }
+
+    const [hh, mm] = hora.split(':').map(Number)
+    if (isNaN(hh) || isNaN(mm) || hh > 23 || mm > 59) {
+      setError('La hora no es válida. Usa el formato HH:MM (ej: 20:00).'); return
     }
+
     setGuardando(true); setError(null)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setError('Debes iniciar sesión.'); setGuardando(false); return }
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) { setError('Debes iniciar sesión para publicar eventos.'); setGuardando(false); return }
 
-    const startDatetime = new Date(`${fecha}T${hora}:00`).toISOString()
+    const startDatetime = new Date(`${isoDate}T${hora}:00`).toISOString()
+
+    // Incluir el lugar en la descripción si se escribió
+    const descFinal = [
+      lugar.trim() ? `📍 ${lugar.trim()}` : null,
+      descripcion.trim() || null,
+    ].filter(Boolean).join('\n\n') || null
 
     const { error: err } = await supabase.from('events').insert({
       name:            nombre.trim(),
       category:        categoria,
       start_datetime:  startDatetime,
-      description:     descripcion.trim() || null,
-      location:        lugar.trim() || 'Santa Cruz',
+      description:     descFinal,
+      place_id:        null,
       is_free:         esGratis,
       price:           esGratis ? 0 : Number(precio) || 0,
       is_featured:     false,
@@ -84,15 +128,16 @@ export default function CrearEvento() {
     })
 
     setGuardando(false)
-    if (err) { setError(`Error: ${err.message}`); return }
+    if (err) { setError(`Error al publicar: ${err.message}`); return }
+    grantXP(session.user.id, XP.evento)
     setExito(true)
-    setTimeout(() => router.replace('/eventos'), 1500)
+    setTimeout(() => router.replace('/eventos'), 2000)
   }
 
   if (exito) {
     return (
       <View style={c.exitoContainer}>
-        <View style={c.exitoIcon}><Text style={{ fontSize: 32 }}>✓</Text></View>
+        <CheckCircle size={64} color={T.green} strokeWidth={1.5} />
         <Text style={c.exitoTitle}>¡Evento publicado!</Text>
         <Text style={c.exitoSub}>Ya aparece en el listado de eventos</Text>
       </View>
@@ -110,9 +155,15 @@ export default function CrearEvento() {
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={{ padding: S.lg }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ padding: S.lg, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
 
-          <Campo label="Nombre del evento" value={nombre} onChangeText={setNombre} placeholder="Ej: Festival de Jazz" required />
+          <Campo
+            label="Nombre del evento"
+            value={nombre}
+            onChangeText={setNombre}
+            placeholder="Ej: Festival de Jazz, Feria artesanal..."
+            required
+          />
 
           {/* Categoría */}
           <View style={c.campo}>
@@ -137,20 +188,30 @@ export default function CrearEvento() {
               <Text style={c.campoLabel}>Fecha y hora <Text style={{ color: T.orange }}>*</Text></Text>
             </View>
             <View style={{ flexDirection: 'row', gap: S.sm }}>
-              <TextInput
-                value={fecha}
-                onChangeText={setFecha}
-                placeholder="AAAA-MM-DD"
-                placeholderTextColor={T.fg4}
-                style={[c.campoInput, { flex: 2 }]}
-              />
-              <TextInput
-                value={hora}
-                onChangeText={setHora}
-                placeholder="HH:MM"
-                placeholderTextColor={T.fg4}
-                style={[c.campoInput, { flex: 1 }]}
-              />
+              <View style={{ flex: 2 }}>
+                <TextInput
+                  value={fecha}
+                  onChangeText={v => setFecha(formatFechaInput(v))}
+                  placeholder={`${diaHoy}/${mesHoy}/${anoHoy}`}
+                  placeholderTextColor={T.fg4}
+                  keyboardType="number-pad"
+                  maxLength={10}
+                  style={c.campoInput}
+                />
+                <Text style={c.campoHint}>DD/MM/AAAA</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <TextInput
+                  value={hora}
+                  onChangeText={v => setHora(formatHoraInput(v))}
+                  placeholder="20:00"
+                  placeholderTextColor={T.fg4}
+                  keyboardType="number-pad"
+                  maxLength={5}
+                  style={c.campoInput}
+                />
+                <Text style={c.campoHint}>HH:MM</Text>
+              </View>
             </View>
           </View>
 
@@ -163,7 +224,7 @@ export default function CrearEvento() {
             <TextInput
               value={lugar}
               onChangeText={setLugar}
-              placeholder="Ej: Teatro Municipal, Parque El Arenal"
+              placeholder="Ej: Teatro Municipal, Parque El Arenal, Equipetrol"
               placeholderTextColor={T.fg4}
               style={c.campoInput}
             />
@@ -178,10 +239,10 @@ export default function CrearEvento() {
             <TextInput
               value={descripcion}
               onChangeText={setDescripcion}
-              placeholder="Describe el evento, artistas, actividades..."
+              placeholder="Describe el evento: artistas, actividades, qué incluye..."
               placeholderTextColor={T.fg4}
               multiline
-              numberOfLines={3}
+              numberOfLines={4}
               style={[c.campoInput, c.campoInputMulti]}
             />
           </View>
@@ -210,10 +271,10 @@ export default function CrearEvento() {
               <TextInput
                 value={precio}
                 onChangeText={setPrecio}
-                placeholder="Precio en Bs."
+                placeholder="Precio en Bolivianos (Bs.)"
                 placeholderTextColor={T.fg4}
                 keyboardType="numeric"
-                style={c.campoInput}
+                style={[c.campoInput, { marginTop: S.sm }]}
               />
             )}
           </View>
@@ -250,8 +311,9 @@ const c = StyleSheet.create({
   campoLabelRow:     { flexDirection: 'row', alignItems: 'center', gap: S.xs, marginBottom: S.sm },
   campoLabel:        { fontSize: F.size.xs, fontWeight: F.weight.bold, color: T.fg2, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: S.sm },
   campoInput:        { backgroundColor: T.muted, borderWidth: 1.5, borderColor: T.border, borderRadius: R.md, paddingHorizontal: S.md, paddingVertical: S.sm + 2, fontSize: F.size.md, color: T.fg1 },
-  campoInputMulti:   { height: 88, textAlignVertical: 'top', paddingTop: S.sm },
+  campoInputMulti:   { height: 100, textAlignVertical: 'top', paddingTop: S.sm },
   campoInputFocused: { borderColor: T.purple },
+  campoHint:         { fontSize: F.size.xs, color: T.fg4, marginTop: 4 },
   chips:             { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
   chip:              { paddingHorizontal: S.md, paddingVertical: S.xs + 2, borderRadius: R.full, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border },
   chipActive:        { backgroundColor: T.orange, borderColor: T.orange },
@@ -263,11 +325,10 @@ const c = StyleSheet.create({
   precioBtnText:     { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg2 },
   errorBox:          { backgroundColor: T.dangerSoft, borderRadius: R.md, padding: S.md, marginBottom: S.md },
   errorText:         { fontSize: F.size.sm, color: T.danger },
-  submitBtn:         { height: 52, borderRadius: R.full, backgroundColor: T.orange, alignItems: 'center', justifyContent: 'center', marginBottom: S.lg },
+  submitBtn:         { height: 52, borderRadius: R.full, backgroundColor: T.orange, alignItems: 'center', justifyContent: 'center', marginTop: S.sm },
   submitBtnDisabled: { backgroundColor: T.fg4 },
   submitBtnText:     { fontSize: F.size.lg, fontWeight: F.weight.bold, color: '#fff' },
   exitoContainer:    { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: T.bg, gap: S.md },
-  exitoIcon:         { width: 72, height: 72, borderRadius: 36, backgroundColor: T.greenSoft, alignItems: 'center', justifyContent: 'center' },
   exitoTitle:        { fontSize: F.size.xxl, fontWeight: F.weight.bold, color: T.fg1 },
   exitoSub:          { fontSize: F.size.md, color: T.fg2 },
 })

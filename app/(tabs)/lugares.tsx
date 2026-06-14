@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import {
   View, Text, ScrollView, FlatList, TouchableOpacity,
   StyleSheet, ActivityIndicator, TextInput,
@@ -32,14 +32,16 @@ const ZONAS = [
 ]
 
 export default function Lugares() {
-  const [lugares,   setLugares]   = useState<Place[]>([])
-  const [loading,   setLoading]   = useState(true)
-  const [cat,       setCat]       = useState('Todos')
-  const [busqueda,  setBusqueda]  = useState('')
-  const [buscando,  setBuscando]  = useState(false)
+  const [lugares,       setLugares]       = useState<Place[]>([])
+  const [searchResults, setSearchResults] = useState<Place[]>([])
+  const [loading,       setLoading]       = useState(true)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [cat,           setCat]           = useState('Todos')
+  const [busqueda,      setBusqueda]      = useState('')
+  const [buscando,      setBuscando]      = useState(false)
 
   useEffect(() => {
-    const fetch = async () => {
+    const load = async () => {
       setLoading(true)
       let q = supabase.from('places')
         .select('id,name,category,address,rating_avg,rating_count,is_open')
@@ -62,12 +64,30 @@ export default function Lugares() {
       if (data) setLugares(data)
       setLoading(false)
     }
-    fetch()
+    load()
   }, [cat])
 
-  const filtrados = busqueda.trim().length >= 2
-    ? lugares.filter(l => l.name.toLowerCase().includes(busqueda.toLowerCase()))
-    : lugares
+  // Búsqueda directa en Supabase (debounced)
+  useEffect(() => {
+    const term = busqueda.trim()
+    if (term.length < 2) { setSearchResults([]); return }
+
+    setSearchLoading(true)
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from('places')
+        .select('id,name,category,address,rating_avg,rating_count,is_open')
+        .ilike('name', `%${term}%`)
+        .order('rating_avg', { ascending: false })
+        .limit(40)
+      if (data) setSearchResults(data)
+      setSearchLoading(false)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [busqueda])
+
+  const filtrados = busqueda.trim().length >= 2 ? searchResults : lugares
 
   const destacados = filtrados.slice(0, 5)
   const resto      = filtrados.slice(5)
@@ -127,7 +147,7 @@ export default function Lugares() {
           <Text style={styles.chevron}>›</Text>
         </View>
 
-        {loading ? (
+        {loading || searchLoading ? (
           <ActivityIndicator color={T.purple} style={{ marginTop: 40 }} />
         ) : filtrados.length === 0 ? (
           <View style={styles.empty}>
@@ -161,7 +181,7 @@ export default function Lugares() {
               <>
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Explorar por zona</Text>
-                  <TouchableOpacity onPress={() => router.push('/mapa')}>
+                  <TouchableOpacity onPress={() => router.push(`/mapa`)}>
                     <Text style={styles.sectionAction}>Ver mapa</Text>
                   </TouchableOpacity>
                 </View>
@@ -169,7 +189,7 @@ export default function Lugares() {
                   contentContainerStyle={{ paddingHorizontal: S.lg, gap: 10 }}>
                   {ZONAS.map(z => (
                     <TouchableOpacity key={z.nombre} style={[styles.zonaCard, { backgroundColor: z.color }]}
-                      onPress={() => router.push('/mapa')}>
+                      onPress={() => router.push(`/mapa?lat=${z.lat}&lng=${z.lng}&zona=${encodeURIComponent(z.nombre)}`)}>
                       <Text style={styles.zonaEmoji}>{z.emoji}</Text>
                       <Text style={styles.zonaNombre}>{z.nombre}</Text>
                     </TouchableOpacity>

@@ -52,7 +52,8 @@ export default function EditarPerfil() {
     setSubiendoFoto(true)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user ?? null
       if (!user) throw new Error('Sesión no válida')
 
       const publicUrl = await uploadAvatarFromUri(user.id, uri)
@@ -73,7 +74,8 @@ export default function EditarPerfil() {
 
   const guardar = async () => {
     setGuardando(true)
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user ?? null
     if (!user) { setGuardando(false); return }
 
     const { error } = await supabase.from('profiles').update({

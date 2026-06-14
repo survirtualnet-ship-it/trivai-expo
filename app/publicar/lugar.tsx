@@ -8,6 +8,7 @@ import { router } from 'expo-router'
 import { ArrowLeft, MapPin, Phone, Globe, AlignLeft, Clock } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R } from '@/lib/tokens'
+import { grantXP, XP } from '@/lib/xp'
 
 const CATEGORIAS = [
   'Restaurante', 'Cafetería', 'Bar', 'Arte y cultura',
@@ -70,7 +71,8 @@ export default function CrearLugar() {
     }
     setGuardando(true); setError(null)
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user ?? null
     if (!user) { setError('Debes iniciar sesión.'); setGuardando(false); return }
 
     const { error: err } = await supabase.from('places').insert({
@@ -94,6 +96,7 @@ export default function CrearLugar() {
 
     setGuardando(false)
     if (err) { setError(`Error: ${err.message}`); return }
+    grantXP(user.id, XP.lugar)
     setExito(true)
     setTimeout(() => router.replace('/lugares'), 1500)
   }

@@ -62,7 +62,8 @@ export default function MiNegocio() {
     if (!nombre.trim()) { setError('El nombre del negocio es obligatorio.'); return }
     setGuardando(true); setError(null)
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user ?? null
     if (!user) { setError('Debes iniciar sesión.'); setGuardando(false); return }
 
     const payload = {

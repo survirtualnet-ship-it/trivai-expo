@@ -47,7 +47,8 @@ export default function Notificaciones() {
 
   async function cargar() {
     setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user ?? null
     if (!user) { setLoading(false); return }
 
     const { data } = await supabase
@@ -79,8 +80,8 @@ export default function Notificaciones() {
 
   const marcarTodas = async () => {
     setNotifs(prev => prev.map(n => ({ ...n, leida: true })))
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) await supabase.from('notifications').update({ is_read: true }).eq('user_id', user.id).eq('is_read', false)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.user) await supabase.from('notifications').update({ is_read: true }).eq('user_id', session.user.id).eq('is_read', false)
   }
 
   const sinLeer = notifs.filter(n => !n.leida).length

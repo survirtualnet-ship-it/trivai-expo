@@ -9,6 +9,7 @@ import { ArrowLeft, Calendar, MapPin, Users, Clock, Heart, Navigation } from 'lu
 import { supabase } from '@/lib/supabase'
 import type { Event, Place } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji } from '@/lib/tokens'
+import { grantXP, XP } from '@/lib/xp'
 
 function formatFecha(dt: string) {
   return new Date(dt).toLocaleDateString('es-BO', {
@@ -24,14 +25,15 @@ function formatFechaCorta(dt: string) {
 }
 
 export default function EventoDetalle() {
-  const { id }     = useLocalSearchParams<{ id: string }>()
-  const [evento,   setEvento]   = useState<Event | null>(null)
-  const [lugar,    setLugar]    = useState<Place | null>(null)
-  const [loading,  setLoading]  = useState(true)
-  const [asistire, setAsistire] = useState(false)
+  const { id }       = useLocalSearchParams<{ id: string }>()
+  const [evento,     setEvento]     = useState<Event | null>(null)
+  const [lugar,      setLugar]      = useState<Place | null>(null)
+  const [loading,    setLoading]    = useState(true)
+  const [asistire,   setAsistire]   = useState(false)
+  const [toggling,   setToggling]   = useState(false)
 
   useEffect(() => {
-    const fetch = async () => {
+    const load = async () => {
       const { data } = await supabase
         .from('events').select('*').eq('id', id).single()
       if (data) {
@@ -42,10 +44,43 @@ export default function EventoDetalle() {
           if (pl) setLugar(pl)
         }
       }
+
+      // Comprobar si el usuario ya confirmó asistencia
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        const { data: att } = await supabase
+          .from('event_attendees')
+          .select('id')
+          .eq('event_id', id)
+          .eq('user_id', session.user.id)
+          .maybeSingle()
+        setAsistire(!!att)
+      }
+
       setLoading(false)
     }
-    fetch()
+    load()
   }, [id])
+
+  const toggleAsistencia = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) { router.push('/auth'); return }
+
+    setToggling(true)
+    if (asistire) {
+      await supabase.from('event_attendees')
+        .delete()
+        .eq('event_id', id)
+        .eq('user_id', session.user.id)
+      setAsistire(false)
+    } else {
+      await supabase.from('event_attendees')
+        .upsert({ event_id: id, user_id: session.user.id, status: 'going' })
+      setAsistire(true)
+      grantXP(session.user.id, XP.asistir)
+    }
+    setToggling(false)
+  }
 
   if (loading) return (
     <View style={styles.center}><ActivityIndicator color={T.purple} /></View>
@@ -178,9 +213,10 @@ export default function EventoDetalle() {
         {/* BOTÓN ASISTENCIA */}
         <TouchableOpacity
           style={[styles.asistirBtn, asistire && styles.asistirBtnActive]}
-          onPress={() => setAsistire(v => !v)}>
+          onPress={toggleAsistencia}
+          disabled={toggling}>
           <Text style={[styles.asistirText, asistire && styles.asistirTextActive]}>
-            {asistire ? '✓ Asistiré a este evento' : '¿Vas a ir?  Confirmar asistencia'}
+            {toggling ? '...' : asistire ? '✓ Asistiré a este evento' : '¿Vas a ir?  Confirmar asistencia'}
           </Text>
         </TouchableOpacity>
 

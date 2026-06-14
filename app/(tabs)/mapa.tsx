@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { WebView } from 'react-native-webview'
-import { router } from 'expo-router'
-import { Navigation, MapPin } from 'lucide-react-native'
+import { router, useLocalSearchParams } from 'expo-router'
+import { MapEmbed } from '@/components/MapEmbed'
+import { Navigation } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
 
@@ -14,14 +14,15 @@ interface Marcador {
 
 const SANTA_CRUZ = { lat: -17.7833, lng: -63.1821 }
 
-type Filtro = 'restaurantes' | 'cafes' | 'arte' | 'otros' | 'eventos'
+type Filtro = 'todos' | 'restaurantes' | 'cafes' | 'arte' | 'otros' | 'eventos'
 
 const FILTROS: { id: Filtro; label: string; emoji: string; color: string }[] = [
+  { id: 'todos',        label: 'Todos',        emoji: '🗺️', color: T.fg2     },
   { id: 'restaurantes', label: 'Restaurantes', emoji: '🍽️', color: T.orange  },
   { id: 'cafes',        label: 'Cafés',        emoji: '☕', color: '#8B4513' },
   { id: 'arte',         label: 'Arte',         emoji: '🎨', color: T.purple  },
-  { id: 'otros',        label: 'Otros',        emoji: '📍', color: T.fg2     },
   { id: 'eventos',      label: 'Eventos',      emoji: '🎟️', color: T.green   },
+  { id: 'otros',        label: 'Otros',        emoji: '📍', color: T.fg3     },
 ]
 
 const CAT_FILTRO: Record<string, Filtro> = {
@@ -35,27 +36,53 @@ function catFiltro(cat: string): Filtro {
   return CAT_FILTRO[cat] ?? 'otros'
 }
 
-function buildMapHTML(marcadores: Marcador[], centro: { lat: number; lng: number }, apiKey: string) {
+function markerColor(m: Marcador): string {
+  if (m.tipo === 'evento') return '#21A24A'
+  const f = catFiltro(m.category)
+  if (f === 'restaurantes') return '#F26B1F'
+  if (f === 'cafes')        return '#8B4513'
+  if (f === 'arte')         return '#6D28FF'
+  return '#8A8590'
+}
+
+function buildMapHTML(
+  marcadores: Marcador[],
+  centro: { lat: number; lng: number },
+  apiKey: string,
+  selId?: string,
+) {
+  // Define all marker data as a JS object for click handlers
+  const markersDataJS = `var __markers = {
+${marcadores.map(m => `  ${JSON.stringify(m.id)}: ${JSON.stringify({
+    id: m.id, name: m.name, category: m.category, tipo: m.tipo, lat: m.lat, lng: m.lng,
+  })}`).join(',\n')}
+};`
+
   const pinsJS = marcadores.map(m => {
-    const color = m.tipo === 'evento' ? '#21A24A'
-      : m.category === 'Restaurante' || m.category === 'Gastronomía' ? '#F26B1F'
-      : m.category === 'Cafetería' ? '#8B4513'
-      : m.category === 'Arte y cultura' || m.category === 'Arte' ? '#6D28FF'
-      : '#8A8590'
-    return `
-      new google.maps.Marker({
+    const color  = markerColor(m)
+    const scale  = m.id === selId ? 13 : 9
+    const stroke = m.id === selId ? 3 : 2
+    return `(function() {
+      var mk = new google.maps.Marker({
         position: { lat: ${m.lat}, lng: ${m.lng} },
         map: map,
         title: ${JSON.stringify(m.name)},
+        zIndex: ${m.id === selId ? 999 : 1},
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
-          scale: 9,
+          scale: ${scale},
           fillColor: '${color}',
           fillOpacity: 1,
           strokeColor: '#fff',
-          strokeWeight: 2,
+          strokeWeight: ${stroke},
         }
-      });`
+      });
+      mk.addListener('click', function() {
+        var msg = JSON.stringify(__markers[${JSON.stringify(m.id)}]);
+        if (window.ReactNativeWebView) { window.ReactNativeWebView.postMessage(msg); }
+        else { window.parent.postMessage(msg, '*'); }
+      });
+    })();`
   }).join('\n')
 
   return `<!DOCTYPE html>
@@ -65,10 +92,11 @@ function buildMapHTML(marcadores: Marcador[], centro: { lat: number; lng: number
 </head><body>
 <div id="map"></div>
 <script>
+${markersDataJS}
 function initMap() {
-  const map = new google.maps.Map(document.getElementById('map'), {
+  var map = new google.maps.Map(document.getElementById('map'), {
     center: { lat: ${centro.lat}, lng: ${centro.lng} },
-    zoom: 14,
+    zoom: ${selId ? 15 : 14},
     disableDefaultUI: true,
     zoomControl: true,
     styles: [
@@ -83,15 +111,18 @@ function initMap() {
 }
 
 export default function Mapa() {
-  const [marcadores, setMarcadores] = useState<Marcador[]>([])
-  const [todos,      setTodos]      = useState<Marcador[]>([])
-  const [filtro,     setFiltro]     = useState<Filtro>('restaurantes')
-  const [centro,     setCentro]     = useState(SANTA_CRUZ)
-  const [loading,    setLoading]    = useState(true)
+  const params = useLocalSearchParams<{ lugar?: string; lat?: string; lng?: string; zona?: string }>()
+
+  const [todos,        setTodos]        = useState<Marcador[]>([])
+  const [marcadores,   setMarcadores]   = useState<Marcador[]>([])
+  const [filtro,       setFiltro]       = useState<Filtro>('todos')
+  const [centro,       setCentro]       = useState(SANTA_CRUZ)
+  const [loading,      setLoading]      = useState(true)
   const [seleccionado, setSeleccionado] = useState<Marcador | null>(null)
 
   const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY ?? ''
 
+  // Carga inicial de datos
   useEffect(() => {
     const fetch = async () => {
       const [{ data: places }, { data: events }] = await Promise.all([
@@ -107,38 +138,65 @@ export default function Mapa() {
         lat: p.latitude, lng: p.longitude,
       }))
 
+      // Eventos se distribuyen alrededor del centro (no tienen coords propias)
       const mEventos: Marcador[] = (events ?? []).map((e, i) => ({
         id: e.id, tipo: 'evento' as const,
         name: e.name, category: e.category,
-        lat: SANTA_CRUZ.lat + Math.sin(i * 1.3) * 0.02,
-        lng: SANTA_CRUZ.lng + Math.cos(i * 1.3) * 0.02,
+        lat: SANTA_CRUZ.lat + Math.sin(i * 1.3) * 0.018,
+        lng: SANTA_CRUZ.lng + Math.cos(i * 1.3) * 0.018,
       }))
 
       const lista = [...mLugares, ...mEventos]
       setTodos(lista)
-      aplicarFiltro(lista, 'restaurantes')
+      setMarcadores(lista)
       setLoading(false)
     }
     fetch()
   }, [])
 
-  function aplicarFiltro(lista: Marcador[], f: Filtro) {
-    const filtrados = f === 'eventos'
-      ? lista.filter(m => m.tipo === 'evento' || m.category === 'Entretenimiento')
-      : lista.filter(m => m.tipo === 'lugar' && catFiltro(m.category) === f)
+  // URL param: ?lugar=UUID → centra y selecciona ese lugar
+  useEffect(() => {
+    if (!params.lugar || todos.length === 0) return
+    const found = todos.find(m => m.id === params.lugar && m.tipo === 'lugar')
+    if (found) {
+      setCentro({ lat: found.lat, lng: found.lng })
+      setSeleccionado(found)
+    }
+  }, [params.lugar, todos])
+
+  // URL param: ?lat=X&lng=Y&zona=Nombre → centra el mapa en esas coords
+  useEffect(() => {
+    if (params.lat && params.lng) {
+      setCentro({ lat: Number(params.lat), lng: Number(params.lng) })
+    }
+  }, [params.lat, params.lng])
+
+  function aplicarFiltro(f: Filtro) {
+    const filtrados = f === 'todos'     ? todos
+      : f === 'eventos' ? todos.filter(m => m.tipo === 'evento')
+      : todos.filter(m => m.tipo === 'lugar' && catFiltro(m.category) === f)
     setMarcadores(filtrados)
     setFiltro(f)
     setSeleccionado(null)
   }
 
-  const mapHTML = buildMapHTML(marcadores, centro, apiKey)
+  const handleMapMessage = useCallback((data: string) => {
+    try {
+      const parsed = JSON.parse(data)
+      if (parsed?.id) setSeleccionado(parsed as Marcador)
+    } catch {}
+  }, [])
+
+  const mapHTML = buildMapHTML(marcadores, centro, apiKey, seleccionado?.id)
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
 
       {/* TOPBAR */}
       <View style={styles.topbar}>
-        <Text style={styles.title}>Mapa</Text>
+        <Text style={styles.title}>
+          {params.zona ? params.zona : 'Mapa'}
+        </Text>
         <TouchableOpacity style={styles.locBtn} onPress={() => {
           setCentro(SANTA_CRUZ)
           setSeleccionado(null)
@@ -152,13 +210,13 @@ export default function Mapa() {
         contentContainerStyle={styles.filtros} style={styles.filtrosWrap}>
         {FILTROS.map(f => (
           <TouchableOpacity key={f.id}
-            style={[styles.chip, filtro === f.id && { backgroundColor: f.color }]}
-            onPress={() => aplicarFiltro(todos, f.id)}>
+            style={[styles.chip, filtro === f.id && { backgroundColor: f.color, borderColor: f.color }]}
+            onPress={() => aplicarFiltro(f.id)}>
             <Text style={styles.chipEmoji}>{f.emoji}</Text>
             <Text style={[styles.chipText, filtro === f.id && { color: '#fff' }]}>{f.label}</Text>
           </TouchableOpacity>
         ))}
-        <Text style={styles.count}>{loading ? '...' : `${marcadores.length}`}</Text>
+        <Text style={styles.count}>{loading ? '·' : marcadores.length}</Text>
       </ScrollView>
 
       {/* MAPA */}
@@ -174,32 +232,29 @@ export default function Mapa() {
             <Text style={styles.loadingText}>API key no configurada</Text>
           </View>
         ) : (
-          <WebView
-            source={{ html: mapHTML }}
-            style={{ flex: 1 }}
-            scrollEnabled={false}
-            javaScriptEnabled
-          />
+          <MapEmbed html={mapHTML} onMessage={handleMapMessage} />
         )}
 
         {/* POPUP marcador seleccionado */}
         {seleccionado && (
           <View style={styles.popup}>
             <View style={[styles.popupIcon, { backgroundColor: getCatColor(seleccionado.category) + '33' }]}>
-              <Text style={{ fontSize: 22 }}>{getCatEmoji(seleccionado.category)}</Text>
+              <Text style={{ fontSize: 24 }}>{getCatEmoji(seleccionado.category)}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.popupName} numberOfLines={1}>{seleccionado.name}</Text>
-              <Text style={styles.popupCat}>{seleccionado.category}</Text>
+              <Text style={styles.popupCat}>
+                {seleccionado.tipo === 'evento' ? '🎟️ Evento' : seleccionado.category}
+              </Text>
             </View>
-            <TouchableOpacity style={styles.popupBtn}
+            <TouchableOpacity
+              style={styles.popupBtn}
               onPress={() => router.push(seleccionado.tipo === 'evento'
                 ? `/eventos/${seleccionado.id}` : `/lugares/${seleccionado.id}`)}>
-              <Text style={{ color: '#fff', fontSize: 18 }}>›</Text>
+              <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>›</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.popupClose}
-              onPress={() => setSeleccionado(null)}>
-              <Text style={{ color: T.fg3, fontSize: 16 }}>✕</Text>
+            <TouchableOpacity style={styles.popupClose} onPress={() => setSeleccionado(null)}>
+              <Text style={{ color: T.fg3, fontSize: 14 }}>✕</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -216,17 +271,24 @@ const styles = StyleSheet.create({
   locBtn:       { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center' },
   filtrosWrap:  { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, maxHeight: 52 },
   filtros:      { paddingHorizontal: S.lg, paddingVertical: S.sm, gap: S.sm, alignItems: 'center' },
-  chip:         { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: S.md, paddingVertical: 6, borderRadius: R.full, backgroundColor: T.muted },
+  chip:         { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: S.md, paddingVertical: 6, borderRadius: R.full, backgroundColor: T.muted, borderWidth: 1, borderColor: T.border },
   chipEmoji:    { fontSize: 13 },
   chipText:     { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.fg2 },
-  count:        { fontSize: F.size.sm, color: T.fg3, marginLeft: S.sm },
+  count:        { fontSize: F.size.sm, color: T.fg3, marginLeft: S.xs, minWidth: 24 },
   mapContainer: { flex: 1, position: 'relative' },
   center:       { flex: 1, alignItems: 'center', justifyContent: 'center', gap: S.md },
   loadingText:  { fontSize: F.size.base, color: T.fg3 },
-  popup:        { position: 'absolute', bottom: 24, left: S.lg, right: S.lg, backgroundColor: T.surface, borderRadius: 20, padding: S.lg, flexDirection: 'row', alignItems: 'center', gap: S.md, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 10 },
-  popupIcon:    { width: 48, height: 48, borderRadius: R.md, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  popup:        {
+    position: 'absolute', bottom: 24, left: S.lg, right: S.lg,
+    backgroundColor: T.surface, borderRadius: 20, padding: S.lg,
+    flexDirection: 'row', alignItems: 'center', gap: S.md,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18, shadowRadius: 24, elevation: 12,
+    borderWidth: 1, borderColor: T.border,
+  },
+  popupIcon:    { width: 52, height: 52, borderRadius: R.md, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   popupName:    { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
   popupCat:     { fontSize: F.size.sm, color: T.fg3, marginTop: 2 },
-  popupBtn:     { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.purple, alignItems: 'center', justifyContent: 'center' },
-  popupClose:   { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.muted, alignItems: 'center', justifyContent: 'center' },
+  popupBtn:     { width: 40, height: 40, borderRadius: R.full, backgroundColor: T.purple, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  popupClose:   { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.muted, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
 })

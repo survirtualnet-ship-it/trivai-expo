@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+﻿import { useState, useEffect, useCallback } from 'react'
 import { useFocusEffect } from 'expo-router'
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
@@ -51,7 +51,8 @@ export default function Perfil() {
     const [
       { data: eventRows },
       { count: cLugares },
-      { count: cAmigos  },
+      { count: cAmigosEnv },
+      { count: cAmigosRec },
       { count: cResenas },
       { data: favsData  },
       { data: resenasData },
@@ -59,12 +60,13 @@ export default function Perfil() {
       supabase.from('event_attendees').select('event:events(id)').eq('user_id', userId).eq('status', 'going'),
       supabase.from('favorites').select('*', { count: 'exact', head: true }).eq('user_id', userId),
       supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'accepted'),
+      supabase.from('friendships').select('*', { count: 'exact', head: true }).eq('friend_id', userId).eq('status', 'accepted'),
       supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('user_id', userId),
       supabase.from('favorites').select('place:places(id, name, category)').eq('user_id', userId).order('created_at', { ascending: false }).limit(6),
       supabase.from('reviews').select('id, rating, text, created_at, place:places(id, name, category)').eq('user_id', userId).order('created_at', { ascending: false }).limit(3),
     ])
     const cEventos = eventRows ? eventRows.filter((r: any) => r.event?.id).length : 0
-    setStats({ eventos: cEventos, lugares: cLugares ?? 0, amigos: cAmigos ?? 0, resenas: cResenas ?? 0 })
+    setStats({ eventos: cEventos, lugares: cLugares ?? 0, amigos: (cAmigosEnv ?? 0) + (cAmigosRec ?? 0), resenas: cResenas ?? 0 })
     setFavs(favsData ?? [])
     setResenas(resenasData ?? [])
   }

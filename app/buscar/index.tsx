@@ -230,16 +230,15 @@ export default function Buscar() {
               <View>
                 <Text style={styles.resultLabel}>PERSONAS · {rPersonas.length}</Text>
                 {(tab === 'todos' ? rPersonas.slice(0, 3) : rPersonas).map(p => (
-                  <View key={p.id} style={styles.resultRow}>
+                  <TouchableOpacity key={p.id} style={styles.resultRow} onPress={() => router.push(`/perfil/${p.id}`)}>
                     <View style={[styles.resultAvatar, { backgroundColor: p.color }]}>
                       <Text style={{ fontSize: 18, fontWeight: F.weight.bold, color: p.text }}>{p.ini}</Text>
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.resultNombre}>{highlight(p.nombre, query)}</Text>
                       <Text style={styles.resultSub}>@{highlight(p.usuario, query)}</Text>
-                      <Text style={[styles.resultSub, { color: T.purple }]}>{p.comunes} amigos en común</Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}

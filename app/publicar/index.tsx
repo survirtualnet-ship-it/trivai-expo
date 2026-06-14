@@ -22,6 +22,12 @@ export default function Publicar() {
       onPress: () => router.push('/publicar/evento'),
     },
     {
+      Icon: MapPin, titulo: 'Sugerir un lugar',
+      desc: 'Agrega un restaurante, café, parque u otro sitio',
+      tone: { bg: T.greenSoft, fg: T.green },
+      onPress: () => router.push('/publicar/lugar'),
+    },
+    {
       Icon: Star, titulo: 'Escribir una reseña',
       desc: 'Comparte tu experiencia en un lugar',
       tone: { bg: T.greenSoft, fg: T.green },
