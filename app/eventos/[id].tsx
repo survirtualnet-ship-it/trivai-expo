@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import {
-  View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Linking,
+  View, Text, ScrollView, FlatList, Image, TouchableOpacity,
+  StyleSheet, ActivityIndicator, Linking, Dimensions,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, router } from 'expo-router'
@@ -234,6 +234,7 @@ const styles = StyleSheet.create({
   backBtn:          { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   headerTitle:      { flex: 1, fontSize: F.size.lg, fontWeight: F.weight.bold, color: T.fg1 },
   heartBtn:         { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  heroPhoto:        { width: Dimensions.get('window').width, height: 220 },
   hero:             { height: 200, backgroundColor: T.orangeSoft, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   heroEmoji:        { fontSize: 80 },
   heroBadges:       { position: 'absolute', bottom: S.lg, flexDirection: 'row', gap: S.sm },

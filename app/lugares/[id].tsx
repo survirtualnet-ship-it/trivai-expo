@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+﻿import { useState, useEffect, useRef } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, ActivityIndicator, Linking, TextInput,
@@ -200,13 +200,33 @@ export default function LugarDetalle() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
-        {/* HERO */}
-        <View style={[styles.hero, { backgroundColor: color + '33' }]}>
-          <Text style={styles.heroEmoji}>{emoji}</Text>
-          <View style={[styles.categoryBadge, { backgroundColor: color }]}>
-            <Text style={styles.categoryText}>{lugar.category}</Text>
+        {/* HERO — carrusel de fotos o fallback emoji */}
+        {lugar.photos && lugar.photos.length > 0 ? (
+          <View style={{ height: 220, position: 'relative' }}>
+            <FlatList
+              horizontal pagingEnabled showsHorizontalScrollIndicator={false}
+              data={lugar.photos.slice(0, 5)}
+              keyExtractor={(_, i) => String(i)}
+              renderItem={({ item }) => (
+                <Image source={{ uri: item }} style={styles.heroPhoto}
+                  resizeMode="cover" />
+              )}
+            />
+            <View style={styles.photoBadge}>
+              <Text style={styles.photoBadgeText}>{lugar.photos.length} fotos</Text>
+            </View>
+            <View style={[styles.categoryBadge, { backgroundColor: color, position: 'absolute', top: 12, left: 16 }]}>
+              <Text style={styles.categoryText}>{lugar.category}</Text>
+            </View>
           </View>
-        </View>
+        ) : (
+          <View style={[styles.hero, { backgroundColor: color + '33' }]}>
+            <Text style={styles.heroEmoji}>{emoji}</Text>
+            <View style={[styles.categoryBadge, { backgroundColor: color }]}>
+              <Text style={styles.categoryText}>{lugar.category}</Text>
+            </View>
+          </View>
+        )}
 
         {/* INFO PRINCIPAL */}
         <View style={styles.mainInfo}>
