@@ -97,7 +97,7 @@ export default function PerfilPublico() {
       status:    'pending',
     }, { onConflict: 'user_id,friend_id' })
     setEstadoAmigo('pending_sent')
-    crearNotificacion({ userId: id, tipo: 'amigo', title: 'Nueva solicitud de amistad', body: 'Alguien quiere ser tu amigo en Trivai', emoji: '👋' })
+    crearNotificacion({ userId: id, tipo: 'amigo', title: 'Nueva solicitud de amistad', body: 'Alguien quiere ser tu amigo en Trivai', emoji: '👋', data: { href: '/amigos' } })
     setToggling(false)
   }
 
@@ -118,7 +118,7 @@ export default function PerfilPublico() {
       user_id: miId, friend_id: id, status: 'accepted',
     }, { onConflict: 'user_id,friend_id' })
     setEstadoAmigo('accepted')
-    crearNotificacion({ userId: id, tipo: 'amigo', title: '¡Aceptaron tu solicitud!', body: 'Ya son amigos en Trivai', emoji: '🤝' })
+    crearNotificacion({ userId: id, tipo: 'amigo', title: '¡Aceptaron tu solicitud!', body: 'Ya son amigos en Trivai', emoji: '🤝', data: { href: '/amigos' } })
     grantXP(miId, XP.amigo)
     grantXP(id, XP.amigo)
     setToggling(false)

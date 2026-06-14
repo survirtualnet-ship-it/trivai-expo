@@ -140,7 +140,7 @@ export default function Amigos() {
     setProcesando(uid)
     await supabase.from('friendships').upsert({ user_id: miId, friend_id: uid, status: 'pending' }, { onConflict: 'user_id,friend_id' })
     setEnviados(prev => new Set([...prev, uid]))
-    crearNotificacion({ userId: uid, tipo: 'amigo', title: 'Nueva solicitud de amistad', body: 'Alguien quiere ser tu amigo en Trivai', emoji: '👋' })
+    crearNotificacion({ userId: uid, tipo: 'amigo', title: 'Nueva solicitud de amistad', body: 'Alguien quiere ser tu amigo en Trivai', emoji: '👋', data: { href: '/amigos' } })
     setProcesando(null)
   }
 
@@ -151,7 +151,7 @@ export default function Amigos() {
     await supabase.from('friendships').upsert({ user_id: miId, friend_id: sol.uid, status: 'accepted' }, { onConflict: 'user_id,friend_id' })
     setSolicitudes(prev => prev.filter(s => s.id !== sol.id))
     setAmigos(prev => [...prev, { id: sol.uid, nombre: sol.nombre, usuario: sol.usuario, initials: sol.initials, colorIdx: prev.length }])
-    crearNotificacion({ userId: sol.uid, tipo: 'amigo', title: '¡Aceptaron tu solicitud!', body: 'Ya son amigos en Trivai', emoji: '🤝' })
+    crearNotificacion({ userId: sol.uid, tipo: 'amigo', title: '¡Aceptaron tu solicitud!', body: 'Ya son amigos en Trivai', emoji: '🤝', data: { href: '/amigos' } })
     grantXP(miId, XP.amigo)
     grantXP(sol.uid, XP.amigo)
     setProcesando(null)

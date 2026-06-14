@@ -67,7 +67,7 @@ export default function Notificaciones() {
         createdAt: n.created_at,
         leida:     n.is_read,
         emoji:     n.data?.emoji ?? '🔔',
-        href:      '/',
+        href:      n.data?.href ?? '/',
       })))
     }
     setLoading(false)
@@ -129,7 +129,7 @@ export default function Notificaciones() {
               <TouchableOpacity
                 key={n.id}
                 style={[styles.notifCard, n.leida ? styles.notifLeida : styles.notifNueva]}
-                onPress={() => { if (!n.leida) marcarLeida(n.id) }}
+                onPress={() => { if (!n.leida) marcarLeida(n.id); const h = n.href; if (h && h !== '/') router.push(h as any) }}
               >
                 <View style={[styles.notifIcon, { backgroundColor: c.bg }]}>
                   <Text style={{ fontSize: 22 }}>{n.emoji}</Text>

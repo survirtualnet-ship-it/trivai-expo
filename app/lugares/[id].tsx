@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, ActivityIndicator, Linking, TextInput,
@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 import type { Place } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
 import { grantXP, XP } from '@/lib/xp'
+import { calcIsOpen } from '@/lib/hours'
 
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
 
@@ -214,9 +215,9 @@ export default function LugarDetalle() {
             <Star size={16} color={T.orange} fill={T.orange} />
             <Text style={styles.rating}>{lugar.rating_avg?.toFixed(1) ?? '—'}</Text>
             <Text style={styles.reviewsCount}>({lugar.rating_count ?? 0} reseñas)</Text>
-            <View style={[styles.statusBadge, { backgroundColor: lugar.is_open ? T.greenSoft : T.muted }]}>
-              <Text style={[styles.statusText, { color: lugar.is_open ? T.green : T.fg3 }]}>
-                {lugar.is_open ? '● Abierto' : '● Cerrado'}
+            <View style={[styles.statusBadge, { backgroundColor: calcIsOpen(lugar.hours, lugar.is_open) ? T.greenSoft : T.muted }]}>
+              <Text style={[styles.statusText, { color: calcIsOpen(lugar.hours, lugar.is_open) ? T.green : T.fg3 }]}>
+                {calcIsOpen(lugar.hours, lugar.is_open) ? '● Abierto' : '● Cerrado'}
               </Text>
             </View>
           </View>
