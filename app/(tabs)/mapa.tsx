@@ -6,6 +6,7 @@ import { MapEmbed } from '@/components/MapEmbed'
 import { Navigation } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
+import { getCurrentCoords } from '@/lib/geolocation'
 
 interface Marcador {
   id: string; name: string; category: string
@@ -206,20 +207,15 @@ export default function Mapa() {
         <Text style={styles.title}>
           {params.zona ? params.zona : 'Mapa'}
         </Text>
-        <TouchableOpacity style={[styles.locBtn, userPos && { backgroundColor: T.purple }]} onPress={() => {
-          if (typeof navigator !== 'undefined' && navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-              pos => {
-                const p = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-                setUserPos(p)
-                setCentro(p)
-                setSeleccionado(null)
-              },
-              () => { setCentro(SANTA_CRUZ); setSeleccionado(null) },
-              { timeout: 8000 }
-            )
+        <TouchableOpacity style={[styles.locBtn, userPos && { backgroundColor: T.purple }]} onPress={async () => {
+          const p = await getCurrentCoords()
+          if (p) {
+            setUserPos(p)
+            setCentro(p)
+            setSeleccionado(null)
           } else {
-            setCentro(SANTA_CRUZ); setSeleccionado(null)
+            setCentro(SANTA_CRUZ)
+            setSeleccionado(null)
           }
         }}>
           <Navigation size={16} color={userPos ? '#fff' : T.purple} />

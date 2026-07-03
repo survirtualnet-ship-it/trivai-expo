@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
 import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
 import { calcIsOpen } from '@/lib/hours'
+import { getCurrentCoords } from '@/lib/geolocation'
 
 interface Place {
   id: string; name: string; category: string
@@ -236,15 +237,11 @@ export default function Inicio() {
     return () => { if (channel) supabase.removeChannel(channel) }
   }, [])
 
-  // Geolocation — ask once on mount
+  // Geolocalización al montar
   useEffect(() => {
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        pos => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => {},
-        { timeout: 8000 }
-      )
-    }
+    getCurrentCoords().then(coords => {
+      if (coords) setUserCoords(coords)
+    })
   }, [])
 
   const lugaresCerca = userCoords

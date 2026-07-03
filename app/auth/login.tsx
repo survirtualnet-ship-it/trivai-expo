@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
+  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert,
 } from 'react-native'
 import { router } from 'expo-router'
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native'
@@ -47,6 +47,32 @@ export default function Login() {
     } finally {
       setGoogleLoading(false)
     }
+  }
+
+  const handleForgotPassword = async () => {
+    const trimmed = email.trim()
+    if (!trimmed) {
+      setError('Ingresa tu email para recuperar la contraseña.')
+      return
+    }
+    setLoading(true)
+    setError('')
+
+    const redirectTo = Platform.OS === 'web' && typeof window !== 'undefined'
+      ? `${window.location.origin}/auth/callback`
+      : 'trivai://auth/callback'
+
+    const { error: err } = await supabase.auth.resetPasswordForEmail(trimmed, { redirectTo })
+    setLoading(false)
+
+    if (err) {
+      setError(mapAuthError(err, 'No se pudo enviar el correo de recuperación.'))
+      return
+    }
+    Alert.alert(
+      'Revisa tu correo',
+      'Te enviamos un enlace para restablecer tu contraseña.',
+    )
   }
 
   return (
@@ -106,7 +132,7 @@ export default function Login() {
                 }
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={{ marginTop: S.sm, alignSelf: 'flex-end' }}>
+            <TouchableOpacity style={{ marginTop: S.sm, alignSelf: 'flex-end' }} onPress={handleForgotPassword}>
               <Text style={styles.forgot}>¿Olvidaste tu contraseña?</Text>
             </TouchableOpacity>
           </View>

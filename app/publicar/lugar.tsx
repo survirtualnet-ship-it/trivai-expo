@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform,
+  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { ArrowLeft, MapPin, Phone, Globe, AlignLeft, Clock } from 'lucide-react-native'
+import { ArrowLeft, MapPin, Phone, Globe, AlignLeft, Clock, Navigation } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R } from '@/lib/tokens'
 import { grantXP, XP } from '@/lib/xp'
+import { getCurrentCoords, resolvePlaceCoords, type Coords } from '@/lib/geolocation'
 
 const CATEGORIAS = [
   'Restaurante', 'Cafetería', 'Bar', 'Arte y cultura',
@@ -63,6 +64,16 @@ export default function CrearLugar() {
   const [guardando,   setGuardando]   = useState(false)
   const [error,       setError]       = useState<string | null>(null)
   const [exito,       setExito]       = useState(false)
+  const [coords,      setCoords]      = useState<Coords | null>(null)
+  const [locLoading,  setLocLoading]  = useState(false)
+
+  const usarMiUbicacion = async () => {
+    setLocLoading(true)
+    const p = await getCurrentCoords()
+    setLocLoading(false)
+    if (p) setCoords(p)
+    else setError('No se pudo obtener tu ubicación. Revisa los permisos.')
+  }
 
   const handleGuardar = async () => {
     if (!nombre.trim() || !categoria || !direccion.trim()) {
@@ -74,6 +85,8 @@ export default function CrearLugar() {
     const { data: { session } } = await supabase.auth.getSession()
     const user = session?.user ?? null
     if (!user) { setError('Debes iniciar sesión.'); setGuardando(false); return }
+
+    const resolved = await resolvePlaceCoords(direccion, ciudad, coords)
 
     const { error: err } = await supabase.from('places').insert({
       name:         nombre.trim(),
@@ -90,8 +103,8 @@ export default function CrearLugar() {
       is_open:      true,
       is_sponsored: false,
       is_verified:  false,
-      latitude:     null,
-      longitude:    null,
+      latitude:     resolved?.lat ?? null,
+      longitude:    resolved?.lng ?? null,
     })
 
     setGuardando(false)
@@ -146,10 +159,25 @@ export default function CrearLugar() {
           </View>
 
           <Campo
-            label="Dirección" value={direccion} onChangeText={setDireccion}
+            label="Dirección" value={direccion} onChangeText={v => { setDireccion(v); setCoords(null) }}
             placeholder="Ej: Av. Monseñor Rivero 234, Equipetrol" required
             icon={<MapPin size={14} color={T.fg3} />}
           />
+
+          <TouchableOpacity style={c.locBtn} onPress={usarMiUbicacion} disabled={locLoading}>
+            {locLoading
+              ? <ActivityIndicator color={T.purple} size="small" />
+              : <Navigation size={16} color={T.purple} />
+            }
+            <Text style={c.locBtnText}>
+              {coords ? '✓ Ubicación GPS seleccionada' : 'Usar mi ubicación actual'}
+            </Text>
+          </TouchableOpacity>
+          {!coords && (
+            <Text style={c.locHint}>
+              Si no usas GPS, intentaremos ubicar el lugar por la dirección al publicar.
+            </Text>
+          )}
 
           {/* Ciudad */}
           <View style={c.campo}>
@@ -236,6 +264,9 @@ const c = StyleSheet.create({
   chipActivePurple:  { backgroundColor: T.purple, borderColor: T.purple },
   chipText:          { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.fg2 },
   chipTextActive:    { color: '#fff' },
+  locBtn:            { flexDirection: 'row', alignItems: 'center', gap: S.sm, alignSelf: 'flex-start', paddingVertical: S.sm, paddingHorizontal: S.md, borderRadius: R.full, backgroundColor: T.purpleSoft, marginBottom: S.sm, marginTop: -S.sm },
+  locBtnText:        { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.purple },
+  locHint:           { fontSize: F.size.xs, color: T.fg3, marginBottom: S.lg, lineHeight: 18 },
   errorBox:          { backgroundColor: T.dangerSoft, borderRadius: R.md, padding: S.md, marginBottom: S.md },
   errorText:         { fontSize: F.size.sm, color: T.danger },
   submitBtn:         { height: 52, borderRadius: R.full, backgroundColor: T.purple, alignItems: 'center', justifyContent: 'center', marginBottom: S.lg },

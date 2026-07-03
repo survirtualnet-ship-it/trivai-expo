@@ -15,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.trivai.app"
+      "bundleIdentifier": "com.trivai.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Trivai usa tu ubicación para mostrarte lugares y eventos cerca de ti."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +26,11 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.trivai.app",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro",
