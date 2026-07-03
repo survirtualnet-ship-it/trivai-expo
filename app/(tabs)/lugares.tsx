@@ -5,7 +5,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { Search, MapPin, Star } from 'lucide-react-native'
+import { Search, MapPin, Star, ArrowLeft } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
 import { calcIsOpen } from '@/lib/hours'
@@ -100,6 +100,9 @@ export default function Lugares() {
 
       {/* TOPBAR */}
       <View style={styles.topbar}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
+          <ArrowLeft size={24} color={T.fg1} strokeWidth={2} />
+        </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Lugares</Text>
           <Text style={styles.sub}>Descubre los mejores lugares</Text>
@@ -167,7 +170,9 @@ export default function Lugares() {
               <Text style={styles.sectionTitle}>
                 {cat !== 'Todos' ? `${CATEGORIAS.find(c => c.id === cat)?.label} (${filtrados.length})` : 'Destacados'}
               </Text>
-              <TouchableOpacity><Text style={styles.sectionAction}>Ver todos</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push('/buscar')}>
+                <Text style={styles.sectionAction}>Ver todos</Text>
+              </TouchableOpacity>
             </View>
 
             <FlatList
@@ -273,7 +278,8 @@ function RowLugar({ item }: { item: Place }) {
 
 const styles = StyleSheet.create({
   root:           { flex: 1, backgroundColor: T.bg },
-  topbar:         { flexDirection: 'row', alignItems: 'center', backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
+  topbar:         { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
+  backBtn:        { padding: 2 },
   title:          { fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.fg1 },
   sub:            { fontSize: F.size.sm, color: T.fg3, marginTop: 2 },
   iconBtn:        { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.muted, alignItems: 'center', justifyContent: 'center' },

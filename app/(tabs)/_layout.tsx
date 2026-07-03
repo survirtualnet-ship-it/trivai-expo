@@ -1,6 +1,7 @@
-import { Tabs } from 'expo-router'
+import { TouchableOpacity, View, StyleSheet } from 'react-native'
+import { Tabs, router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Compass, Ticket, Map, Users, User, MapPin } from 'lucide-react-native'
+import { Compass, Map, Users, User, Plus } from 'lucide-react-native'
 import { T } from '@/lib/tokens'
 
 /** Altura base del contenido (iconos + etiquetas), sin barra del sistema */
@@ -32,16 +33,35 @@ export default function TabsLayout() {
         options={{ title: 'Inicio', tabBarIcon: ({ color, size }) => <Compass size={size} color={color}/> }}
       />
       <Tabs.Screen
-        name="eventos"
-        options={{ title: 'Eventos', tabBarIcon: ({ color, size }) => <Ticket size={size} color={color}/> }}
-      />
-      <Tabs.Screen
         name="mapa"
         options={{ title: 'Mapa', tabBarIcon: ({ color, size }) => <Map size={size} color={color}/> }}
       />
       <Tabs.Screen
-        name="lugares"
-        options={{ title: 'Lugares', tabBarIcon: ({ color, size }) => <MapPin size={size} color={color}/> }}
+        name="crear"
+        options={{
+          title: '',
+          tabBarLabel: () => null,
+          tabBarIcon: () => null,
+          tabBarButton: () => (
+            <TouchableOpacity
+              style={styles.fabWrap}
+              onPress={() => router.push('/publicar')}
+              activeOpacity={0.85}
+              accessibilityLabel="Publicar"
+              accessibilityRole="button"
+            >
+              <View style={styles.fab}>
+                <Plus size={26} color="#fff" strokeWidth={2.5} />
+              </View>
+            </TouchableOpacity>
+          ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault()
+            router.push('/publicar')
+          },
+        }}
       />
       <Tabs.Screen
         name="amigos"
@@ -51,6 +71,32 @@ export default function TabsLayout() {
         name="perfil"
         options={{ title: 'Perfil', tabBarIcon: ({ color, size }) => <User size={size} color={color}/> }}
       />
+      {/* Pantallas secundarias — accesibles desde Inicio, sin tab visible */}
+      <Tabs.Screen name="eventos" options={{ href: null }} />
+      <Tabs.Screen name="lugares" options={{ href: null }} />
     </Tabs>
   )
 }
+
+const styles = StyleSheet.create({
+  fabWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 2,
+  },
+  fab: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: T.fab,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -18,
+    shadowColor: T.purple,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+})

@@ -5,7 +5,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { Search, X, MapPin, Calendar } from 'lucide-react-native'
+import { Search, X, MapPin, Calendar, ArrowLeft } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji } from '@/lib/tokens'
 
@@ -92,6 +92,9 @@ export default function Eventos() {
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* TOPBAR */}
       <View style={styles.topbar}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
+          <ArrowLeft size={24} color={T.fg1} strokeWidth={2} />
+        </TouchableOpacity>
         <Text style={styles.title}>Eventos</Text>
         <TouchableOpacity
           style={[styles.searchBtn, buscando && { backgroundColor: T.purpleSoft }]}
@@ -219,8 +222,9 @@ export default function Eventos() {
 
 const styles = StyleSheet.create({
   root:            { flex: 1, backgroundColor: T.bg },
-  topbar:          { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
-  title:           { fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.fg1 },
+  topbar:          { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
+  backBtn:         { padding: 2 },
+  title:           { flex: 1, fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.fg1 },
   searchBtn:       { width: 36, height: 36, borderRadius: R.full, alignItems: 'center', justifyContent: 'center' },
   searchBar:       { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.sm, borderBottomWidth: 1, borderBottomColor: T.border },
   searchInput:     { flex: 1, fontSize: F.size.base, color: T.fg1, paddingVertical: 8 },

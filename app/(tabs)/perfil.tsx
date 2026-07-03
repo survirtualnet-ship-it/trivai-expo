@@ -9,7 +9,7 @@ import { router } from 'expo-router'
 import {
   Settings, Share2, Pencil, Camera, BadgeCheck, User,
   MapPin, Star, Heart, Ticket, Bell, Store, Calendar, Bookmark, Users,
-  ChevronRight,
+  ChevronRight, Plus,
 } from 'lucide-react-native'
 import { useUser } from '@/hooks/useUser'
 import { supabase } from '@/lib/supabase'
@@ -41,6 +41,7 @@ const STAT_TILES = [
 ] as const
 
 const OPCIONES = [
+  { label: 'Publicar',       Icon: Plus,   bg: T.purpleSoft, fg: T.purple, href: '/publicar'                  },
   { label: 'Mis entradas',   Icon: Ticket, bg: T.purpleSoft, fg: T.purple, href: '/perfil/eventos-asistidos' },
   { label: 'Mis favoritos',  Icon: Heart,  bg: T.dangerSoft, fg: T.danger, href: '/perfil/favoritos'          },
   { label: 'Notificaciones', Icon: Bell,   bg: T.greenSoft,  fg: T.green,  href: '/notificaciones'            },
@@ -185,7 +186,7 @@ export default function Perfil() {
           const xp    = profile?.xp_points ?? 0
           const nivel = getNivel(xp)
           return (
-            <TouchableOpacity style={styles.xpCard} onPress={() => router.push('/publicar')}>
+            <View style={styles.xpCard}>
               <View style={[styles.xpHex, { backgroundColor: nivel.color }]}>
                 <Text style={{ fontSize: 20 }}>{nivel.emoji}</Text>
               </View>
@@ -201,7 +202,7 @@ export default function Perfil() {
                 </View>
               </View>
               <Text style={[styles.xpPoints, { color: nivel.color }]}>{xp} XP</Text>
-            </TouchableOpacity>
+            </View>
           )
         })()}
 
