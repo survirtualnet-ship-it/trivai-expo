@@ -1,11 +1,11 @@
 ﻿import { useState, useEffect } from 'react'
 import {
   View, Text, ScrollView, FlatList, Image, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Linking, Dimensions,
+  StyleSheet, ActivityIndicator, Linking, Dimensions, Share,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, router } from 'expo-router'
-import { ArrowLeft, Calendar, MapPin, Users, Clock, Heart, Navigation } from 'lucide-react-native'
+import { ArrowLeft, Calendar, MapPin, Users, Clock, Heart, Navigation, Share2 } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import type { Event, Place } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji } from '@/lib/tokens'
@@ -31,6 +31,8 @@ export default function EventoDetalle() {
   const [loading,    setLoading]    = useState(true)
   const [asistire,   setAsistire]   = useState(false)
   const [toggling,   setToggling]   = useState(false)
+  const [asistentes, setAsistentes] = useState<{ id: string; nombre: string; ini: string }[]>([])
+  const [totalAsist, setTotalAsist] = useState(0)
 
   useEffect(() => {
     const load = async () => {
@@ -56,6 +58,21 @@ export default function EventoDetalle() {
           .maybeSingle()
         setAsistire(!!att)
       }
+
+      // Asistentes reales
+      const [{ data: attList }, { count: attCount }] = await Promise.all([
+        supabase.from('event_attendees')
+          .select('profile:profiles(id, full_name, username)')
+          .eq('event_id', id).eq('status', 'going').limit(6),
+        supabase.from('event_attendees')
+          .select('id', { count: 'exact', head: true })
+          .eq('event_id', id).eq('status', 'going'),
+      ])
+      setTotalAsist(attCount ?? 0)
+      setAsistentes((attList ?? []).map((a: any) => {
+        const nombre = a.profile?.full_name ?? a.profile?.username ?? 'Usuario'
+        return { id: a.profile?.id ?? nombre, nombre: nombre.split(' ')[0], ini: nombre.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) }
+      }))
 
       setLoading(false)
     }
@@ -97,9 +114,13 @@ export default function EventoDetalle() {
 
   const emoji = getCatEmoji(evento.category)
 
+  const compartir = () => {
+    Share.share({ title: evento.name, message: evento.name + ' - Ver en Trivai: https://trivai-expo.vercel.app/eventos/' + evento.id, url: 'https://trivai-expo.vercel.app/eventos/' + evento.id })
+  }
+
   const abrirMaps = () => {
     if (lugar?.latitude && lugar?.longitude) {
-      Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lugar.latitude},${lugar.longitude}`)
+      Linking.openURL('https://maps.google.com/?q=' + lugar.latitude + ',' + lugar.longitude)
     }
   }
 
@@ -112,28 +133,59 @@ export default function EventoDetalle() {
           <ArrowLeft size={20} color={T.fg1} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{evento.name}</Text>
-        <TouchableOpacity style={styles.heartBtn} onPress={() => setAsistire(v => !v)}>
-          <Heart size={20} color={asistire ? T.danger : T.fg3}
-            fill={asistire ? T.danger : 'none'} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 4 }}>
+          <TouchableOpacity style={styles.heartBtn} onPress={compartir}>
+            <Share2 size={20} color={T.fg3} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.heartBtn} onPress={toggleAsistencia}>
+            <Heart size={20} color={asistire ? T.danger : T.fg3}
+              fill={asistire ? T.danger : 'none'} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
-        {/* HERO */}
-        <View style={styles.hero}>
-          <Text style={styles.heroEmoji}>{emoji}</Text>
-          <View style={styles.heroBadges}>
-            <View style={[styles.badge, { backgroundColor: T.orangeSoft }]}>
-              <Text style={[styles.badgeText, { color: T.orange }]}>{evento.category}</Text>
+        {/* HERO — carrusel de fotos o fallback emoji */}
+        {evento.photos && evento.photos.length > 0 ? (
+          <View style={{ height: 220, position: 'relative' }}>
+            <FlatList
+              horizontal pagingEnabled showsHorizontalScrollIndicator={false}
+              data={evento.photos.slice(0, 5)}
+              keyExtractor={(_, i) => String(i)}
+              renderItem={({ item }) => (
+                <Image source={{ uri: item }} style={styles.heroPhoto} resizeMode="cover" />
+              )}
+            />
+            <View style={styles.photoBadge}>
+              <Text style={styles.photoBadgeText}>{evento.photos.length} fotos</Text>
             </View>
-            <View style={[styles.badge, { backgroundColor: evento.is_free ? T.greenSoft : T.purpleSoft }]}>
-              <Text style={[styles.badgeText, { color: evento.is_free ? T.green : T.purple }]}>
-                {evento.is_free ? 'Gratis' : `Bs. ${evento.price}`}
-              </Text>
+            <View style={[styles.heroBadges, { position: 'absolute', bottom: S.lg }]}>
+              <View style={[styles.badge, { backgroundColor: T.orangeSoft }]}>
+                <Text style={[styles.badgeText, { color: T.orange }]}>{evento.category}</Text>
+              </View>
+              <View style={[styles.badge, { backgroundColor: evento.is_free ? T.greenSoft : T.purpleSoft }]}>
+                <Text style={[styles.badgeText, { color: evento.is_free ? T.green : T.purple }]}>
+                  {evento.is_free ? 'Gratis' : `Bs. ${evento.price}`}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
+        ) : (
+          <View style={styles.hero}>
+            <Text style={styles.heroEmoji}>{emoji}</Text>
+            <View style={styles.heroBadges}>
+              <View style={[styles.badge, { backgroundColor: T.orangeSoft }]}>
+                <Text style={[styles.badgeText, { color: T.orange }]}>{evento.category}</Text>
+              </View>
+              <View style={[styles.badge, { backgroundColor: evento.is_free ? T.greenSoft : T.purpleSoft }]}>
+                <Text style={[styles.badgeText, { color: evento.is_free ? T.green : T.purple }]}>
+                  {evento.is_free ? 'Gratis' : `Bs. ${evento.price}`}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* INFO PRINCIPAL */}
         <View style={styles.mainInfo}>
@@ -176,9 +228,22 @@ export default function EventoDetalle() {
             <View style={{ flex: 1 }}>
               <Text style={styles.infoLabel}>Asistentes</Text>
               <Text style={styles.infoText}>
-                {evento.attendees_count ?? 0}
-                {evento.capacity ? ` / ${evento.capacity}` : ''} personas
+                {totalAsist}{evento.capacity ? ` / ${evento.capacity}` : ''} personas
               </Text>
+              {asistentes.length > 0 && (
+                <View style={styles.asistentesRow}>
+                  {asistentes.map(a => (
+                    <View key={a.id} style={styles.asistAvatar}>
+                      <Text style={styles.asistIni}>{a.ini}</Text>
+                    </View>
+                  ))}
+                  {totalAsist > asistentes.length && (
+                    <View style={[styles.asistAvatar, { backgroundColor: T.muted }]}>
+                      <Text style={[styles.asistIni, { color: T.fg3 }]}>+{totalAsist - asistentes.length}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -258,4 +323,9 @@ const styles = StyleSheet.create({
   asistirBtnActive: { backgroundColor: T.purple, borderColor: T.purple },
   asistirText:      { fontSize: F.size.base, color: T.purple, fontWeight: F.weight.bold },
   asistirTextActive:{ color: '#fff' },
+  photoBadge:       { position: 'absolute', bottom: 10, right: 12, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: R.full, paddingHorizontal: 10, paddingVertical: 4 },
+  photoBadgeText:   { fontSize: F.size.xs, color: '#fff', fontWeight: F.weight.semibold },
+  asistentesRow:    { flexDirection: 'row', gap: 6, marginTop: S.sm, flexWrap: 'wrap' },
+  asistAvatar:      { width: 28, height: 28, borderRadius: 14, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+  asistIni:         { fontSize: 10, fontWeight: F.weight.bold, color: T.purple },
 })

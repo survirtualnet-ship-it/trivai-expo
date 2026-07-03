@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
 
 type Tab = 'todos' | 'lugares' | 'eventos' | 'personas'
+type Tendencia = { texto: string; tipo: string; emoji: string; href: string }
 
 const PERSON_COLORS = [T.greenSoft, T.orangeSoft, T.purpleSoft, T.muted]
 const PERSON_TEXTS  = [T.greenInk,  T.orangeInk,  T.purple,     T.fg2  ]
@@ -21,11 +22,9 @@ const CATEGORIAS = [
   { emoji: '🗺️', label: 'Mapa',    href: '/mapa',          color: '#2D1B0E' },
 ]
 
-const TENDENCIAS = [
-  { texto: 'Café & Jazz',       tipo: 'Evento · Hoy',        emoji: '🎷', href: '/eventos' },
-  { texto: 'Parque El Arenal',  tipo: 'Lugar · Parque',      emoji: '🌳', href: '/lugares' },
-  { texto: 'Food Fest',         tipo: 'Evento · Próximamente', emoji: '🍔', href: '/eventos' },
-]
+function formatFechaCorta(dt: string) {
+  return new Date(dt).toLocaleDateString('es-BO', { weekday: 'short', day: 'numeric', month: 'short' })
+}
 
 function highlight(text: string, q: string) {
   if (!q) return <Text>{text}</Text>
@@ -41,16 +40,46 @@ function highlight(text: string, q: string) {
 }
 
 export default function Buscar() {
-  const [query,    setQuery]    = useState('')
-  const [tab,      setTab]      = useState<Tab>('todos')
-  const [lugares,  setLugares]  = useState<any[]>([])
-  const [eventos,  setEventos]  = useState<any[]>([])
-  const [personas, setPersonas] = useState<any[]>([])
-  const [loading,  setLoading]  = useState(false)
-  const inputRef                = useRef<TextInput>(null)
+  const [query,      setQuery]      = useState('')
+  const [tab,        setTab]        = useState<Tab>('todos')
+  const [lugares,    setLugares]    = useState<any[]>([])
+  const [eventos,    setEventos]    = useState<any[]>([])
+  const [personas,   setPersonas]   = useState<any[]>([])
+  const [loading,    setLoading]    = useState(false)
+  const [tendencias, setTendencias] = useState<Tendencia[]>([])
+  const inputRef                    = useRef<TextInput>(null)
 
   useEffect(() => {
     setTimeout(() => inputRef.current?.focus(), 100)
+    const cargarTendencias = async () => {
+      const [{ data: topLug }, { data: proxEvt }] = await Promise.all([
+        supabase.from('places').select('id, name, category, rating_avg')
+          .not('rating_avg', 'is', null)
+          .order('rating_avg', { ascending: false })
+          .limit(2),
+        supabase.from('events').select('id, name, category, start_datetime')
+          .eq('is_active', true)
+          .gte('start_datetime', new Date().toISOString())
+          .order('start_datetime', { ascending: true })
+          .limit(2),
+      ])
+      const items: Tendencia[] = [
+        ...(topLug ?? []).map((l: any) => ({
+          texto: l.name,
+          tipo:  l.category + (l.rating_avg ? ' · ★ ' + Number(l.rating_avg).toFixed(1) : ''),
+          emoji: getCatEmoji(l.category),
+          href:  '/lugares/' + l.id,
+        })),
+        ...(proxEvt ?? []).map((e: any) => ({
+          texto: e.name,
+          tipo:  'Evento · ' + formatFechaCorta(e.start_datetime),
+          emoji: getCatEmoji(e.category),
+          href:  '/eventos/' + e.id,
+        })),
+      ]
+      if (items.length > 0) setTendencias(items)
+    }
+    cargarTendencias()
   }, [])
 
   useEffect(() => {
@@ -158,16 +187,19 @@ export default function Buscar() {
             </View>
 
             <Text style={[styles.sectionLabel, { marginTop: S.lg }]}>Tendencias en Santa Cruz</Text>
-            {TENDENCIAS.map(t => (
-              <TouchableOpacity key={t.texto} style={styles.tendenciaRow} onPress={() => router.push(t.href as any)}>
-                <View style={styles.tendenciaIcon}><Text style={{ fontSize: 18 }}>{t.emoji}</Text></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.tendenciaNombre}>{t.texto}</Text>
-                  <Text style={styles.tendenciaTipo}>{t.tipo}</Text>
-                </View>
-                <Text style={{ color: T.fg4, fontSize: 16 }}>›</Text>
-              </TouchableOpacity>
-            ))}
+            {tendencias.length === 0
+              ? <ActivityIndicator color={T.purple} style={{ marginTop: S.md }} />
+              : tendencias.map(t => (
+                <TouchableOpacity key={t.href} style={styles.tendenciaRow} onPress={() => router.push(t.href as any)}>
+                  <View style={styles.tendenciaIcon}><Text style={{ fontSize: 18 }}>{t.emoji}</Text></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.tendenciaNombre}>{t.texto}</Text>
+                    <Text style={styles.tendenciaTipo}>{t.tipo}</Text>
+                  </View>
+                  <Text style={{ color: T.fg4, fontSize: 16 }}>›</Text>
+                </TouchableOpacity>
+              ))
+            }
           </View>
         )}
 

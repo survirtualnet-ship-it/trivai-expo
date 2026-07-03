@@ -50,6 +50,7 @@ function buildMapHTML(
   centro: { lat: number; lng: number },
   apiKey: string,
   selId?: string,
+  userPos?: { lat: number; lng: number } | null,
 ) {
   // Define all marker data as a JS object for click handlers
   const markersDataJS = `var __markers = {
@@ -104,6 +105,12 @@ function initMap() {
     ]
   });
   ${pinsJS}
+  ${userPos ? `new google.maps.Marker({
+    position:{lat:${userPos.lat},lng:${userPos.lng}},
+    map:map,zIndex:2000,
+    title:'Tu ubicación',
+    icon:{path:google.maps.SymbolPath.CIRCLE,scale:9,fillColor:'#4285F4',fillOpacity:1,strokeColor:'#fff',strokeWeight:3}
+  });` : ''}
 }
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap" async defer></script>
@@ -119,6 +126,7 @@ export default function Mapa() {
   const [centro,       setCentro]       = useState(SANTA_CRUZ)
   const [loading,      setLoading]      = useState(true)
   const [seleccionado, setSeleccionado] = useState<Marcador | null>(null)
+  const [userPos,      setUserPos]      = useState<{ lat: number; lng: number } | null>(null)
 
   const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY ?? ''
 
@@ -128,7 +136,7 @@ export default function Mapa() {
       const [{ data: places }, { data: events }] = await Promise.all([
         supabase.from('places').select('id,name,category,latitude,longitude')
           .not('latitude', 'is', null).not('longitude', 'is', null),
-        supabase.from('events').select('id,name,category,start_datetime')
+        supabase.from('events').select('id,name,category,start_datetime,place:places(latitude,longitude)')
           .eq('is_active', true).gte('start_datetime', new Date().toISOString()),
       ])
 
@@ -138,13 +146,14 @@ export default function Mapa() {
         lat: p.latitude, lng: p.longitude,
       }))
 
-      // Eventos se distribuyen alrededor del centro (no tienen coords propias)
-      const mEventos: Marcador[] = (events ?? []).map((e, i) => ({
-        id: e.id, tipo: 'evento' as const,
-        name: e.name, category: e.category,
-        lat: SANTA_CRUZ.lat + Math.sin(i * 1.3) * 0.018,
-        lng: SANTA_CRUZ.lng + Math.cos(i * 1.3) * 0.018,
-      }))
+      // Eventos solo aparecen si su lugar tiene coordenadas reales
+      const mEventos: Marcador[] = (events ?? [])
+        .filter((e: any) => e.place?.latitude && e.place?.longitude)
+        .map((e: any) => ({
+          id: e.id, tipo: 'evento' as const,
+          name: e.name, category: e.category,
+          lat: e.place.latitude, lng: e.place.longitude,
+        }))
 
       const lista = [...mLugares, ...mEventos]
       setTodos(lista)
@@ -187,7 +196,7 @@ export default function Mapa() {
     } catch {}
   }, [])
 
-  const mapHTML = buildMapHTML(marcadores, centro, apiKey, seleccionado?.id)
+  const mapHTML = buildMapHTML(marcadores, centro, apiKey, seleccionado?.id, userPos)
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -197,11 +206,23 @@ export default function Mapa() {
         <Text style={styles.title}>
           {params.zona ? params.zona : 'Mapa'}
         </Text>
-        <TouchableOpacity style={styles.locBtn} onPress={() => {
-          setCentro(SANTA_CRUZ)
-          setSeleccionado(null)
+        <TouchableOpacity style={[styles.locBtn, userPos && { backgroundColor: T.purple }]} onPress={() => {
+          if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              pos => {
+                const p = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+                setUserPos(p)
+                setCentro(p)
+                setSeleccionado(null)
+              },
+              () => { setCentro(SANTA_CRUZ); setSeleccionado(null) },
+              { timeout: 8000 }
+            )
+          } else {
+            setCentro(SANTA_CRUZ); setSeleccionado(null)
+          }
         }}>
-          <Navigation size={16} color={T.purple} />
+          <Navigation size={16} color={userPos ? '#fff' : T.purple} />
         </TouchableOpacity>
       </View>
 

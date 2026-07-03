@@ -8,11 +8,13 @@ import { router } from 'expo-router'
 import { Search, MapPin, Star } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
+import { calcIsOpen } from '@/lib/hours'
 
 interface Place {
   id: string; name: string; category: string
   address: string | null; rating_avg: number
   rating_count: number; is_open: boolean
+  hours?: Record<string, string> | null
 }
 
 const CATEGORIAS = [
@@ -25,10 +27,10 @@ const CATEGORIAS = [
 ]
 
 const ZONAS = [
-  { nombre: 'Centro',     emoji: '🏛️', color: '#3a3340' },
-  { nombre: 'Equipetrol', emoji: '🍺', color: '#21121a' },
-  { nombre: 'Las Palmas', emoji: '🌳', color: '#274a30' },
-  { nombre: 'Urbarí',     emoji: '🖼️', color: '#3a1d4e' },
+  { nombre: 'Centro',     emoji: '🏛️', color: '#3a3340', lat: -17.7833, lng: -63.1821 },
+  { nombre: 'Equipetrol', emoji: '🍺', color: '#21121a', lat: -17.7697, lng: -63.2017 },
+  { nombre: 'Las Palmas', emoji: '🌳', color: '#274a30', lat: -17.7521, lng: -63.1919 },
+  { nombre: 'Urbarí',     emoji: '🖼️', color: '#3a1d4e', lat: -17.7992, lng: -63.1734 },
 ]
 
 export default function Lugares() {
@@ -44,7 +46,7 @@ export default function Lugares() {
     const load = async () => {
       setLoading(true)
       let q = supabase.from('places')
-        .select('id,name,category,address,rating_avg,rating_count,is_open')
+        .select('id,name,category,address,rating_avg,rating_count,is_open,hours')
         .not('latitude', 'is', null)
         .order('rating_avg', { ascending: false })
         .limit(40)
@@ -77,6 +79,7 @@ export default function Lugares() {
       const { data } = await supabase
         .from('places')
         .select('id,name,category,address,rating_avg,rating_count,is_open')
+        .select('id,name,category,address,rating_avg,rating_count,is_open,hours')
         .ilike('name', `%${term}%`)
         .order('rating_avg', { ascending: false })
         .limit(40)
@@ -233,9 +236,9 @@ function CardLugar({ item }: { item: Place }) {
         <Text style={styles.cardRating}>{item.rating_avg?.toFixed(1) ?? '—'}</Text>
         <Text style={styles.cardReviews}>({item.rating_count ?? 0})</Text>
       </View>
-      <View style={[styles.badge, { backgroundColor: item.is_open ? T.greenSoft : T.muted, marginTop: 6 }]}>
-        <Text style={[styles.badgeText, { color: item.is_open ? T.green : T.fg3 }]}>
-          {item.is_open ? 'Abierto' : 'Cerrado'}
+      <View style={[styles.badge, { backgroundColor: calcIsOpen(item.hours, item.is_open) ? T.greenSoft : T.muted, marginTop: 6 }]}>
+        <Text style={[styles.badgeText, { color: calcIsOpen(item.hours, item.is_open) ? T.green : T.fg3 }]}>
+          {calcIsOpen(item.hours, item.is_open) ? 'Abierto' : 'Cerrado'}
         </Text>
       </View>
     </TouchableOpacity>
@@ -259,9 +262,9 @@ function RowLugar({ item }: { item: Place }) {
           {item.address && <Text style={styles.rowAddr} numberOfLines={1}> · {item.address}</Text>}
         </View>
       </View>
-      <View style={[styles.badge, { backgroundColor: item.is_open ? T.greenSoft : T.muted }]}>
-        <Text style={[styles.badgeText, { color: item.is_open ? T.green : T.fg3 }]}>
-          {item.is_open ? 'Abierto' : 'Cerrado'}
+      <View style={[styles.badge, { backgroundColor: calcIsOpen(item.hours, item.is_open) ? T.greenSoft : T.muted }]}>
+        <Text style={[styles.badgeText, { color: calcIsOpen(item.hours, item.is_open) ? T.green : T.fg3 }]}>
+          {calcIsOpen(item.hours, item.is_open) ? 'Abierto' : 'Cerrado'}
         </Text>
       </View>
     </TouchableOpacity>

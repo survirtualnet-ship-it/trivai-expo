@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { ArrowLeft, Calendar, MapPin, DollarSign, AlignLeft, CheckCircle } from 'lucide-react-native'
+import { ArrowLeft, Calendar, MapPin, DollarSign, AlignLeft, CheckCircle, X } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
-import { T, F, S, R } from '@/lib/tokens'
+import { T, F, S, R, getCatEmoji } from '@/lib/tokens'
 import { grantXP, XP } from '@/lib/xp'
+
+type LugarResult = { id: string; name: string; category: string; address: string | null }
 
 const CATEGORIAS = [
   'Música', 'Arte', 'Gastronomía', 'Deportes',
@@ -78,13 +80,46 @@ export default function CrearEvento() {
   const [categoria,   setCategoria]   = useState('')
   const [fecha,       setFecha]       = useState('')
   const [hora,        setHora]        = useState('')
-  const [lugar,       setLugar]       = useState('')
+  const [lugarQuery,      setLugarQuery]      = useState('')
+  const [lugarResults,    setLugarResults]    = useState<LugarResult[]>([])
+  const [lugarSelec,      setLugarSelec]      = useState<LugarResult | null>(null)
+  const [buscandoLugar,   setBuscandoLugar]   = useState(false)
+  const lugarTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [descripcion, setDescripcion] = useState('')
   const [esGratis,    setEsGratis]    = useState(true)
   const [precio,      setPrecio]      = useState('')
   const [guardando,   setGuardando]   = useState(false)
   const [error,       setError]       = useState<string | null>(null)
   const [exito,       setExito]       = useState(false)
+
+  const onLugarChange = (text: string) => {
+    setLugarQuery(text)
+    setLugarSelec(null)
+    if (lugarTimer.current) clearTimeout(lugarTimer.current)
+    if (text.trim().length < 2) { setLugarResults([]); return }
+    lugarTimer.current = setTimeout(async () => {
+      setBuscandoLugar(true)
+      const { data } = await supabase
+        .from('places')
+        .select('id, name, category, address')
+        .ilike('name', '%' + text.trim() + '%')
+        .limit(5)
+      setLugarResults((data as LugarResult[]) ?? [])
+      setBuscandoLugar(false)
+    }, 300)
+  }
+
+  const seleccionarLugar = (lugar: LugarResult) => {
+    setLugarSelec(lugar)
+    setLugarQuery(lugar.name)
+    setLugarResults([])
+  }
+
+  const limpiarLugar = () => {
+    setLugarSelec(null)
+    setLugarQuery('')
+    setLugarResults([])
+  }
 
   const handleGuardar = async () => {
     if (!nombre.trim()) { setError('El nombre del evento es obligatorio.'); return }
@@ -118,7 +153,7 @@ export default function CrearEvento() {
       category:        categoria,
       start_datetime:  startDatetime,
       description:     descFinal,
-      place_id:        null,
+      place_id:        lugarSelec?.id ?? null,
       is_free:         esGratis,
       price:           esGratis ? 0 : Number(precio) || 0,
       is_featured:     false,
@@ -221,13 +256,42 @@ export default function CrearEvento() {
               <MapPin size={14} color={T.fg3} />
               <Text style={c.campoLabel}>Lugar del evento</Text>
             </View>
-            <TextInput
-              value={lugar}
-              onChangeText={setLugar}
-              placeholder="Ej: Teatro Municipal, Parque El Arenal, Equipetrol"
-              placeholderTextColor={T.fg4}
-              style={c.campoInput}
-            />
+            {lugarSelec ? (
+              <View style={c.lugarSelecBox}>
+                <Text style={{ fontSize: 22, marginRight: S.sm }}>{getCatEmoji(lugarSelec.category)}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={c.lugarSelecNombre}>{lugarSelec.name}</Text>
+                  {lugarSelec.address ? <Text style={c.lugarSelecAddr} numberOfLines={1}>{lugarSelec.address}</Text> : null}
+                </View>
+                <TouchableOpacity onPress={limpiarLugar} style={{ padding: 4 }}>
+                  <X size={16} color={T.fg3} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View>
+                <TextInput
+                  value={lugarQuery}
+                  onChangeText={onLugarChange}
+                  placeholder="Buscar lugar en Trivai... (opcional)"
+                  placeholderTextColor={T.fg4}
+                  style={c.campoInput}
+                />
+                {buscandoLugar && <ActivityIndicator size="small" color={T.purple} style={{ marginTop: 4 }} />}
+                {lugarResults.length > 0 && (
+                  <View style={c.lugarDropdown}>
+                    {lugarResults.map(r => (
+                      <TouchableOpacity key={r.id} style={c.lugarDropdownRow} onPress={() => seleccionarLugar(r)}>
+                        <Text style={{ fontSize: 18, marginRight: S.sm }}>{getCatEmoji(r.category)}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={c.lugarDropNombre} numberOfLines={1}>{r.name}</Text>
+                          {r.address ? <Text style={c.lugarDropAddr} numberOfLines={1}>{r.address}</Text> : null}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
           </View>
 
           {/* Descripción */}
@@ -331,4 +395,11 @@ const c = StyleSheet.create({
   exitoContainer:    { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: T.bg, gap: S.md },
   exitoTitle:        { fontSize: F.size.xxl, fontWeight: F.weight.bold, color: T.fg1 },
   exitoSub:          { fontSize: F.size.md, color: T.fg2 },
+  lugarSelecBox:     { flexDirection: 'row', alignItems: 'center', backgroundColor: T.purpleSoft, borderRadius: R.md, padding: S.md, borderWidth: 1.5, borderColor: T.purple },
+  lugarSelecNombre:  { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.fg1 },
+  lugarSelecAddr:    { fontSize: F.size.xs, color: T.fg3, marginTop: 2 },
+  lugarDropdown:     { backgroundColor: T.surface, borderRadius: R.md, borderWidth: 1, borderColor: T.border, marginTop: 4, overflow: 'hidden' },
+  lugarDropdownRow:  { flexDirection: 'row', alignItems: 'center', paddingHorizontal: S.md, paddingVertical: S.sm + 2, borderBottomWidth: 1, borderBottomColor: T.border },
+  lugarDropNombre:   { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.fg1 },
+  lugarDropAddr:     { fontSize: F.size.xs, color: T.fg3, marginTop: 1 },
 })

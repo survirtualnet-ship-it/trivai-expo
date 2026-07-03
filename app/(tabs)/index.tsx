@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import {
   View, Text, ScrollView, FlatList, TouchableOpacity,
   StyleSheet, ActivityIndicator, TextInput, Image,
@@ -9,10 +9,25 @@ import { Search, Bell, MapPin, Calendar } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
 import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
+import { calcIsOpen } from '@/lib/hours'
 
 interface Place {
   id: string; name: string; category: string
   address: string | null; rating_avg: number; is_open: boolean
+  hours?: Record<string, string> | null
+  latitude?: number | null; longitude?: number | null
+}
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function formatDist(km: number) {
+  return km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km'
 }
 
 interface Event {
@@ -45,9 +60,9 @@ function CardLugar({ item }: { item: Place }) {
       <Text style={styles.cardTitle} numberOfLines={2}>{item.name}</Text>
       <Text style={styles.cardSub} numberOfLines={1}>{item.category}</Text>
       <View style={styles.cardRow}>
-        <View style={[styles.badge, { backgroundColor: item.is_open ? T.greenSoft : T.dangerSoft }]}>
-          <Text style={[styles.badgeText, { color: item.is_open ? T.green : T.danger }]}>
-            {item.is_open ? 'Abierto' : 'Cerrado'}
+        <View style={[styles.badge, { backgroundColor: calcIsOpen(item.hours, item.is_open) ? T.greenSoft : T.dangerSoft }]}>
+          <Text style={[styles.badgeText, { color: calcIsOpen(item.hours, item.is_open) ? T.green : T.danger }]}>
+            {calcIsOpen(item.hours, item.is_open) ? 'Abierto' : 'Cerrado'}
           </Text>
         </View>
       </View>
@@ -98,7 +113,7 @@ function RowEvento({ item }: { item: Event }) {
   )
 }
 
-function RowLugar({ item }: { item: Place }) {
+function RowLugar({ item, dist }: { item: Place; dist?: number }) {
   const emoji = getCatEmoji(item.category)
   const color = getCatColor(item.category)
   return (
@@ -108,11 +123,13 @@ function RowLugar({ item }: { item: Place }) {
       </View>
       <View style={styles.rowContent}>
         <Text style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.rowSub}>{item.category}</Text>
+        <Text style={styles.rowSub}>
+          {item.category}{dist != null ? '  ·  📍 ' + formatDist(dist) : ''}
+        </Text>
       </View>
-      <View style={[styles.badge, { backgroundColor: item.is_open ? T.greenSoft : T.muted }]}>
-        <Text style={[styles.badgeText, { color: item.is_open ? T.green : T.fg3 }]}>
-          {item.is_open ? 'Abierto' : 'Cerrado'}
+      <View style={[styles.badge, { backgroundColor: calcIsOpen(item.hours, item.is_open) ? T.greenSoft : T.muted }]}>
+        <Text style={[styles.badgeText, { color: calcIsOpen(item.hours, item.is_open) ? T.green : T.fg3 }]}>
+          {calcIsOpen(item.hours, item.is_open) ? 'Abierto' : 'Cerrado'}
         </Text>
       </View>
     </TouchableOpacity>
@@ -132,11 +149,12 @@ interface ActividadAmigo {
 
 export default function Inicio() {
   const { displayName } = useUser()
-  const [lugares,   setLugares]   = useState<Place[]>([])
-  const [eventos,   setEventos]   = useState<Event[]>([])
-  const [actividad, setActividad] = useState<ActividadAmigo[]>([])
-  const [loading,   setLoading]   = useState(true)
-  const [sinLeer,   setSinLeer]   = useState(0)
+  const [lugares,     setLugares]     = useState<Place[]>([])
+  const [eventos,     setEventos]     = useState<Event[]>([])
+  const [actividad,   setActividad]   = useState<ActividadAmigo[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [sinLeer,     setSinLeer]     = useState(0)
+  const [userCoords,  setUserCoords]  = useState<{ lat: number; lng: number } | null>(null)
 
   useEffect(() => {
     const fetch = async () => {
@@ -144,8 +162,8 @@ export default function Inicio() {
       const user = session?.user ?? null
 
       const baseQueries: Promise<any>[] = [
-        supabase.from('places').select('id,name,category,address,rating_avg,is_open')
-          .not('latitude', 'is', null).order('rating_avg', { ascending: false }).limit(6),
+        supabase.from('places').select('id,name,category,address,rating_avg,is_open,hours,latitude,longitude')
+          .not('latitude', 'is', null).order('rating_avg', { ascending: false }).limit(20),
         supabase.from('events').select('id,name,category,start_datetime,is_free,price,place:places(name)')
           .eq('is_active', true).gte('start_datetime', new Date().toISOString())
           .order('start_datetime', { ascending: true }).limit(6),
@@ -201,6 +219,42 @@ export default function Inicio() {
     fetch()
   }, [])
 
+  // Realtime: badge en vivo cuando llega notificacion
+  useEffect(() => {
+    let channel: any = null
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const userId = session?.user?.id
+      if (!userId) return
+      channel = supabase
+        .channel('notif-badge')
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'notifications',
+          filter: 'user_id=eq.' + userId,
+        }, () => setSinLeer(n => n + 1))
+        .subscribe()
+    })
+    return () => { if (channel) supabase.removeChannel(channel) }
+  }, [])
+
+  // Geolocation — ask once on mount
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => {},
+        { timeout: 8000 }
+      )
+    }
+  }, [])
+
+  const lugaresCerca = userCoords
+    ? [...lugares]
+        .filter(l => l.latitude && l.longitude)
+        .map(l => ({ ...l, _dist: haversineKm(userCoords.lat, userCoords.lng, l.latitude!, l.longitude!) }))
+        .sort((a, b) => a._dist - b._dist)
+        .slice(0, 6)
+    : lugares.slice(0, 6)
+
   const recomendados = [
     ...eventos.slice(0, 2).map(e => ({ type: 'evento' as const, data: e })),
     ...lugares.slice(0, 2).map(l => ({ type: 'lugar' as const, data: l })),
@@ -223,7 +277,12 @@ export default function Inicio() {
             <Text style={styles.fecha}>{fechaHoy()}</Text>
           </View>
           <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/notificaciones')}>
-            <Bell size={20} color={T.fg2} />
+            <Bell size={20} color={sinLeer > 0 ? T.purple : T.fg2} />
+            {sinLeer > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifBadgeText}>{sinLeer > 9 ? '9+' : sinLeer}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -309,7 +368,9 @@ export default function Inicio() {
         <View style={{ paddingHorizontal: S.lg }}>
           {loading
             ? <ActivityIndicator color={T.purple} />
-            : lugares.slice(0, 4).map(lu => <RowLugar key={lu.id} item={lu} />)
+            : lugaresCerca.slice(0, 4).map(lu => (
+                <RowLugar key={lu.id} item={lu} dist={(lu as any)._dist} />
+              ))
           }
         </View>
 

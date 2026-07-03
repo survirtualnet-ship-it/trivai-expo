@@ -1,11 +1,11 @@
 ﻿import { useState, useEffect, useRef } from 'react'
 import {
-  View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Linking, TextInput,
+  View, Text, ScrollView, FlatList, Image, TouchableOpacity,
+  StyleSheet, ActivityIndicator, Linking, TextInput, Share, Dimensions,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, router } from 'expo-router'
-import { ArrowLeft, MapPin, Phone, Globe, Clock, Star, Navigation, Heart, MessageSquare } from 'lucide-react-native'
+import { ArrowLeft, MapPin, Phone, Globe, Clock, Star, Navigation, Heart, MessageSquare, Share2 } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import type { Place } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
@@ -177,6 +177,14 @@ export default function LugarDetalle() {
   const diaHoy = DIAS[new Date().getDay()]
   const horario = lugar.hours?.[diaHoy] ?? null
 
+  const compartir = () => {
+    Share.share({
+      title: lugar.name,
+      message: lugar.name + ' en Santa Cruz. Ver en Trivai: https://trivai-expo.vercel.app/lugares/' + lugar.id,
+      url: 'https://trivai-expo.vercel.app/lugares/' + lugar.id,
+    })
+  }
+
   const abrirMaps = () => {
     if (lugar.latitude && lugar.longitude)
       Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lugar.latitude},${lugar.longitude}`)
@@ -193,9 +201,14 @@ export default function LugarDetalle() {
           <ArrowLeft size={20} color={T.fg1} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{lugar.name}</Text>
-        <TouchableOpacity style={styles.backBtn} onPress={toggleFavorito} disabled={togFav}>
-          <Heart size={22} color={favorito ? T.danger : T.fg3} fill={favorito ? T.danger : 'none'} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 4 }}>
+          <TouchableOpacity style={styles.backBtn} onPress={compartir}>
+            <Share2 size={20} color={T.fg2} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.backBtn} onPress={toggleFavorito} disabled={togFav}>
+            <Heart size={22} color={favorito ? T.danger : T.fg3} fill={favorito ? T.danger : 'none'} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -426,6 +439,9 @@ const styles = StyleSheet.create({
   headerTitle:     { flex: 1, fontSize: F.size.lg, fontWeight: F.weight.bold, color: T.fg1 },
   hero:            { height: 180, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   heroEmoji:       { fontSize: 72 },
+  heroPhoto:       { width: Dimensions.get('window').width, height: 220 },
+  photoBadge:      { position: 'absolute', bottom: 10, right: 12, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: R.full, paddingHorizontal: 10, paddingVertical: 4 },
+  photoBadgeText:  { fontSize: F.size.xs, color: '#fff', fontWeight: F.weight.semibold },
   categoryBadge:   { position: 'absolute', bottom: S.lg, paddingHorizontal: S.md, paddingVertical: 4, borderRadius: R.full },
   categoryText:    { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: '#fff' },
   mainInfo:        { backgroundColor: T.surface, padding: S.lg, borderBottomWidth: 1, borderBottomColor: T.border },

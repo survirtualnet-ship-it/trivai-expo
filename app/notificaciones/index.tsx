@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, ActivityIndicator,
@@ -43,7 +43,35 @@ export default function Notificaciones() {
   const [notifs,  setNotifs]  = useState<Notif[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { cargar() }, [])
+  useEffect(() => {
+    cargar()
+    // Suscripción en tiempo real
+    let channel: any = null
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const userId = session?.user?.id
+      if (!userId) return
+      channel = supabase
+        .channel('notif-screen')
+        .on('postgres_changes', {
+          event: 'INSERT', schema: 'public', table: 'notifications',
+          filter: 'user_id=eq.' + userId,
+        }, (payload) => {
+          const n = payload.new as any
+          setNotifs(prev => [{
+            id:        n.id,
+            tipo:      n.type ?? 'system',
+            texto:     n.title,
+            detalle:   n.body ?? '',
+            createdAt: n.created_at,
+            leida:     false,
+            emoji:     n.data?.emoji ?? '🔔',
+            href:      n.data?.href ?? '/',
+          }, ...prev])
+        })
+        .subscribe()
+    })
+    return () => { if (channel) supabase.removeChannel(channel) }
+  }, [])
 
   async function cargar() {
     setLoading(true)

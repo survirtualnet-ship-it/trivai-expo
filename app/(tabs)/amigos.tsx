@@ -38,6 +38,30 @@ type Sugerencia = {
   colorIdx: number
 }
 
+type Lider = {
+  id: string
+  nombre: string
+  initials: string
+  xp: number
+  colorIdx: number
+}
+
+function nivelEmoji(xp: number) {
+  if (xp >= 1000) return '👑'
+  if (xp >= 500)  return '🏆'
+  if (xp >= 200)  return '✈️'
+  if (xp >= 50)   return '🗺️'
+  return '🌱'
+}
+
+function nivelNombre(xp: number) {
+  if (xp >= 1000) return 'Embajador'
+  if (xp >= 500)  return 'Aventurero'
+  if (xp >= 200)  return 'Viajero'
+  if (xp >= 50)   return 'Explorador'
+  return 'Curioso'
+}
+
 const COLORS = [T.greenSoft, T.orangeSoft, T.purpleSoft, T.muted]
 const TEXTS  = [T.greenInk,  T.orange,     T.purple,     T.fg2  ]
 
@@ -59,6 +83,7 @@ export default function Amigos() {
   const [loading,       setLoading]       = useState(true)
   const [enviados,      setEnviados]      = useState<Set<string>>(new Set())
   const [procesando,    setProcesando]    = useState<string | null>(null)
+  const [ranking,       setRanking]       = useState<Lider[]>([])
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -120,6 +145,21 @@ export default function Amigos() {
         colorIdx: i,
       }))
     setSugerencias(sugs)
+
+    // Ranking top XP
+    const { data: topXP } = await supabase
+      .from('profiles')
+      .select('id, full_name, username, xp_points')
+      .order('xp_points', { ascending: false })
+      .limit(5)
+    setRanking((topXP ?? []).map((p: any, i: number) => ({
+      id:       p.id,
+      nombre:   p.full_name ?? p.username ?? 'Usuario',
+      initials: (p.full_name ?? 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+      xp:       p.xp_points ?? 0,
+      colorIdx: i,
+    })))
+
     setLoading(false)
   }, [])
 
@@ -310,6 +350,37 @@ export default function Amigos() {
                 </View>
               )}
 
+              {/* Ranking */}
+              {ranking.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>🏅 Top Exploradores</Text>
+                  {ranking.map((l, i) => {
+                    const medals = ['🥇', '🥈', '🥉']
+                    const medal  = medals[i] ?? `${i + 1}.`
+                    const isMe   = l.id === miId
+                    return (
+                      <TouchableOpacity
+                        key={l.id}
+                        style={[styles.rankRow, isMe && styles.rankRowMe]}
+                        onPress={() => router.push(`/perfil/${l.id}`)}
+                      >
+                        <Text style={styles.rankMedal}>{medal}</Text>
+                        <View style={[styles.rankAvatar, { backgroundColor: COLORS[l.colorIdx % 4] }]}>
+                          <Text style={[styles.rankIni, { color: TEXTS[l.colorIdx % 4] }]}>{l.initials}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.rankNombre} numberOfLines={1}>
+                            {l.nombre.split(' ')[0]}{isMe ? ' (tú)' : ''}
+                          </Text>
+                          <Text style={styles.rankNivel}>{nivelEmoji(l.xp)} {nivelNombre(l.xp)}</Text>
+                        </View>
+                        <Text style={styles.rankXP}>{l.xp} XP</Text>
+                      </TouchableOpacity>
+                    )
+                  })}
+                </View>
+              )}
+
               {/* Banner */}
               <View style={styles.planBanner}>
                 <View style={styles.planIcon}><Users size={20} color={T.greenInk} /></View>
@@ -454,4 +525,12 @@ const styles = StyleSheet.create({
   emptySub:                { fontSize: F.size.sm, color: T.fg3, textAlign: 'center' },
   emptyBtn:                { paddingHorizontal: S.xl, paddingVertical: S.md, backgroundColor: T.purple, borderRadius: R.full },
   emptyBtnText:            { fontSize: F.size.sm, fontWeight: F.weight.bold, color: '#fff' },
+  rankRow:                 { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.sm, borderBottomWidth: 1, borderBottomColor: T.border },
+  rankRowMe:               { backgroundColor: T.purpleSoft, borderRadius: R.md, paddingHorizontal: S.sm, borderBottomWidth: 0, marginVertical: 2 },
+  rankMedal:               { fontSize: 20, width: 28, textAlign: 'center' },
+  rankAvatar:              { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  rankIni:                 { fontSize: F.size.sm, fontWeight: F.weight.bold },
+  rankNombre:              { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.fg1 },
+  rankNivel:               { fontSize: F.size.xs, color: T.fg3, marginTop: 1 },
+  rankXP:                  { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.purple },
 })

@@ -15,6 +15,24 @@ import { useUser } from '@/hooks/useUser'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji } from '@/lib/tokens'
 
+const NIVELES = [
+  { min: 0,    max: 49,        nombre: 'Curioso',    emoji: '🌱', color: T.green   },
+  { min: 50,   max: 199,       nombre: 'Explorador', emoji: '🗺️', color: T.purple  },
+  { min: 200,  max: 499,       nombre: 'Viajero',    emoji: '✈️', color: T.orange  },
+  { min: 500,  max: 999,       nombre: 'Aventurero', emoji: '🏆', color: '#E91E63' },
+  { min: 1000, max: Infinity,  nombre: 'Embajador',  emoji: '👑', color: '#B8860B' },
+]
+
+function getNivel(xp: number) {
+  const idx   = NIVELES.findIndex(n => xp >= n.min && xp <= n.max)
+  const nivel = NIVELES[Math.max(0, idx)]
+  const sig   = NIVELES[idx + 1] ?? null
+  const progreso = sig
+    ? Math.min(Math.round(((xp - nivel.min) / (sig.min - nivel.min)) * 100), 100)
+    : 100
+  return { ...nivel, sig, progreso, xpRestante: sig ? sig.min - xp : 0 }
+}
+
 const STAT_TILES = [
   { key: 'eventos', label: 'Eventos\nasistidos', Icon: Calendar, bg: T.greenSoft,   fg: T.green,   href: '/perfil/eventos-asistidos' },
   { key: 'lugares', label: 'Lugares\nguardados', Icon: Bookmark, bg: T.orangeSoft,  fg: T.orange,  href: '/perfil/favoritos'          },
@@ -162,20 +180,30 @@ export default function Perfil() {
           ))}
         </View>
 
-        {/* NIVEL EXPLORADOR */}
-        <TouchableOpacity style={styles.xpCard} onPress={() => router.push('/publicar')}>
-          <View style={styles.xpHex}>
-            <Star size={20} color="#fff" fill="#fff" strokeWidth={0} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.xpTitle}>Nivel Explorador</Text>
-            <Text style={styles.xpSub}>Sigue descubriendo y sumando experiencias</Text>
-            <View style={styles.xpBarBg}>
-              <View style={[styles.xpBar, { width: `${Math.min((profile?.xp_points ?? 0) / 10, 100)}%` as any }]} />
-            </View>
-          </View>
-          <Text style={styles.xpPoints}>{profile?.xp_points ?? 0} / 1k XP</Text>
-        </TouchableOpacity>
+        {/* NIVEL XP */}
+        {(() => {
+          const xp    = profile?.xp_points ?? 0
+          const nivel = getNivel(xp)
+          return (
+            <TouchableOpacity style={styles.xpCard} onPress={() => router.push('/publicar')}>
+              <View style={[styles.xpHex, { backgroundColor: nivel.color }]}>
+                <Text style={{ fontSize: 20 }}>{nivel.emoji}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.xpTitle}>Nivel {nivel.nombre}</Text>
+                <Text style={styles.xpSub}>
+                  {nivel.sig
+                    ? `${nivel.xpRestante} XP para ${nivel.sig.nombre}`
+                    : '¡Nivel máximo alcanzado! 🎉'}
+                </Text>
+                <View style={styles.xpBarBg}>
+                  <View style={[styles.xpBar, { width: `${nivel.progreso}%` as any, backgroundColor: nivel.color }]} />
+                </View>
+              </View>
+              <Text style={[styles.xpPoints, { color: nivel.color }]}>{xp} XP</Text>
+            </TouchableOpacity>
+          )
+        })()}
 
         {/* MIS FAVORITOS */}
         {favs.length > 0 && (
