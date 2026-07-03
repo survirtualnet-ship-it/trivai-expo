@@ -142,9 +142,10 @@ export default function CrearEvento() {
 
     const startDatetime = new Date(`${isoDate}T${hora}:00`).toISOString()
 
-    // Incluir el lugar en la descripción si se escribió
+    // Texto libre de lugar solo si no hay place_id vinculado
+    const lugarTexto = !lugarSelec && lugarQuery.trim() ? lugarQuery.trim() : null
     const descFinal = [
-      lugar.trim() ? `📍 ${lugar.trim()}` : null,
+      lugarTexto ? `📍 ${lugarTexto}` : null,
       descripcion.trim() || null,
     ].filter(Boolean).join('\n\n') || null
 
