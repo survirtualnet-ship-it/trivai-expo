@@ -1,11 +1,14 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import type { ComponentType } from 'react'
-import { MapPin, Star } from 'lucide-react-native'
+import { Clock, MapPin } from 'lucide-react-native'
 import { CatCover } from '@/components/CatCover'
 import { HeartButton } from '@/components/HeartButton'
 import { T, F, S, R, SHADOW, getCatLabel } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import { calcIsOpen } from '@/lib/hours'
+import { getCityZone, distToMinutes } from '@/lib/zones'
+import type { AppLocale } from '@/lib/i18n/discover'
+import { DISCOVER_STRINGS, categoryLabel } from '@/lib/i18n/discover'
 
 export type PlaceCardData = {
   id: string
@@ -24,40 +27,42 @@ type Props = {
   place: PlaceCardData
   onPress: () => void
   showHeart?: boolean
+  locale?: AppLocale
 }
 
-function formatDist(km: number) {
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`
-}
-
-export function PlaceCard({ place, onPress, showHeart = true }: Props) {
+export function PlaceCard({ place, onPress, showHeart = true, locale = 'es' }: Props) {
+  const t = DISCOVER_STRINGS[locale]
   const isOpen = calcIsOpen(place.hours, place.is_open ?? false)
-  const dist = place._dist != null ? formatDist(place._dist) : null
+  const minutes = place._dist != null ? distToMinutes(place._dist) : null
+  const zone =
+    place.latitude != null && place.longitude != null
+      ? getCityZone(place.latitude, place.longitude)
+      : null
+  const catLabel = locale === 'es' ? getCatLabel(place.category) : categoryLabel(place.category, locale)
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.92}>
       <CatCover category={place.category} variant="thumb" style={styles.cover} />
       <View style={styles.body}>
-        <Text style={styles.cat}>{getCatLabel(place.category)}</Text>
         <Text style={styles.title} numberOfLines={2}>{place.name}</Text>
-        <View style={styles.metaRow}>
-          <Text style={[styles.status, { color: isOpen ? T.secondary : T.fg3 }]}>
-            {isOpen ? 'Abierto' : 'Cerrado'}
-          </Text>
-          {place.rating_avg ? (
-            <>
-              <Text style={styles.dot}>·</Text>
-              <Star size={11} color={T.accent} fill={T.accent} />
-              <Text style={styles.rating}>{place.rating_avg.toFixed(1)}</Text>
-            </>
-          ) : null}
-        </View>
-        {(dist || place.address) && (
-          <View style={styles.locRow}>
+
+        {minutes != null && (
+          <View style={styles.row}>
+            <Clock size={12} color={T.fg3} />
+            <Text style={styles.meta}>{minutes} {t.min}</Text>
+          </View>
+        )}
+
+        <Text style={styles.cat}>{catLabel}</Text>
+
+        <Text style={[styles.status, { color: isOpen ? T.secondary : T.fg3 }]}>
+          {isOpen ? t.open : t.closed}
+        </Text>
+
+        {zone && (
+          <View style={styles.row}>
             <MapPin size={12} color={T.fg3} />
-            <Text style={styles.loc} numberOfLines={1}>
-              {dist ? `a ${dist}` : place.address}
-            </Text>
+            <Text style={styles.meta}>{t.zone} {zone}</Text>
           </View>
         )}
       </View>
@@ -111,7 +116,15 @@ const styles = StyleSheet.create({
     ...SHADOW.sm,
   },
   cover: { width: 72, height: 72, borderRadius: R.lg, overflow: 'hidden' },
-  body: { flex: 1, minWidth: 0, gap: 2 },
+  body: { flex: 1, minWidth: 0, gap: 3 },
+  title: {
+    fontFamily: FONT.bold,
+    fontSize: F.size.md,
+    fontWeight: F.weight.bold,
+    color: T.fg1,
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  meta: { fontFamily: FONT.regular, fontSize: F.size.xs, color: T.fg3 },
   cat: {
     fontFamily: FONT.semibold,
     fontSize: F.size.xs,
@@ -119,18 +132,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
-  title: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.md,
-    fontWeight: F.weight.bold,
-    color: T.fg1,
-  },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   status: { fontFamily: FONT.semibold, fontSize: F.size.xs, fontWeight: F.weight.semibold },
-  dot: { color: T.fg4, fontSize: F.size.xs },
-  rating: { fontFamily: FONT.semibold, fontSize: F.size.xs, color: T.fg2 },
-  locRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  loc: { fontFamily: FONT.regular, fontSize: F.size.xs, color: T.fg3, flex: 1 },
   heart: { alignSelf: 'flex-start', paddingTop: 2 },
   zone: {
     width: 128,
