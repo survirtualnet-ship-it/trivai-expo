@@ -27,5 +27,13 @@ export function mapAuthError(error: unknown, fallback: string): string {
     return 'Google login no está habilitado en el proyecto.'
   }
 
+  if (includesAny(message, ['code verifier', 'flow state', 'invalid request'])) {
+    return 'La sesión de Google expiró. Intenta iniciar sesión de nuevo.'
+  }
+
+  if (includesAny(message, ['redirect_uri_mismatch', 'redirect url'])) {
+    return 'URL de retorno no configurada. Contacta al administrador.'
+  }
+
   return message || fallback
 }

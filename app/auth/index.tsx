@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native'
+import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native'
 import { router } from 'expo-router'
 import { signInWithGoogle } from '@/lib/auth/googleOAuth'
 import { mapAuthError } from '@/lib/auth/authErrors'
@@ -15,7 +15,7 @@ export default function Bienvenida() {
 
     try {
       await signInWithGoogle()
-      router.replace('/')
+      if (Platform.OS !== 'web') router.replace('/')
     } catch (err) {
       setError(mapAuthError(err, 'Error al iniciar sesión con Google.'))
     } finally {

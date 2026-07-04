@@ -9,22 +9,25 @@ WebBrowser.maybeCompleteAuthSession()
 export async function signInWithGoogle(): Promise<void> {
   const redirectTo = getAuthRedirectUrl('auth/callback')
 
-  if (Platform.OS === 'web') {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo },
-    })
-    if (error) throw error
-    return
-  }
-
-  const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo, skipBrowserRedirect: true },
+    options: {
+      redirectTo,
+      skipBrowserRedirect: true,
+    },
   })
 
-  if (oauthError) throw oauthError
+  if (error) throw error
   if (!data?.url) throw new Error('No se pudo iniciar el login con Google.')
+
+  if (Platform.OS === 'web') {
+    if (typeof window === 'undefined') {
+      throw new Error('El login con Google solo está disponible en el navegador.')
+    }
+    // Navegación completa: evita que expo-router interrumpa el flujo OAuth
+    window.location.assign(data.url)
+    return
+  }
 
   const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo)
 

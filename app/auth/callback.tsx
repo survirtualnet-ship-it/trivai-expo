@@ -3,19 +3,16 @@ import { View, ActivityIndicator, Text } from 'react-native'
 import { router } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import { ensureProfile } from '@/lib/auth/ensureProfile'
+import {
+  isPasswordRecoveryCallback,
+  resolveOAuthSessionFromUrl,
+} from '@/lib/auth/completeAuthCallback'
 import { T, F } from '@/lib/tokens'
-
-function isRecoveryUrl(): boolean {
-  if (typeof window === 'undefined') return false
-  const hash = window.location.hash
-  const search = window.location.search
-  return hash.includes('type=recovery') || search.includes('type=recovery')
-}
 
 export default function AuthCallback() {
   useEffect(() => {
     let navigated = false
-    const recoveryLink = isRecoveryUrl()
+    const recoveryLink = isPasswordRecoveryCallback()
 
     const goHome = async (user: Parameters<typeof ensureProfile>[0]) => {
       if (navigated) return
@@ -30,6 +27,44 @@ export default function AuthCallback() {
       router.replace('/auth/reset-password')
     }
 
+    const goLogin = () => {
+      if (navigated) return
+      navigated = true
+      router.replace('/auth/login')
+    }
+
+    const finish = async () => {
+      try {
+        if (recoveryLink) {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.user) {
+            goResetPassword()
+            return
+          }
+        }
+
+        const oauthSession = await resolveOAuthSessionFromUrl()
+        if (oauthSession?.user) {
+          await goHome(oauthSession.user)
+          return
+        }
+
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          if (recoveryLink) {
+            goResetPassword()
+          } else {
+            await goHome(session.user)
+          }
+        }
+      } catch (err) {
+        console.warn('Auth callback:', err)
+        goLogin()
+      }
+    }
+
+    void finish()
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         goResetPassword()
@@ -41,16 +76,13 @@ export default function AuthCallback() {
         return
       }
 
-      if (event === 'SIGNED_IN' && session?.user) {
-        goHome(session.user)
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session?.user) {
+        void goHome(session.user)
       }
     })
 
     const timeout = setTimeout(() => {
-      if (!navigated) {
-        navigated = true
-        router.replace('/auth/login')
-      }
+      if (!navigated) goLogin()
     }, 12_000)
 
     return () => {

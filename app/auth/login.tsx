@@ -43,7 +43,8 @@ export default function Login() {
 
     try {
       await signInWithGoogle()
-      router.replace('/')
+      // En web la página redirige a Google; solo navegar en nativo
+      if (Platform.OS !== 'web') router.replace('/')
     } catch (err) {
       setError(mapAuthError(err, 'Error al iniciar sesión con Google.'))
     } finally {
