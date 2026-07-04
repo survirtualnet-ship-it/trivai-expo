@@ -60,6 +60,25 @@ export function formatToday(locale: AppLocale): string {
   return raw.charAt(0).toUpperCase() + raw.slice(1)
 }
 
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+/** Ej: "Santa Cruz de la Sierra, Sábado, 04 de Julio de 2026" */
+export function formatCityDateLine(cityName: string, locale: AppLocale): string {
+  const now = new Date()
+  if (locale === 'es') {
+    const weekday = capitalize(now.toLocaleDateString('es-BO', { weekday: 'long' }))
+    const day = String(now.getDate()).padStart(2, '0')
+    const month = capitalize(now.toLocaleDateString('es-BO', { month: 'long' }))
+    const year = now.getFullYear()
+    return `${cityName}, ${weekday}, ${day} de ${month} de ${year}`
+  }
+  const weekday = now.toLocaleDateString('en-US', { weekday: 'long' })
+  const datePart = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  return `${cityName}, ${weekday}, ${datePart}`
+}
+
 export function categoryLabel(cat: string, locale: AppLocale): string {
   const es: Record<string, string> = {
     Gastronomía: 'Gastronomía',

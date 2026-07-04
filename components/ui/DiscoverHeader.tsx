@@ -5,7 +5,7 @@ import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import {
   DISCOVER_STRINGS,
-  formatToday,
+  formatCityDateLine,
   type AppLocale,
 } from '@/lib/i18n/discover'
 
@@ -72,10 +72,14 @@ export function DiscoverHeader({
   return (
     <View style={styles.wrap}>
       <View style={styles.topRow}>
-        <View style={styles.brandCol}>
+        <View style={styles.sideLeft}>
           <HeaderLogo height={32} />
-          <Text style={styles.city}>{cityName}</Text>
-          <Text style={styles.date}>{formatToday(locale)}</Text>
+        </View>
+
+        <View style={styles.centerCol}>
+          <Text style={styles.locationLine} numberOfLines={2}>
+            {formatCityDateLine(cityName, locale)}
+          </Text>
         </View>
 
         <View style={styles.actions}>
@@ -110,31 +114,34 @@ const styles = StyleSheet.create({
   },
   topRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: S.md,
+    gap: S.sm,
   },
-  brandCol: {
+  sideLeft: {
+    width: 118,
+    justifyContent: 'center',
+  },
+  centerCol: {
     flex: 1,
-    gap: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: S.xs,
   },
-  city: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.lg,
-    fontWeight: F.weight.bold,
-    color: T.primary,
-    marginTop: S.xs,
-  },
-  date: {
-    fontFamily: FONT.regular,
+  locationLine: {
+    fontFamily: FONT.medium,
     fontSize: F.size.sm,
-    color: T.fg3,
+    fontWeight: F.weight.medium,
+    color: T.fg2,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   actions: {
+    width: 118,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
     gap: S.sm,
-    paddingTop: 2,
   },
   iconBtn: {
     width: 44,

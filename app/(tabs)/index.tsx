@@ -1,18 +1,20 @@
 ﻿import { useState, useEffect, useMemo } from 'react'
 import {
   View, Text, ScrollView, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator,
+  StyleSheet, ActivityIndicator, Keyboard,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
-import { Search, UtensilsCrossed, Palette, Trees, Sparkles } from 'lucide-react-native'
+import { UtensilsCrossed, Palette, Trees, Sparkles } from 'lucide-react-native'
 import { router } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
 import { useLocale } from '@/hooks/useLocale'
+import { useDiscoverSearch } from '@/hooks/useDiscoverSearch'
 import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import { DiscoverHeader } from '@/components/ui/DiscoverHeader'
+import { DiscoverSearchBar } from '@/components/ui/DiscoverSearchBar'
 import { FilterChip } from '@/components/ui/FilterChip'
 import { EventCard, type EventCardData } from '@/components/ui/EventCard'
 import { HeroCard } from '@/components/ui/HeroCard'
@@ -26,6 +28,12 @@ import { deferredPush } from '@/lib/deferredNav'
 import { haversineKm, groupEventsByBucket, esHoy } from '@/lib/eventUtils'
 import { dedupePlaces } from '@/lib/places'
 import { DISCOVER_STRINGS } from '@/lib/i18n/discover'
+import {
+  buildSearchSuggestions,
+  mergeSearchEvents,
+  mergeSearchPlaces,
+  matchesSearch,
+} from '@/lib/smartSearch'
 
 type QuickFilter = 'hoy' | 'cerca' | 'trending' | null
 
@@ -64,6 +72,15 @@ export default function Discover() {
   const [sinLeer, setSinLeer] = useState(0)
   const [quickFilter, setQuickFilter] = useState<QuickFilter>(null)
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const {
+    remoteLugares,
+    remoteEventos,
+    personas,
+    searching,
+    isActive: isSearchActive,
+  } = useDiscoverSearch(searchQuery)
 
   useEffect(() => {
     getCurrentCoords().then(c => { if (c) setUserCoords(c) })
@@ -138,26 +155,49 @@ export default function Discover() {
     fetch()
   }, [])
 
+  const lugaresForView = useMemo(
+    () => mergeSearchPlaces(lugares, remoteLugares, searchQuery),
+    [lugares, remoteLugares, searchQuery],
+  )
+
+  const eventosForView = useMemo(
+    () => mergeSearchEvents(eventos, remoteEventos, searchQuery),
+    [eventos, remoteEventos, searchQuery],
+  )
+
+  const actividadForView = useMemo(() => {
+    const q = searchQuery.trim()
+    if (!q) return actividad
+    return actividad.filter(a =>
+      matchesSearch(a.nombre, q) || matchesSearch(a.quien, q),
+    )
+  }, [actividad, searchQuery])
+
   const lugaresConDist = useMemo(() => {
-    if (!userCoords) return lugares
-    return lugares.map(l => {
+    if (!userCoords) return lugaresForView
+    return lugaresForView.map(l => {
       if (l.latitude && l.longitude) {
         return { ...l, _dist: haversineKm(userCoords.lat, userCoords.lng, l.latitude, l.longitude) }
       }
       return l
     })
-  }, [lugares, userCoords])
+  }, [lugaresForView, userCoords])
 
   const eventosConDist = useMemo(() => {
-    if (!userCoords) return eventos
-    return eventos.map(ev => {
+    if (!userCoords) return eventosForView
+    return eventosForView.map(ev => {
       const pl = ev.place as EventCardData['place'] & { latitude?: number; longitude?: number }
       if (pl?.latitude && pl?.longitude) {
         return { ...ev, _dist: haversineKm(userCoords.lat, userCoords.lng, pl.latitude, pl.longitude) }
       }
       return ev
     })
-  }, [eventos, userCoords])
+  }, [eventosForView, userCoords])
+
+  const searchSuggestions = useMemo(
+    () => buildSearchSuggestions(lugaresForView, eventosForView, personas, searchQuery),
+    [lugaresForView, eventosForView, personas, searchQuery],
+  )
 
   const filteredEvents = useMemo(() => {
     let list = [...eventosConDist]
@@ -199,7 +239,12 @@ export default function Discover() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        onScrollBeginDrag={() => Keyboard.dismiss()}
+      >
 
         <DiscoverHeader
           cityName={cityName}
@@ -212,10 +257,14 @@ export default function Discover() {
           onNotifPress={() => deferredPush('/notificaciones')}
         />
 
-        <TouchableOpacity style={styles.search} onPress={() => deferredPush('/buscar')} activeOpacity={0.85}>
-          <Search size={18} color={T.fg3} />
-          <Text style={styles.searchPh}>{t.searchPlaceholder}</Text>
-        </TouchableOpacity>
+        <DiscoverSearchBar
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder={t.searchPlaceholder}
+          suggestions={searchSuggestions}
+          searching={searching}
+          showSuggestions
+        />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
           <FilterChip label={t.filterHoy} active={quickFilter === 'hoy'} onPress={() => toggleQuick('hoy')} />
@@ -253,6 +302,10 @@ export default function Discover() {
             <Text style={styles.ctaBtnText}>Crear plan</Text>
           </TouchableOpacity>
         </LinearGradient>
+
+        {isSearchActive && (
+          <SectionHeader title={`Resultados · "${searchQuery.trim()}"`} />
+        )}
 
         {(emphasizePlaces || !loading) && lugaresCerca.length > 0 && (
           <>
@@ -299,15 +352,39 @@ export default function Discover() {
           </>
         )}
 
-        {actividad.length > 0 && (
+        {isSearchActive && personas.length > 0 && (
+          <>
+            <SectionHeader title="Personas" />
+            <View style={styles.list}>
+              {personas.slice(0, 6).map(p => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={styles.personRow}
+                  onPress={() => deferredPush(`/perfil/${p.id}` as any)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.personAvatar}>
+                    <Text style={styles.personIni}>{p.ini}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.friendTitle} numberOfLines={1}>{p.nombre}</Text>
+                    {p.usuario ? <Text style={styles.friendSub}>@{p.usuario}</Text> : null}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
+
+        {actividadForView.length > 0 && (
           <>
             <SectionHeader title="Actividad de amigos" actionLabel="Ver más" onAction={() => deferredPush('/amigos')} />
-            <TouchableOpacity style={styles.friendCard} onPress={() => deferredPush(actividad[0].href as any)} activeOpacity={0.9}>
-              <AvatarGroup items={actividad.slice(0, 4).map(a => ({ id: a.id, initials: a.ini }))} max={4} size={36} />
+            <TouchableOpacity style={styles.friendCard} onPress={() => deferredPush(actividadForView[0].href as any)} activeOpacity={0.9}>
+              <AvatarGroup items={actividadForView.slice(0, 4).map(a => ({ id: a.id, initials: a.ini }))} max={4} size={36} />
               <View style={styles.friendBody}>
-                <Text style={styles.friendTitle} numberOfLines={1}>{actividad[0].nombre}</Text>
+                <Text style={styles.friendTitle} numberOfLines={1}>{actividadForView[0].nombre}</Text>
                 <Text style={styles.friendSub} numberOfLines={1}>
-                  {actividad[0].quien}{actividad.length > 1 ? ` y ${actividad.length - 1} más van` : ' va'}
+                  {actividadForView[0].quien}{actividadForView.length > 1 ? ` y ${actividadForView.length - 1} más van` : ' va'}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -356,11 +433,12 @@ export default function Discover() {
           </>
         )}
 
-        {!loading && filteredEvents.length === 0 && lugaresCerca.length === 0 && (
+        {!loading && !searching && isSearchActive &&
+          filteredEvents.length === 0 && lugaresCerca.length === 0 && personas.length === 0 && (
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyIcon}>✨</Text>
+            <Text style={styles.emptyIcon}>{isSearchActive ? '🔍' : '✨'}</Text>
             <Text style={styles.emptyTitle}>{t.noResults}</Text>
-            <TouchableOpacity onPress={() => setQuickFilter(null)}>
+            <TouchableOpacity onPress={() => { setQuickFilter(null); setSearchQuery('') }}>
               <Text style={styles.emptyLink}>{t.seeAllLink}</Text>
             </TouchableOpacity>
           </View>
@@ -374,14 +452,30 @@ export default function Discover() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
   scroll: { paddingBottom: S.xxxl },
-  search: {
-    flexDirection: 'row', alignItems: 'center', gap: S.sm,
-    marginHorizontal: S.lg, marginTop: S.sm,
-    backgroundColor: T.surface, borderRadius: R.xl,
-    paddingHorizontal: S.lg, height: 52, ...SHADOW.sm,
-  },
-  searchPh: { flex: 1, fontFamily: FONT.regular, fontSize: F.size.md, color: T.fg3 },
   filters: { paddingHorizontal: S.lg, gap: S.sm, paddingTop: S.lg, paddingBottom: S.xs },
+  personRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: S.md,
+    backgroundColor: T.surface,
+    borderRadius: R.xl,
+    padding: S.md,
+    ...SHADOW.sm,
+  },
+  personAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: T.purpleSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  personIni: {
+    fontFamily: FONT.bold,
+    fontSize: F.size.sm,
+    fontWeight: F.weight.bold,
+    color: T.primary,
+  },
   chips: { paddingHorizontal: S.lg, gap: S.sm, paddingBottom: S.xs },
   hList: { paddingHorizontal: S.lg, gap: S.md, paddingBottom: 4 },
   heroWrap: { paddingHorizontal: S.lg },
