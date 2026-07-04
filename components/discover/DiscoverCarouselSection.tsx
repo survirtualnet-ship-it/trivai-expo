@@ -34,13 +34,17 @@ export const DiscoverCarouselSection = memo(function DiscoverCarouselSection({
     }
 
     el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
+    el.classList.add('trivai-hide-scrollbar')
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      el.classList.remove('trivai-hide-scrollbar')
+    }
   }, [loading, children])
 
   const carouselProps = {
     ref: scrollRef,
     horizontal: true as const,
-    showsHorizontalScrollIndicator: Platform.OS === 'web',
+    showsHorizontalScrollIndicator: false,
     nestedScrollEnabled: true,
     contentContainerStyle: styles.list,
     style: Platform.OS === 'web' ? styles.webScroll : undefined,

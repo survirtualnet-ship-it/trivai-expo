@@ -6,6 +6,7 @@ import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_7
 import { T } from '@/lib/tokens'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { ConfigMissingScreen } from '@/components/ConfigMissingScreen'
+import { WebAppShell } from '@/components/WebAppShell'
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -18,24 +19,30 @@ export default function RootLayout() {
   if (!isSupabaseConfigured) {
     return (
       <SafeAreaProvider>
-        <StatusBar style="dark" backgroundColor={T.surface} />
-        <ConfigMissingScreen />
+        <WebAppShell>
+          <StatusBar style="dark" backgroundColor={T.surface} />
+          <ConfigMissingScreen />
+        </WebAppShell>
       </SafeAreaProvider>
     )
   }
 
   if (!fontsLoaded) {
     return (
-      <View style={styles.loader}>
-        <ActivityIndicator color={T.primary} size="large" />
-      </View>
+      <WebAppShell>
+        <View style={styles.loader}>
+          <ActivityIndicator color={T.primary} size="large" />
+        </View>
+      </WebAppShell>
     )
   }
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" backgroundColor={T.surface} />
-      <Stack screenOptions={{ headerShown: false }} />
+      <WebAppShell>
+        <StatusBar style="dark" backgroundColor={T.surface} />
+        <Stack screenOptions={{ headerShown: false }} />
+      </WebAppShell>
     </SafeAreaProvider>
   )
 }
