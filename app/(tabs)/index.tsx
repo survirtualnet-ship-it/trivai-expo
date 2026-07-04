@@ -19,6 +19,7 @@ import { DiscoveryRow } from '@/components/DiscoveryRow'
 import { calcIsOpen } from '@/lib/hours'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { loadNotifPrefs, prefAllows } from '@/lib/notifPrefs'
+import { dedupePlaces } from '@/lib/places'
 
 interface Place {
   id: string; name: string; category: string
@@ -148,7 +149,7 @@ export default function Inicio() {
       const results = await Promise.all(baseQueries)
       const [lugRes, evtRes, f1Res, f2Res, notifRes] = results
 
-      if (lugRes?.data) setLugares(lugRes.data)
+      if (lugRes?.data) setLugares(dedupePlaces(lugRes.data))
       if (evtRes?.data) setEventos(evtRes.data as Event[])
       if (notifRes?.data && user) {
         const prefs = await loadNotifPrefs(user.id)

@@ -5,9 +5,17 @@ import { supabase } from '@/lib/supabase'
 import { ensureProfile } from '@/lib/auth/ensureProfile'
 import { T, F } from '@/lib/tokens'
 
+function isRecoveryUrl(): boolean {
+  if (typeof window === 'undefined') return false
+  const hash = window.location.hash
+  const search = window.location.search
+  return hash.includes('type=recovery') || search.includes('type=recovery')
+}
+
 export default function AuthCallback() {
   useEffect(() => {
     let navigated = false
+    const recoveryLink = isRecoveryUrl()
 
     const goHome = async (user: Parameters<typeof ensureProfile>[0]) => {
       if (navigated) return
@@ -22,24 +30,17 @@ export default function AuthCallback() {
       router.replace('/auth/reset-password')
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session?.user) return
-      // Tras link de recuperación Supabase entrega sesión temporal
-      const type = new URLSearchParams(
-        typeof window !== 'undefined' ? window.location.hash.slice(1) : '',
-      ).get('type')
-      if (type === 'recovery') {
-        goResetPassword()
-        return
-      }
-      goHome(session.user)
-    })
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         goResetPassword()
         return
       }
+
+      if (recoveryLink && session?.user) {
+        goResetPassword()
+        return
+      }
+
       if (event === 'SIGNED_IN' && session?.user) {
         goHome(session.user)
       }
@@ -50,7 +51,7 @@ export default function AuthCallback() {
         navigated = true
         router.replace('/auth/login')
       }
-    }, 10_000)
+    }, 12_000)
 
     return () => {
       subscription.unsubscribe()

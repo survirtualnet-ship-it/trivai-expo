@@ -29,10 +29,12 @@ function formatFechaLarga(dt: string) {
 
 type Props = {
   event: FeaturedEvent
+  saved?: boolean
+  onSaveToggle?: (active: boolean) => void
   onPress: () => void
 }
 
-export function FeaturedEventCard({ event, onPress }: Props) {
+export function FeaturedEventCard({ event, saved, onSaveToggle, onPress }: Props) {
   const catLabel = getCatLabel(event.category)
 
   return (
@@ -47,7 +49,7 @@ export function FeaturedEventCard({ event, onPress }: Props) {
         <View style={styles.badge}>
           <Text style={styles.badgeText}>Destacado</Text>
         </View>
-        <HeartButton floating size={20} />
+        <HeartButton floating size={20} eventId={event.id} initialActive={saved} managed onToggle={onSaveToggle} />
       </View>
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={2}>{event.name}</Text>

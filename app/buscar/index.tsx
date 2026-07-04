@@ -9,6 +9,7 @@ import { X, Search } from 'lucide-react-native'
 import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
+import { dedupePlaces } from '@/lib/places'
 
 type Tab = 'todos' | 'lugares' | 'eventos' | 'personas'
 type Tendencia = { texto: string; tipo: string; emoji: string; href: string }
@@ -65,7 +66,7 @@ export default function Buscar() {
           .limit(2),
       ])
       const items: Tendencia[] = [
-        ...(topLug ?? []).map((l: any) => ({
+        ...dedupePlaces(topLug ?? []).map((l: any) => ({
           texto: l.name,
           tipo:  l.category + (l.rating_avg ? ' · ★ ' + Number(l.rating_avg).toFixed(1) : ''),
           emoji: getCatEmoji(l.category),
@@ -97,7 +98,7 @@ export default function Buscar() {
       supabase.from('events').select('id, name, category, start_datetime, is_free, price').ilike('name', `%${q}%`).eq('is_active', true).limit(10),
       supabase.from('profiles').select('id, full_name, username, avatar_url').or(`full_name.ilike.%${q}%,username.ilike.%${q}%`).limit(8),
     ])
-    setLugares(lug ?? [])
+    setLugares(dedupePlaces(lug ?? []))
     setEventos(evt ?? [])
     setPersonas((per ?? []).map((p: any, i: number) => ({
       id:     p.id,

@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
-  View, Text, ScrollView, FlatList, TouchableOpacity,
+  View, Text, ScrollView, TouchableOpacity,
   StyleSheet, ActivityIndicator, NativeSyntheticEvent, NativeScrollEvent,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -16,6 +16,7 @@ import { FeaturedEventCard, FeaturedDots, FEATURED_W } from '@/components/evento
 import { EventListItem, type ListEvent } from '@/components/eventos/EventListItem'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { normalizeCategory } from '@/lib/categories'
+import { loadSavedEventIds } from '@/lib/favorites'
 
 type FiltroPill = 'Todos' | 'Hoy' | 'Este fin de semana' | 'Gratuitos' | 'Música' | 'Arte'
 
@@ -71,17 +72,22 @@ function pasaPill(ev: ListEvent, pill: FiltroPill) {
 }
 
 export default function Eventos() {
-  const [eventos, setEventos]       = useState<ListEvent[]>([])
-  const [loading, setLoading]         = useState(true)
-  const [pill, setPill]               = useState<FiltroPill>('Todos')
-  const [diaIdx, setDiaIdx]           = useState<number | null>(null)
+  const [eventos, setEventos]         = useState<ListEvent[]>([])
+  const [loading, setLoading]           = useState(true)
+  const [pill, setPill]                 = useState<FiltroPill>('Todos')
+  const [diaIdx, setDiaIdx]             = useState<number | null>(null)
   const [featuredIdx, setFeaturedIdx]   = useState(0)
-  const [dias]                        = useState(generarDias(14))
-  const [userCoords, setUserCoords]   = useState<{ lat: number; lng: number } | null>(null)
-  const featuredRef = useRef<FlatList>(null)
+  const [dias]                          = useState(generarDias(14))
+  const [userCoords, setUserCoords]     = useState<{ lat: number; lng: number } | null>(null)
+  const [savedEvents, setSavedEvents]   = useState<Set<string>>(new Set())
 
   useEffect(() => {
     getCurrentCoords().then(c => { if (c) setUserCoords(c) })
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        setSavedEvents(await loadSavedEventIds(session.user.id))
+      }
+    })
     supabase
       .from('events')
       .select('id,name,category,start_datetime,is_free,price,attendees_count,place:places(name,address,latitude,longitude)')
@@ -94,6 +100,15 @@ export default function Eventos() {
         setLoading(false)
       })
   }, [])
+
+  const toggleSaved = (eventId: string, active: boolean) => {
+    setSavedEvents(prev => {
+      const next = new Set(prev)
+      if (active) next.add(eventId)
+      else next.delete(eventId)
+      return next
+    })
+  }
 
   const eventosConDist = useMemo(() => {
     if (!userCoords) return eventos
@@ -208,24 +223,25 @@ export default function Eventos() {
                   onAction={() => router.push('/buscar')}
                 />
 
-                <FlatList
-                  ref={featuredRef}
+                <ScrollView
                   horizontal
-                  data={destacados}
-                  keyExtractor={e => e.id}
                   showsHorizontalScrollIndicator={false}
                   snapToInterval={FEATURED_W + S.md}
                   decelerationRate="fast"
                   onScroll={onFeaturedScroll}
                   scrollEventThrottle={16}
                   contentContainerStyle={styles.featuredList}
-                  renderItem={({ item }) => (
+                >
+                  {destacados.map(item => (
                     <FeaturedEventCard
+                      key={item.id}
                       event={item}
+                      saved={savedEvents.has(item.id)}
+                      onSaveToggle={active => toggleSaved(item.id, active)}
                       onPress={() => router.push(`/eventos/${item.id}`)}
                     />
-                  )}
-                />
+                  ))}
+                </ScrollView>
 
                 <FeaturedDots count={destacados.length} active={featuredIdx} />
               </>
@@ -243,6 +259,8 @@ export default function Eventos() {
                 <EventListItem
                   key={ev.id}
                   event={ev}
+                  saved={savedEvents.has(ev.id)}
+                  onSaveToggle={active => toggleSaved(ev.id, active)}
                   onPress={() => router.push(`/eventos/${ev.id}`)}
                 />
               ))}

@@ -37,10 +37,12 @@ function resolveTag(ev: ListEvent): Tag | null {
 
 type Props = {
   event: ListEvent
+  saved?: boolean
+  onSaveToggle?: (active: boolean) => void
   onPress: () => void
 }
 
-export function EventListItem({ event, onPress }: Props) {
+export function EventListItem({ event, saved, onSaveToggle, onPress }: Props) {
   const catColor = getCatColor(event.category)
   const catLabel = getCatLabel(event.category)
   const tag = resolveTag(event)
@@ -67,7 +69,7 @@ export function EventListItem({ event, onPress }: Props) {
       </View>
 
       <View style={styles.right}>
-        <HeartButton size={18} />
+        <HeartButton size={18} eventId={event.id} initialActive={saved} managed onToggle={onSaveToggle} />
         {tag ? (
           <View style={[styles.tag, { backgroundColor: tag.bg }]}>
             <Text style={[styles.tagText, { color: tag.fg }]}>{tag.label}</Text>

@@ -18,6 +18,7 @@ import { DiscoveryRow } from '@/components/DiscoveryRow'
 import { calcIsOpen } from '@/lib/hours'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { ENV } from '@/lib/env'
+import { dedupePlaces } from '@/lib/places'
 
 interface Place {
   id: string; name: string; category: string
@@ -48,17 +49,6 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
 
 function formatDist(km: number) {
   return km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km'
-}
-
-/** La BD tiene lugares importados más de una vez: conservar la fila con más datos */
-function dedupePlaces(places: Place[]): Place[] {
-  const grupos = new Map<string, Place>()
-  for (const p of places) {
-    const key = `${p.name.trim().toLowerCase()}|${p.latitude?.toFixed(4) ?? ''}|${p.longitude?.toFixed(4) ?? ''}`
-    const previo = grupos.get(key)
-    if (!previo || (p.rating_count ?? 0) > (previo.rating_count ?? 0)) grupos.set(key, p)
-  }
-  return [...grupos.values()]
 }
 
 /** Píldoras de categorías oficiales — activa con color sólido de marca */
