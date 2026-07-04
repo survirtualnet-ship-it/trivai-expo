@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo, useTransition, useCallback } from 'react'
+﻿import { useState, useEffect, useMemo, useTransition, useCallback, useDeferredValue } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, ActivityIndicator, Keyboard,
@@ -14,8 +14,8 @@ import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import {
   applyDiscoverFilters,
-  enrichEventsWithZone,
-  enrichPlacesWithZone,
+  enrichAllEvents,
+  enrichAllPlaces,
   type CategoryFilter,
   type LocationFilter,
 } from '@/lib/discoverFilters'
@@ -43,7 +43,7 @@ import {
   suggestionKey,
   type DiscoverSuggestion,
 } from '@/lib/discoverSuggestions'
-import { haversineKm, groupEventsByBucket, formatEventDateShort } from '@/lib/eventUtils'
+import { groupEventsByBucket, formatEventDateShort } from '@/lib/eventUtils'
 import { calcIsOpen } from '@/lib/hours'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { loadNotifPrefs, prefAllows } from '@/lib/notifPrefs'
@@ -66,6 +66,7 @@ interface FriendActivity {
 }
 
 const SC_CENTER = { lat: -17.7833, lng: -63.1821 }
+const FILTER_RESULTS_CAP = 32
 
 export default function Discover() {
   const { profile, isAuthenticated, signOut } = useUser()
@@ -85,6 +86,11 @@ export default function Discover() {
   const [isFilterPending, startFilterTransition] = useTransition()
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const deferredSearchQuery = useDeferredValue(searchQuery)
+
+  const handleSearchChange = useCallback((text: string) => {
+    setSearchQuery(text)
+  }, [])
 
   const {
     remoteLugares,
@@ -167,89 +173,79 @@ export default function Discover() {
     fetch()
   }, [])
 
+  const distOrigin = userCoords ?? SC_CENTER
+
+  const basePlacesEnriched = useMemo(
+    () => enrichAllPlaces(lugares, distOrigin),
+    [lugares, distOrigin],
+  )
+
+  const baseEventsEnriched = useMemo(
+    () => enrichAllEvents(eventos, distOrigin),
+    [eventos, distOrigin],
+  )
+
   const lugaresForView = useMemo(
-    () => mergeSearchPlaces(lugares, remoteLugares, searchQuery),
-    [lugares, remoteLugares, searchQuery],
+    () => mergeSearchPlaces(basePlacesEnriched, remoteLugares, deferredSearchQuery),
+    [basePlacesEnriched, remoteLugares, deferredSearchQuery],
   )
 
   const eventosForView = useMemo(
-    () => mergeSearchEvents(eventos, remoteEventos, searchQuery),
-    [eventos, remoteEventos, searchQuery],
+    () => mergeSearchEvents(baseEventsEnriched, remoteEventos, deferredSearchQuery),
+    [baseEventsEnriched, remoteEventos, deferredSearchQuery],
   )
 
   const actividadForView = useMemo(() => {
-    const q = searchQuery.trim()
+    const q = deferredSearchQuery.trim()
     if (!q) return actividad
     return actividad.filter(a =>
       matchesSearch(a.nombre, q) || matchesSearch(a.quien, q),
     )
-  }, [actividad, searchQuery])
-
-  const distOrigin = userCoords ?? SC_CENTER
-
-  const lugaresConDist = useMemo(() => {
-    return lugaresForView.map(l => {
-      if (l.latitude && l.longitude) {
-        return { ...l, _dist: haversineKm(distOrigin.lat, distOrigin.lng, l.latitude, l.longitude) }
-      }
-      return l
-    })
-  }, [lugaresForView, distOrigin])
-
-  const eventosConDist = useMemo(() => {
-    return eventosForView.map(ev => {
-      const pl = ev.place as EventCardData['place'] & { latitude?: number; longitude?: number }
-      if (pl?.latitude && pl?.longitude) {
-        return { ...ev, _dist: haversineKm(distOrigin.lat, distOrigin.lng, pl.latitude, pl.longitude) }
-      }
-      return ev
-    })
-  }, [eventosForView, distOrigin])
+  }, [actividad, deferredSearchQuery])
 
   const searchSuggestions = useMemo(
-    () => buildSearchSuggestions(lugaresForView, eventosForView, personas, searchQuery),
-    [lugaresForView, eventosForView, personas, searchQuery],
-  )
-
-  const lugaresEnriched = useMemo(
-    () => enrichPlacesWithZone(lugaresConDist),
-    [lugaresConDist],
-  )
-
-  const eventosEnriched = useMemo(
-    () => enrichEventsWithZone(eventosConDist),
-    [eventosConDist],
+    () => buildSearchSuggestions(lugaresForView, eventosForView, personas, deferredSearchQuery),
+    [lugaresForView, eventosForView, personas, deferredSearchQuery],
   )
 
   const { filteredPlaces, filteredEvents } = useMemo(
     () => applyDiscoverFilters(
-      lugaresEnriched,
-      eventosEnriched,
+      lugaresForView,
+      eventosForView,
       appliedCategoryFilter,
       appliedLocationFilter,
       userCoords != null,
     ),
-    [lugaresEnriched, eventosEnriched, appliedCategoryFilter, appliedLocationFilter, userCoords],
+    [lugaresForView, eventosForView, appliedCategoryFilter, appliedLocationFilter, userCoords],
   )
 
+  const isFilterMode = appliedLocationFilter != null || appliedCategoryFilter !== 'Todos' || isSearchActive
+  const showBrowseSections = !isFilterMode
+
   const cercaDeTi = useMemo(
-    () => buildCercaDeTi(lugaresEnriched, eventosEnriched),
-    [lugaresEnriched, eventosEnriched],
+    () => showBrowseSections ? buildCercaDeTi(basePlacesEnriched, baseEventsEnriched) : [],
+    [showBrowseSections, basePlacesEnriched, baseEventsEnriched],
   )
 
   const masDestacados = useMemo(
-    () => buildMasDestacados(lugaresEnriched, eventosEnriched),
-    [lugaresEnriched, eventosEnriched],
+    () => showBrowseSections ? buildMasDestacados(basePlacesEnriched, baseEventsEnriched) : [],
+    [showBrowseSections, basePlacesEnriched, baseEventsEnriched],
   )
 
-  const hero = useMemo(() => topFeaturedEvent(eventosEnriched), [eventosEnriched])
+  const hero = useMemo(
+    () => showBrowseSections ? topFeaturedEvent(baseEventsEnriched) : null,
+    [showBrowseSections, baseEventsEnriched],
+  )
 
   const carouselDestacados = useMemo(() => {
     if (!hero) return masDestacados
     return masDestacados.filter(s => !(s.kind === 'event' && s.data.id === hero.id))
   }, [masDestacados, hero])
 
-  const { noche, manana, finde } = groupEventsByBucket(filteredEvents)
+  const { noche, manana, finde } = useMemo(
+    () => showBrowseSections ? groupEventsByBucket(filteredEvents) : { noche: [], manana: [], finde: [] },
+    [showBrowseSections, filteredEvents],
+  )
 
   const selectLocation = useCallback((f: LocationFilter) => {
     const next = locationFilter === f ? null : f
@@ -272,8 +268,6 @@ export default function Discover() {
     })
   }, [])
 
-  const isFilterMode = appliedLocationFilter != null || appliedCategoryFilter !== 'Todos' || isSearchActive
-  const showBrowseSections = !isFilterMode
   const showEventSections = appliedLocationFilter !== 'cerca' || filteredEvents.length > 0
 
   const locationFilterLabel = useMemo(() => {
@@ -356,10 +350,10 @@ export default function Discover() {
 
         <DiscoverSearchBar
           value={searchQuery}
-          onChangeText={setSearchQuery}
+          onChangeText={handleSearchChange}
           placeholder={t.searchPlaceholder}
           suggestions={searchSuggestions}
-          searching={searching}
+          searching={searching || searchQuery !== deferredSearchQuery}
           showSuggestions
         />
 
@@ -392,7 +386,7 @@ export default function Discover() {
         )}
 
         {isSearchActive && (
-          <SectionHeader title={`Resultados · "${searchQuery.trim()}"`} />
+          <SectionHeader title={`Resultados · "${deferredSearchQuery.trim()}"`} />
         )}
 
         {isFilterMode && (
@@ -401,13 +395,13 @@ export default function Discover() {
 
         {(isFilterMode || isSearchActive) && !isFilterPending && filteredPlaces.length > 0 && (
           <DiscoverCarouselSection title="Lugares">
-            {filteredPlaces.map(renderPlaceCarouselCard)}
+            {filteredPlaces.slice(0, FILTER_RESULTS_CAP).map(renderPlaceCarouselCard)}
           </DiscoverCarouselSection>
         )}
 
         {(isFilterMode || isSearchActive) && !isFilterPending && filteredEvents.length > 0 && (
           <DiscoverCarouselSection title="Eventos">
-            {filteredEvents.map(renderEventCarouselCard)}
+            {filteredEvents.slice(0, FILTER_RESULTS_CAP).map(renderEventCarouselCard)}
           </DiscoverCarouselSection>
         )}
 

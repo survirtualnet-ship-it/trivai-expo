@@ -1,7 +1,6 @@
 /**
  * import-places.mjs
- * Busca lugares en Santa Cruz de la Sierra via Google Places API
- * y los importa masivamente a la tabla `places` de Supabase.
+ * Importa lugares de gastronomía en Santa Cruz via Google Places API → Supabase.
  *
  * Uso:
  *   node scripts/import-places.mjs
@@ -9,7 +8,7 @@
  * Requiere en .env.local:
  *   EXPO_PUBLIC_GOOGLE_MAPS_KEY=...
  *   EXPO_PUBLIC_SUPABASE_URL=...
- *   SUPABASE_SERVICE_ROLE_KEY=...   (clave de servicio, NO la anon key)
+ *   SUPABASE_SERVICE_ROLE_KEY=...
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -19,7 +18,6 @@ import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-// ─── Cargar .env.local ────────────────────────────────────────────────────────
 function loadEnv() {
   try {
     const envPath = join(__dirname, '..', '.env.local')
@@ -34,56 +32,69 @@ function loadEnv() {
       process.env[key] = val
     }
   } catch {
-    console.error('⚠  No se encontró .env.local — asegúrate de ejecutar desde trivai-app/')
+    console.error('⚠  No se encontró .env.local')
   }
 }
 loadEnv()
 
-// ─── Variables ────────────────────────────────────────────────────────────────
-const GOOGLE_KEY    = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY
-const SUPABASE_URL  = process.env.EXPO_PUBLIC_SUPABASE_URL
-const SERVICE_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY
+const GOOGLE_KEY   = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL
+const SERVICE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 if (!GOOGLE_KEY || !SUPABASE_URL || !SERVICE_KEY) {
-  console.error('\n❌  Faltan variables de entorno en .env.local:')
-  if (!GOOGLE_KEY)   console.error('     EXPO_PUBLIC_GOOGLE_MAPS_KEY')
-  if (!SUPABASE_URL) console.error('     EXPO_PUBLIC_SUPABASE_URL')
-  if (!SERVICE_KEY)  console.error('     SUPABASE_SERVICE_ROLE_KEY')
-  console.error('\n   Puedes copiar SUPABASE_SERVICE_ROLE_KEY desde:')
-  console.error('   Supabase → Project Settings → API → service_role\n')
+  console.error('\n❌  Faltan variables en .env.local (GOOGLE_KEY, SUPABASE_URL, SERVICE_ROLE_KEY)\n')
   process.exit(1)
 }
 
 const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 
-// ─── Configuración ────────────────────────────────────────────────────────────
-const SANTA_CRUZ = { lat: -17.7833, lng: -63.1821 }
-const RADIUS     = 12000  // 12 km de radio
+const CATEGORY = 'Gastronomía'
+const RADIUS   = 6000 // 6 km por zona
 
-const SEARCHES = [
-  { type: 'restaurant',         category: 'Gastronomía'     },
-  { type: 'cafe',               category: 'Gastronomía'     },
-  { type: 'bar',                category: 'Gastronomía'     },
-  { type: 'bakery',             category: 'Gastronomía'     },
-  { type: 'meal_takeaway',      category: 'Gastronomía'     },
-  { type: 'night_club',         category: 'Entretenimiento' },
-  { type: 'museum',             category: 'Entretenimiento' },
-  { type: 'art_gallery',        category: 'Entretenimiento' },
-  { type: 'movie_theater',      category: 'Entretenimiento' },
-  { type: 'tourist_attraction', category: 'Entretenimiento' },
-  { type: 'amusement_park',     category: 'Entretenimiento' },
-  { type: 'stadium',            category: 'Entretenimiento' },
-  { type: 'bowling_alley',      category: 'Entretenimiento' },
-  { type: 'gym',                category: 'Entretenimiento' },
-  { type: 'spa',                category: 'Otros'           },
-  { type: 'shopping_mall',      category: 'Otros'           },
-  { type: 'park',               category: 'Parques'         },
-  { type: 'campground',         category: 'Parques'         },
+/** Puntos de búsqueda para cubrir la ciudad */
+const SEARCH_CENTERS = [
+  { lat: -17.7833, lng: -63.1821, label: 'Centro' },
+  { lat: -17.7566, lng: -63.1973, label: 'Equipetrol' },
+  { lat: -17.7940, lng: -63.2100, label: 'Oeste / Plan 3000' },
+  { lat: -17.7650, lng: -63.1650, label: 'Este / Av. Banzer' },
+  { lat: -17.8200, lng: -63.1750, label: 'Sur' },
+  { lat: -17.7350, lng: -63.1850, label: 'Norte' },
+]
+
+/** Tipos oficiales de Google Places — gastronomía */
+const GASTRONOMY_TYPES = [
+  'restaurant',
+  'cafe',
+  'bakery',
+  'bar',
+  'meal_takeaway',
+  'meal_delivery',
+]
+
+/** Búsquedas por palabra clave (pastelerías, etc.) */
+const GASTRONOMY_KEYWORDS = [
+  'pastelería',
+  'pasteleria',
+  'panadería',
+  'panaderia',
+  'heladería',
+  'heladeria',
+  'pizzería',
+  'pizzeria',
+  'sushi',
+  'hamburguesería',
+  'cafetería',
+  'comida rápida',
+  'food truck',
+  'salteñería',
+  'asador',
+  'parrilla',
+  'cevichería',
+  'chifa',
 ]
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
 function parseHours(openingHours) {
@@ -100,11 +111,14 @@ function photoUrl(ref) {
   return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=800&photo_reference=${ref}&key=${GOOGLE_KEY}`
 }
 
-// ─── Google Places API ────────────────────────────────────────────────────────
-async function nearbySearch(type, pageToken = null) {
+async function nearbySearch({ lat, lng, type, keyword, pageToken = null }) {
   let url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json`
-    + `?location=${SANTA_CRUZ.lat},${SANTA_CRUZ.lng}`
-    + `&radius=${RADIUS}&type=${type}&language=es&key=${GOOGLE_KEY}`
+    + `?location=${lat},${lng}`
+    + `&radius=${RADIUS}`
+    + `&language=es`
+    + `&key=${GOOGLE_KEY}`
+  if (type) url += `&type=${encodeURIComponent(type)}`
+  if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`
   if (pageToken) url += `&pagetoken=${pageToken}`
   const res = await fetch(url)
   return res.json()
@@ -119,11 +133,10 @@ async function placeDetails(placeId) {
   return data.result
 }
 
-// ─── Importar un tipo de lugar ────────────────────────────────────────────────
 const vistos = new Set()
 let totalImportados = 0
 let totalActualizados = 0
-let totalSaltados   = 0
+let totalSaltados = 0
 
 function nearMatch(a, b, eps = 0.0008) {
   return Math.abs(a - b) <= eps
@@ -170,6 +183,7 @@ async function upsertPlace(row) {
   const needsPhotos = !existing.photos?.length && fotos.length > 0
   const patch = {
     ...(needsPhotos ? { photos: fotos } : {}),
+    category: CATEGORY,
     rating_avg: row.rating_avg,
     rating_count: row.rating_count,
     hours: row.hours,
@@ -198,16 +212,23 @@ async function upsertPlace(row) {
   }
 }
 
-async function importarTipo(type, category) {
-  console.log(`\n🔍  ${type.padEnd(20)} → ${category}`)
+async function importarQuery(center, label, { type, keyword }) {
+  const queryLabel = [label, type ?? keyword].filter(Boolean).join(' · ')
+  console.log(`\n🔍  ${queryLabel}`)
   let pageToken = null
   let pagina = 0
 
   do {
-    if (pageToken) await sleep(2500) // Google exige espera entre páginas
+    if (pageToken) await sleep(2500)
     pagina++
 
-    const data = await nearbySearch(type, pageToken)
+    const data = await nearbySearch({
+      lat: center.lat,
+      lng: center.lng,
+      type,
+      keyword,
+      pageToken,
+    })
 
     if (data.status === 'ZERO_RESULTS') { console.log('   Sin resultados'); break }
     if (data.status !== 'OK') {
@@ -227,11 +248,13 @@ async function importarTipo(type, category) {
       try { d = await placeDetails(place.place_id) }
       catch (e) { console.error(`   ✗  ${place.name}: ${e.message}`); continue }
 
+      if (!d?.geometry?.location) continue
+
       const fotos = (d.photos ?? []).slice(0, 3).map(p => photoUrl(p.photo_reference))
 
-      const row = {
+      await upsertPlace({
         name:         d.name,
-        category,
+        category:     CATEGORY,
         description:  null,
         address:      d.formatted_address ?? null,
         city:         'Santa Cruz de la Sierra',
@@ -246,25 +269,31 @@ async function importarTipo(type, category) {
         is_open:      true,
         is_sponsored: false,
         is_verified:  false,
-      }
-
-      await upsertPlace(row)
+      })
     }
 
     pageToken = data.next_page_token ?? null
   } while (pageToken)
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
   console.log('═══════════════════════════════════════════════════')
-  console.log('  Importador Google Places → Supabase')
-  console.log(`  Radio: ${RADIUS / 1000} km · Santa Cruz de la Sierra`)
+  console.log('  Importador Gastronomía · Google Places → Supabase')
+  console.log(`  ${SEARCH_CENTERS.length} zonas · radio ${RADIUS / 1000} km · categoría: ${CATEGORY}`)
   console.log('═══════════════════════════════════════════════════')
 
-  for (const { type, category } of SEARCHES) {
-    await importarTipo(type, category)
-    await sleep(800)
+  for (const center of SEARCH_CENTERS) {
+    console.log(`\n━━━ Zona: ${center.label} ━━━`)
+
+    for (const type of GASTRONOMY_TYPES) {
+      await importarQuery(center, center.label, { type })
+      await sleep(600)
+    }
+
+    for (const keyword of GASTRONOMY_KEYWORDS) {
+      await importarQuery(center, center.label, { keyword })
+      await sleep(600)
+    }
   }
 
   console.log('\n═══════════════════════════════════════════════════')

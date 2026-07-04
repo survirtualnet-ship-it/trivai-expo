@@ -21,12 +21,11 @@ interface Marcador {
 
 const SANTA_CRUZ = { lat: -17.7833, lng: -63.1821 }
 
-type Filtro = 'todos' | 'eventos' | Category
+type Filtro = 'todos' | Category
 
 const FILTROS: { id: Filtro; label: string; emoji: string; color: string }[] = [
   { id: 'todos', label: 'Todos', emoji: '🗺️', color: T.fg2 },
   ...CATEGORY_CHIPS.map(c => ({ id: c.id, label: c.label, emoji: c.emoji, color: c.color })),
-  { id: 'eventos', label: 'Eventos', emoji: '🎟️', color: T.green },
 ]
 
 function markerColor(m: Marcador): string {
@@ -173,8 +172,8 @@ export default function Mapa() {
   }, [params.lat, params.lng])
 
   function aplicarFiltro(f: Filtro) {
-    const filtrados = f === 'todos'     ? todos
-      : f === 'eventos' ? todos.filter(m => m.tipo === 'evento')
+    const filtrados = f === 'todos'
+      ? todos
       : todos.filter(m => m.tipo === 'lugar' && normalizeCategory(m.category) === f)
     setMarcadores(filtrados)
     setFiltro(f)

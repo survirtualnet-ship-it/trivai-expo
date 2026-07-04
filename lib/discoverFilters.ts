@@ -3,13 +3,48 @@ import type { EventCardData } from '@/components/ui/EventCard'
 import type { Category } from '@/lib/categories'
 import { normalizeCategory } from '@/lib/tokens'
 import { getCityZone, type CityZone } from '@/lib/zones'
-import { esHoy } from '@/lib/eventUtils'
+import { esHoy, haversineKm } from '@/lib/eventUtils'
 
 export type LocationFilter = 'hoy' | 'cerca' | CityZone
 export type CategoryFilter = Category | 'Todos'
 
-export type EnrichedPlace = PlaceCardData & { _zone?: CityZone | null }
-export type EnrichedEvent = EventCardData & { _zone?: CityZone | null }
+export type EnrichedPlace = PlaceCardData & { _dist?: number; _zone?: CityZone | null }
+export type EnrichedEvent = EventCardData & { _dist?: number; _zone?: CityZone | null }
+
+export function enrichAllPlaces(
+  places: PlaceCardData[],
+  origin: { lat: number; lng: number },
+): EnrichedPlace[] {
+  return enrichPlacesWithZone(
+    places.map(p => {
+      if (p.latitude != null && p.longitude != null) {
+        return {
+          ...p,
+          _dist: haversineKm(origin.lat, origin.lng, p.latitude, p.longitude),
+        }
+      }
+      return p
+    }),
+  )
+}
+
+export function enrichAllEvents(
+  events: EventCardData[],
+  origin: { lat: number; lng: number },
+): EnrichedEvent[] {
+  return enrichEventsWithZone(
+    events.map(ev => {
+      const pl = ev.place as EventCardData['place'] & { latitude?: number; longitude?: number }
+      if (pl?.latitude != null && pl?.longitude != null) {
+        return {
+          ...ev,
+          _dist: haversineKm(origin.lat, origin.lng, pl.latitude, pl.longitude),
+        }
+      }
+      return ev
+    }),
+  )
+}
 
 export function enrichPlacesWithZone(places: PlaceCardData[]): EnrichedPlace[] {
   return places.map(p => ({
