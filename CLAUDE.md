@@ -8,28 +8,47 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 **Trivai** es una app móvil social de descubrimiento para Santa Cruz de la Sierra, Bolivia. Esta es la versión **Expo (React Native)** que replica la versión web Next.js ubicada en `../trivai/`. Comparten el mismo backend Supabase.
 
+**Producción web/PWA:** https://trivai-expo.vercel.app
+
+## Flujo de trabajo remoto
+
+**No se desarrolla en localhost.** El ciclo oficial es:
+
+1. Editar en Cursor → `git commit` → `git push` a `master`
+2. **Vercel** despliega automáticamente → probar en https://trivai-expo.vercel.app
+3. **Expo Go** (opcional, móvil): `npx expo start --tunnel` + QR — requiere Expo Go SDK 54
+
+No configurar `http://localhost:8081/auth/callback` en Supabase. Las redirect URLs válidas son:
+
+- `https://trivai-expo.vercel.app/auth/callback` (web producción)
+- `trivai://auth/callback` (build nativo)
+- `exp://…` del túnel Expo Go (OAuth en dispositivo)
+
+Ver `README.md` para el flujo completo.
+
 ## Comandos
 
 ```bash
-npx expo start          # Inicia el servidor de desarrollo (QR para Expo Go)
-npx expo start --android  # Emulador Android
-npx expo start --ios      # Simulador iOS (solo macOS)
-npx expo start --web      # Versión web (limitada)
+npx expo start --tunnel    # Expo Go en dispositivo (recomendado)
 ```
 
-No hay tests automatizados. Verificar cambios manualmente en Expo Go.
+No hay tests automatizados. Verificar cambios en Vercel (web) o Expo Go (móvil).
 
 ## Variables de entorno
 
-En `.env.local`:
+Configurar en **Vercel → Environment Variables** (build time). Plantilla: `.env.example`
 
 | Variable | Propósito |
 |---|---|
 | `EXPO_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Anon key de Supabase |
 | `EXPO_PUBLIC_GOOGLE_MAPS_KEY` | Google Maps API key |
+| `EXPO_PUBLIC_APP_URL` | URL pública (default: trivai-expo.vercel.app) |
+| `EXPO_PUBLIC_WEB_API_URL` | Backend Next.js (default: trivai.vercel.app) |
 
-Las variables `EXPO_PUBLIC_*` son las equivalentes a `NEXT_PUBLIC_*` de Next.js — accesibles en cliente.
+Las variables `EXPO_PUBLIC_*` se embeben en el bundle en build time — deben existir en Vercel antes del deploy.
+
+Validación en runtime: `lib/env.ts` · URLs de share: `lib/appUrl.ts` · Auth redirects: `lib/auth/redirectUrl.ts`
 
 ## Arquitectura
 
@@ -54,7 +73,7 @@ Las variables `EXPO_PUBLIC_*` son las equivalentes a `NEXT_PUBLIC_*` de Next.js 
 | `T.*` colores directos en JSX | `T.*` en `StyleSheet.create()` |
 | `Link href="/ruta"` | `router.push('/ruta')` de expo-router |
 | `useSearchParams()` | `useLocalSearchParams()` de expo-router |
-| Google Maps JS (`@vis.gl/react-google-maps`) | `react-native-maps` (pendiente instalar) |
+| Google Maps JS (`@vis.gl/react-google-maps`) | WebView + Google Maps JS (`components/MapEmbed.*`) |
 | `next/dynamic` para lazy load | `React.lazy` o importación directa |
 | `window.localStorage` | `AsyncStorage` de `@react-native-async-storage` |
 
@@ -75,7 +94,7 @@ const { id } = useLocalSearchParams()  // leer params en [id].tsx
 
 ### Categorías
 
-Las categorías Supabase son las mismas que en la web: `'Restaurante'`, `'Cafetería'`, `'Gastronomía'`, `'Arte y cultura'`, `'Arte'`, `'Música'`, `'Entretenimiento'`, `'Parque'`. `'Entretenimiento'` se trata como eventos. Los helpers `getCatEmoji(cat)` y `getCatColor(cat)` están en `lib/tokens.ts`.
+Fuente única: `lib/categories.ts` — Gastronomía, Entretenimiento, Parques, Otros (+ mapeo legacy). Helpers: `getCatEmoji`, `getCatColor`, `getCatLabel`, `normalizeCategory`.
 
 ### Iconos
 
