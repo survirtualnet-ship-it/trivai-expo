@@ -8,7 +8,8 @@ import { useLocalSearchParams, router } from 'expo-router'
 import { ArrowLeft, Calendar, MapPin, Users, Clock, Heart, Navigation, Share2 } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import type { Event, Place } from '@/lib/supabase'
-import { T, F, S, R, getCatEmoji } from '@/lib/tokens'
+import { T, F, S, R, normalizeCategory } from '@/lib/tokens'
+import { CatCover } from '@/components/CatCover'
 import { grantXP, XP } from '@/lib/xp'
 
 function formatFecha(dt: string) {
@@ -112,7 +113,7 @@ export default function EventoDetalle() {
     </View>
   )
 
-  const emoji = getCatEmoji(evento.category)
+  const catLabel = normalizeCategory(evento.category)
 
   const compartir = () => {
     Share.share({ title: evento.name, message: evento.name + ' - Ver en Trivai: https://trivai-expo.vercel.app/eventos/' + evento.id, url: 'https://trivai-expo.vercel.app/eventos/' + evento.id })
@@ -162,7 +163,7 @@ export default function EventoDetalle() {
             </View>
             <View style={[styles.heroBadges, { position: 'absolute', bottom: S.lg }]}>
               <View style={[styles.badge, { backgroundColor: T.orangeSoft }]}>
-                <Text style={[styles.badgeText, { color: T.orange }]}>{evento.category}</Text>
+                <Text style={[styles.badgeText, { color: T.orange }]}>{catLabel}</Text>
               </View>
               <View style={[styles.badge, { backgroundColor: evento.is_free ? T.greenSoft : T.purpleSoft }]}>
                 <Text style={[styles.badgeText, { color: evento.is_free ? T.green : T.purple }]}>
@@ -172,11 +173,11 @@ export default function EventoDetalle() {
             </View>
           </View>
         ) : (
-          <View style={styles.hero}>
-            <Text style={styles.heroEmoji}>{emoji}</Text>
-            <View style={styles.heroBadges}>
+          <View style={{ height: 220, position: 'relative' }}>
+            <CatCover category={evento.category} variant="hero" />
+            <View style={[styles.heroBadges, { position: 'absolute', bottom: S.lg, left: S.lg, right: S.lg }]}>
               <View style={[styles.badge, { backgroundColor: T.orangeSoft }]}>
-                <Text style={[styles.badgeText, { color: T.orange }]}>{evento.category}</Text>
+                <Text style={[styles.badgeText, { color: T.orange }]}>{catLabel}</Text>
               </View>
               <View style={[styles.badge, { backgroundColor: evento.is_free ? T.greenSoft : T.purpleSoft }]}>
                 <Text style={[styles.badgeText, { color: evento.is_free ? T.green : T.purple }]}>

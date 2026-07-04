@@ -8,7 +8,8 @@ import { router } from 'expo-router'
 import { Search, Bell, MapPin, Calendar } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
-import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
+import { T, F, S, R, getCatColor, normalizeCategory } from '@/lib/tokens'
+import { CatCover } from '@/components/CatCover'
 import { calcIsOpen } from '@/lib/hours'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { loadNotifPrefs, prefAllows } from '@/lib/notifPrefs'
@@ -52,15 +53,15 @@ function formatDate(dt: string) {
 
 function CardLugar({ item }: { item: Place }) {
   const color = getCatColor(item.category)
-  const emoji = getCatEmoji(item.category)
+  const label = normalizeCategory(item.category)
   return (
     <TouchableOpacity style={[styles.card, { borderTopColor: color, borderTopWidth: 3 }]}
       onPress={() => router.push(`/lugares/${item.id}`)}>
-      <View style={[styles.cardIcon, { backgroundColor: color + '22' }]}>
-        <Text style={styles.cardEmoji}>{emoji}</Text>
+      <View style={[styles.cardIcon, { backgroundColor: color + '22', overflow: 'hidden' }]}>
+        <CatCover category={item.category} />
       </View>
       <Text style={styles.cardTitle} numberOfLines={2}>{item.name}</Text>
-      <Text style={styles.cardSub} numberOfLines={1}>{item.category}</Text>
+      <Text style={styles.cardSub} numberOfLines={1}>{label}</Text>
       <View style={styles.cardRow}>
         <View style={[styles.badge, { backgroundColor: calcIsOpen(item.hours, item.is_open) ? T.greenSoft : T.dangerSoft }]}>
           <Text style={[styles.badgeText, { color: calcIsOpen(item.hours, item.is_open) ? T.green : T.danger }]}>
@@ -74,12 +75,12 @@ function CardLugar({ item }: { item: Place }) {
 
 function CardEvento({ item }: { item: Event }) {
   const color = getCatColor(item.category)
-  const emoji = getCatEmoji(item.category)
+  const label = normalizeCategory(item.category)
   return (
-    <TouchableOpacity style={[styles.card, { borderTopColor: T.orange, borderTopWidth: 3 }]}
+    <TouchableOpacity style={[styles.card, { borderTopColor: color, borderTopWidth: 3 }]}
       onPress={() => router.push(`/eventos/${item.id}`)}>
-      <View style={[styles.cardIcon, { backgroundColor: T.orangeSoft }]}>
-        <Text style={styles.cardEmoji}>{emoji}</Text>
+      <View style={[styles.cardIcon, { backgroundColor: color + '22', overflow: 'hidden' }]}>
+        <CatCover category={item.category} />
       </View>
       <Text style={styles.cardTitle} numberOfLines={2}>{item.name}</Text>
       <Text style={styles.cardSub} numberOfLines={1}>{formatDate(item.start_datetime)}</Text>
@@ -95,11 +96,11 @@ function CardEvento({ item }: { item: Event }) {
 }
 
 function RowEvento({ item }: { item: Event }) {
-  const emoji = getCatEmoji(item.category)
+  const label = normalizeCategory(item.category)
   return (
     <TouchableOpacity style={styles.row} onPress={() => router.push(`/eventos/${item.id}`)}>
-      <View style={[styles.rowIcon, { backgroundColor: T.orangeSoft }]}>
-        <Text style={{ fontSize: 22 }}>{emoji}</Text>
+      <View style={[styles.rowIcon, { overflow: 'hidden' }]}>
+        <CatCover category={item.category} />
       </View>
       <View style={styles.rowContent}>
         <Text style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
@@ -116,17 +117,17 @@ function RowEvento({ item }: { item: Event }) {
 }
 
 function RowLugar({ item, dist }: { item: Place; dist?: number }) {
-  const emoji = getCatEmoji(item.category)
   const color = getCatColor(item.category)
+  const label = normalizeCategory(item.category)
   return (
     <TouchableOpacity style={styles.row} onPress={() => router.push(`/lugares/${item.id}`)}>
-      <View style={[styles.rowIcon, { backgroundColor: color + '22' }]}>
-        <Text style={{ fontSize: 22 }}>{emoji}</Text>
+      <View style={[styles.rowIcon, { backgroundColor: color + '22', overflow: 'hidden' }]}>
+        <CatCover category={item.category} />
       </View>
       <View style={styles.rowContent}>
         <Text style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
         <Text style={styles.rowSub}>
-          {item.category}{dist != null ? '  ·  📍 ' + formatDist(dist) : ''}
+          {label}{dist != null ? '  ·  📍 ' + formatDist(dist) : ''}
         </Text>
       </View>
       <View style={[styles.badge, { backgroundColor: calcIsOpen(item.hours, item.is_open) ? T.greenSoft : T.muted }]}>

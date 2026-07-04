@@ -41,23 +41,15 @@ export const R = {
   sm: 8, md: 12, lg: 16, xl: 20, full: 999,
 } as const
 
-// Categorías Supabase → color/emoji de mapa
-export const CAT_COLOR: Record<string, string> = {
-  'Restaurante':    T.orange,
-  'Gastronomía':    T.orange,
-  'Cafetería':      '#8B4513',
-  'Arte y cultura': T.purple,
-  'Arte':           T.purple,
-  'Música':         T.purple,
-  'Entretenimiento': T.green,
-  'Parque':         T.green,
-}
-
-export const CAT_EMOJI: Record<string, string> = {
-  'Restaurante': '🍖', 'Cafetería': '☕', 'Bar': '🍺',
-  'Arte y cultura': '🎨', 'Arte': '🎨', 'Parque': '🌳',
-  'Música': '🎵', 'Gastronomía': '🍽️', 'Entretenimiento': '🎟️',
-}
-
-export function getCatEmoji(cat: string) { return CAT_EMOJI[cat] ?? '📍' }
-export function getCatColor(cat: string) { return CAT_COLOR[cat] ?? T.fg3 }
+// Categorías — fuente única en lib/categories.ts
+export {
+  CATEGORIES,
+  CATEGORY_CHIPS,
+  PLACE_CATEGORY_FILTERS,
+  EVENT_CATEGORY_FILTERS,
+  normalizeCategory,
+  getCatEmoji,
+  getCatColor,
+  getCatLabel,
+} from './categories'
+export type { Category, PlaceCategoryFilter } from './categories'

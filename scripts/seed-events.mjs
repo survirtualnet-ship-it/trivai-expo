@@ -47,7 +47,7 @@ function dt(daysAhead, hour = 20, min = 0) {
 const EVENTOS = [
   {
     name: 'Festival de Jazz en el Casco Viejo',
-    category: 'Música',
+    category: 'Entretenimiento',
     description: '📍 Plaza 24 de Septiembre\n\nTres noches de jazz en vivo con artistas locales e invitados internacionales. Entrada libre, sillas y bebidas disponibles en el lugar.',
     start_datetime: dt(2),
     end_datetime: dt(4, 23, 0),
@@ -65,7 +65,7 @@ const EVENTOS = [
   },
   {
     name: 'Exposición de Arte Contemporáneo',
-    category: 'Arte',
+    category: 'Entretenimiento',
     description: '📍 Manzana Uno — Centro Cultural\n\nExposición colectiva de 15 artistas plásticos bolivianos. Pintura, escultura e instalaciones interactivas. Inauguración con coctel el primer día.',
     start_datetime: dt(1, 19, 0),
     end_datetime: dt(14, 21, 0),
@@ -74,7 +74,7 @@ const EVENTOS = [
   },
   {
     name: 'Torneo de Fútbol Interbarrios',
-    category: 'Deportes',
+    category: 'Entretenimiento',
     description: '📍 Estadio Tahuichi Aguilera\n\nTorneo relámpago con 16 equipos de diferentes barrios de la ciudad. Finales el domingo con premiación y brunch para todos los asistentes.',
     start_datetime: dt(5, 8, 0),
     end_datetime: dt(7, 18, 0),
@@ -91,7 +91,7 @@ const EVENTOS = [
   },
   {
     name: 'Mercado Artesanal de Las Palmas',
-    category: 'Cultura',
+    category: 'Entretenimiento',
     description: '📍 Barrio Las Palmas — Rotonda principal\n\nMercado dominical de artesanías, ropa bohemia, plantas, joyería y arte local. Música en vivo y zona de comida vegetariana.',
     start_datetime: dt(7, 9, 0),
     end_datetime: dt(7, 14, 0),
@@ -100,7 +100,7 @@ const EVENTOS = [
   },
   {
     name: 'Maratón Santa Cruz 10K',
-    category: 'Deportes',
+    category: 'Entretenimiento',
     description: '📍 Salida: Monumento al Cristo Rey\n\nCarrera popular de 10 kilómetros por las principales avenidas de la ciudad. Categorías para niños, adultos y adultos mayores. Inscripción previa requerida.',
     start_datetime: dt(10, 6, 0),
     is_free: false, price: 50,
@@ -108,7 +108,7 @@ const EVENTOS = [
   },
   {
     name: 'Cine al Aire Libre — Clásicos Bolivianos',
-    category: 'Arte',
+    category: 'Entretenimiento',
     description: '📍 Parque Urbano Central\n\nProyecciones gratuitas de películas bolivianas clásicas y contemporáneas. Trae tu silla o manta. Palomitas y bebidas disponibles a precio social.',
     start_datetime: dt(4, 20, 0),
     end_datetime: dt(6, 23, 0),
@@ -126,7 +126,7 @@ const EVENTOS = [
   },
   {
     name: 'Concierto de Rock Nacional',
-    category: 'Música',
+    category: 'Entretenimiento',
     description: '📍 Complejo Ferial, Av. Santos Dumont\n\nLa mejor noche de rock en Santa Cruz con 5 bandas en escena. Apertura de doors a las 19:00, primer acto a las 20:30. Bar, food trucks y zona VIP.',
     start_datetime: dt(9, 20, 0),
     is_free: false, price: 100,
@@ -134,7 +134,7 @@ const EVENTOS = [
   },
   {
     name: 'Feria del Libro Santa Cruz',
-    category: 'Cultura',
+    category: 'Entretenimiento',
     description: '📍 Centro de Convenciones, Av. Monseñor Rivero\n\nEdición anual de la feria con más de 80 expositores nacionales e internacionales. Presentaciones de autores, talleres de escritura y zona infantil.',
     start_datetime: dt(12, 10, 0),
     end_datetime: dt(19, 20, 0),
@@ -143,7 +143,7 @@ const EVENTOS = [
   },
   {
     name: 'Yoga y Meditación en el Parque',
-    category: 'Social',
+    category: 'Entretenimiento',
     description: '📍 Jardín Botánico, 3er Anillo\n\nClase colectiva de yoga al amanecer seguida de sesión de meditación guiada. Instructor certificado. Trae tu mat o alquila uno en el lugar (Bs. 10).',
     start_datetime: dt(1, 7, 0),
     is_free: true, price: 0,

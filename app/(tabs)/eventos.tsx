@@ -7,7 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Search, X, MapPin, Calendar, ArrowLeft } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
-import { T, F, S, R, getCatEmoji } from '@/lib/tokens'
+import { T, F, S, R, normalizeCategory, EVENT_CATEGORY_FILTERS } from '@/lib/tokens'
+import { CatCover } from '@/components/CatCover'
 
 interface Evento {
   id: string; name: string; category: string
@@ -15,7 +16,7 @@ interface Evento {
   place?: { name: string; address: string | null } | null
 }
 
-const FILTROS = ['Todos', 'Hoy', 'Gratuitos', 'Música', 'Arte', 'Cultura']
+const FILTROS = ['Todos', 'Hoy', 'Gratuitos', ...EVENT_CATEGORY_FILTERS]
 
 const DIAS_ES  = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MESES_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -82,9 +83,9 @@ export default function Eventos() {
     }
     if (filtro === 'Hoy') return esHoy(ev.start_datetime)
     if (filtro === 'Gratuitos') return ev.is_free
-    if (filtro === 'Música') return ev.category === 'Música'
-    if (filtro === 'Arte') return ev.category === 'Arte' || ev.category === 'Arte y cultura'
-    if (filtro === 'Cultura') return ev.category === 'Arte y cultura' || ev.category === 'Cultura'
+    if ((EVENT_CATEGORY_FILTERS as readonly string[]).includes(filtro)) {
+      return normalizeCategory(ev.category) === filtro
+    }
     return true
   })
 
@@ -186,12 +187,12 @@ export default function Eventos() {
             {eventosFiltrados.map(ev => (
               <TouchableOpacity key={ev.id} style={styles.row}
                 onPress={() => router.push(`/eventos/${ev.id}`)}>
-                <View style={styles.rowIcon}>
-                  <Text style={{ fontSize: 26 }}>{getCatEmoji(ev.category)}</Text>
+                <View style={[styles.rowIcon, { overflow: 'hidden' }]}>
+                  <CatCover category={ev.category} />
                 </View>
                 <View style={styles.rowContent}>
                   <Text style={styles.rowTitle} numberOfLines={2}>{ev.name}</Text>
-                  <Text style={styles.rowCat}>{ev.category}</Text>
+                  <Text style={styles.rowCat}>{normalizeCategory(ev.category)}</Text>
                   <View style={styles.rowMeta}>
                     <Calendar size={11} color={T.fg3} />
                     <Text style={styles.rowMetaText}>{formatFecha(ev.start_datetime)}</Text>

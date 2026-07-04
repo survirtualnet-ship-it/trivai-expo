@@ -8,13 +8,7 @@ import { router } from 'expo-router'
 import { ArrowLeft, Phone, Globe, AlignLeft, ShieldCheck, ShieldAlert, Camera } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
-import { T, F, S, R } from '@/lib/tokens'
-
-const CATEGORIAS = [
-  'Restaurante', 'Cafetería', 'Bar', 'Arte y cultura',
-  'Parque', 'Entretenimiento', 'Mercado', 'Música',
-  'Gastronomía', 'Deportes', 'Naturaleza', 'Otros',
-]
+import { T, F, S, R, CATEGORIES } from '@/lib/tokens'
 
 export default function MiNegocio() {
   const { profile, refreshProfile } = useUser()
@@ -162,7 +156,7 @@ export default function MiNegocio() {
           <View style={c.campo}>
             <Text style={c.campoLabel}>Categoría</Text>
             <View style={c.chips}>
-              {CATEGORIAS.map(cat => (
+              {CATEGORIES.map(cat => (
                 <TouchableOpacity
                   key={cat}
                   style={[c.chip, categoria === cat && c.chipActive]}

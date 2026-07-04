@@ -5,7 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router'
 import { MapEmbed } from '@/components/MapEmbed'
 import { Navigation } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
-import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
+import { T, F, S, R, getCatEmoji, getCatColor, CATEGORY_CHIPS, normalizeCategory, type Category } from '@/lib/tokens'
 import { getCurrentCoords } from '@/lib/geolocation'
 
 interface Marcador {
@@ -15,35 +15,17 @@ interface Marcador {
 
 const SANTA_CRUZ = { lat: -17.7833, lng: -63.1821 }
 
-type Filtro = 'todos' | 'restaurantes' | 'cafes' | 'arte' | 'otros' | 'eventos'
+type Filtro = 'todos' | 'eventos' | Category
 
 const FILTROS: { id: Filtro; label: string; emoji: string; color: string }[] = [
-  { id: 'todos',        label: 'Todos',        emoji: '🗺️', color: T.fg2     },
-  { id: 'restaurantes', label: 'Restaurantes', emoji: '🍽️', color: T.orange  },
-  { id: 'cafes',        label: 'Cafés',        emoji: '☕', color: '#8B4513' },
-  { id: 'arte',         label: 'Arte',         emoji: '🎨', color: T.purple  },
-  { id: 'eventos',      label: 'Eventos',      emoji: '🎟️', color: T.green   },
-  { id: 'otros',        label: 'Otros',        emoji: '📍', color: T.fg3     },
+  { id: 'todos', label: 'Todos', emoji: '🗺️', color: T.fg2 },
+  ...CATEGORY_CHIPS.map(c => ({ id: c.id, label: c.label, emoji: c.emoji, color: c.color })),
+  { id: 'eventos', label: 'Eventos', emoji: '🎟️', color: T.green },
 ]
 
-const CAT_FILTRO: Record<string, Filtro> = {
-  'Restaurante': 'restaurantes', 'Gastronomía': 'restaurantes',
-  'Cafetería': 'cafes',
-  'Arte y cultura': 'arte', 'Arte': 'arte', 'Música': 'arte',
-  'Entretenimiento': 'eventos',
-}
-
-function catFiltro(cat: string): Filtro {
-  return CAT_FILTRO[cat] ?? 'otros'
-}
-
 function markerColor(m: Marcador): string {
-  if (m.tipo === 'evento') return '#21A24A'
-  const f = catFiltro(m.category)
-  if (f === 'restaurantes') return '#F26B1F'
-  if (f === 'cafes')        return '#8B4513'
-  if (f === 'arte')         return '#6D28FF'
-  return '#8A8590'
+  if (m.tipo === 'evento') return T.green
+  return getCatColor(m.category)
 }
 
 function buildMapHTML(
@@ -184,7 +166,7 @@ export default function Mapa() {
   function aplicarFiltro(f: Filtro) {
     const filtrados = f === 'todos'     ? todos
       : f === 'eventos' ? todos.filter(m => m.tipo === 'evento')
-      : todos.filter(m => m.tipo === 'lugar' && catFiltro(m.category) === f)
+      : todos.filter(m => m.tipo === 'lugar' && normalizeCategory(m.category) === f)
     setMarcadores(filtrados)
     setFiltro(f)
     setSeleccionado(null)
@@ -261,7 +243,7 @@ export default function Mapa() {
             <View style={{ flex: 1 }}>
               <Text style={styles.popupName} numberOfLines={1}>{seleccionado.name}</Text>
               <Text style={styles.popupCat}>
-                {seleccionado.tipo === 'evento' ? '🎟️ Evento' : seleccionado.category}
+                {seleccionado.tipo === 'evento' ? '🎟️ Evento' : normalizeCategory(seleccionado.category)}
               </Text>
             </View>
             <TouchableOpacity

@@ -1,7 +1,8 @@
 import { View, Text, ScrollView, TouchableOpacity, Switch, StyleSheet, Alert, Linking, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { ArrowLeft, User, Bell, Shield, Info, ChevronRight, LogOut } from 'lucide-react-native'
+import { User, Bell, Shield, Info, ChevronRight, LogOut } from 'lucide-react-native'
+import ScreenHeader from '@/components/ScreenHeader'
 import { useUser } from '@/hooks/useUser'
 import { T, F, S, R } from '@/lib/tokens'
 import { useState, useEffect, useCallback } from 'react'
@@ -99,18 +100,12 @@ export default function Configuracion() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.back} onPress={() => router.back()}>
-          <ArrowLeft size={22} color={T.fg1} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Configuración</Text>
-        {saving
-          ? <ActivityIndicator size="small" color={T.purple} />
-          : <View style={{ width: 36 }} />
-        }
-      </View>
+      <ScreenHeader
+        title="Configuración"
+        right={saving ? <ActivityIndicator size="small" color={T.purple} /> : undefined}
+      />
 
-      <ScrollView contentContainerStyle={{ padding: S.lg, gap: S.lg }}>
+      <ScrollView contentContainerStyle={{ padding: S.lg, gap: S.lg, paddingBottom: 100 }}>
         {loadingPrefs && (
           <ActivityIndicator color={T.purple} style={{ marginVertical: S.md }} />
         )}
@@ -161,9 +156,6 @@ export default function Configuracion() {
 
 const styles = StyleSheet.create({
   root:        { flex: 1, backgroundColor: T.bg },
-  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
-  back:        { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  title:       { fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.fg1 },
   secTitulo:   { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.fg3, marginBottom: S.sm, textTransform: 'uppercase', letterSpacing: 0.5 },
   secCard:     { backgroundColor: T.surface, borderRadius: R.lg, borderWidth: 1, borderColor: T.border },
   itemRow:     { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingHorizontal: S.lg, paddingVertical: S.md },

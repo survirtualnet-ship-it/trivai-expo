@@ -7,7 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { Search, MapPin, Star, ArrowLeft } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
-import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
+import { T, F, S, R, getCatColor, PLACE_CATEGORY_FILTERS, normalizeCategory } from '@/lib/tokens'
+import { CatCover } from '@/components/CatCover'
 import { calcIsOpen } from '@/lib/hours'
 
 interface Place {
@@ -16,15 +17,6 @@ interface Place {
   rating_count: number; is_open: boolean
   hours?: Record<string, string> | null
 }
-
-const CATEGORIAS = [
-  { id: 'Todos',         label: 'Todos',         emoji: '🗺️' },
-  { id: 'Restaurante',   label: 'Restaurantes',  emoji: '🍽️' },
-  { id: 'Cafetería',     label: 'Cafés',         emoji: '☕' },
-  { id: 'Arte y cultura',label: 'Arte',          emoji: '🎨' },
-  { id: 'Entretenimiento',label: 'Eventos',      emoji: '🎟️' },
-  { id: 'Otros',         label: 'Otros',         emoji: '📍' },
-]
 
 const ZONAS = [
   { nombre: 'Centro',     emoji: '🏛️', color: '#3a3340', lat: -17.7833, lng: -63.1821 },
@@ -51,15 +43,8 @@ export default function Lugares() {
         .order('rating_avg', { ascending: false })
         .limit(40)
 
-      if (cat !== 'Todos' && cat !== 'Otros') {
-        const cats = cat === 'Restaurante'
-          ? ['Restaurante', 'Gastronomía']
-          : cat === 'Arte y cultura'
-          ? ['Arte y cultura', 'Arte', 'Música']
-          : [cat]
-        q = q.in('category', cats)
-      } else if (cat === 'Otros') {
-        q = q.in('category', ['Parque', 'Bar', 'Deportes', 'Naturaleza', 'Mercado'])
+      if (cat !== 'Todos') {
+        q = q.eq('category', cat)
       }
 
       const { data } = await q
@@ -133,7 +118,7 @@ export default function Lugares() {
         {/* CATEGORÍAS */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.cats}>
-          {CATEGORIAS.map(c => (
+          {PLACE_CATEGORY_FILTERS.map(c => (
             <TouchableOpacity key={c.id}
               style={[styles.catChip, cat === c.id && styles.catChipActive]}
               onPress={() => setCat(c.id)}>
@@ -168,7 +153,7 @@ export default function Lugares() {
             {/* DESTACADOS */}
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
-                {cat !== 'Todos' ? `${CATEGORIAS.find(c => c.id === cat)?.label} (${filtrados.length})` : 'Destacados'}
+                {cat !== 'Todos' ? `${PLACE_CATEGORY_FILTERS.find(c => c.id === cat)?.label} (${filtrados.length})` : 'Destacados'}
               </Text>
               <TouchableOpacity onPress={() => router.push('/buscar')}>
                 <Text style={styles.sectionAction}>Ver todos</Text>
@@ -210,7 +195,7 @@ export default function Lugares() {
             {resto.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>{cat !== 'Todos' ? `Más ${CATEGORIAS.find(c=>c.id===cat)?.label.toLowerCase()}` : 'Cerca de ti'}</Text>
+                  <Text style={styles.sectionTitle}>{cat !== 'Todos' ? `Más ${PLACE_CATEGORY_FILTERS.find(c=>c.id===cat)?.label.toLowerCase()}` : 'Cerca de ti'}</Text>
                 </View>
                 <View style={{ paddingHorizontal: S.lg }}>
                   {resto.map(l => <RowLugar key={l.id} item={l} />)}
@@ -227,15 +212,15 @@ export default function Lugares() {
 
 function CardLugar({ item }: { item: Place }) {
   const color = getCatColor(item.category)
-  const emoji = getCatEmoji(item.category)
+  const label = normalizeCategory(item.category)
   return (
     <TouchableOpacity style={[styles.card, { borderTopColor: color, borderTopWidth: 3 }]}
       onPress={() => router.push(`/lugares/${item.id}`)}>
-      <View style={[styles.cardIcon, { backgroundColor: color + '22' }]}>
-        <Text style={{ fontSize: 24 }}>{emoji}</Text>
+      <View style={[styles.cardIcon, { backgroundColor: color + '22', overflow: 'hidden' }]}>
+        <CatCover category={item.category} />
       </View>
       <Text style={styles.cardTitle} numberOfLines={2}>{item.name}</Text>
-      <Text style={styles.cardCat} numberOfLines={1}>{item.category}</Text>
+      <Text style={styles.cardCat} numberOfLines={1}>{label}</Text>
       <View style={styles.cardRow}>
         <Star size={12} color={T.purple} fill={T.purple} />
         <Text style={styles.cardRating}>{item.rating_avg?.toFixed(1) ?? '—'}</Text>
@@ -252,15 +237,15 @@ function CardLugar({ item }: { item: Place }) {
 
 function RowLugar({ item }: { item: Place }) {
   const color = getCatColor(item.category)
-  const emoji = getCatEmoji(item.category)
+  const label = normalizeCategory(item.category)
   return (
     <TouchableOpacity style={styles.row} onPress={() => router.push(`/lugares/${item.id}`)}>
-      <View style={[styles.rowIcon, { backgroundColor: color + '22' }]}>
-        <Text style={{ fontSize: 22 }}>{emoji}</Text>
+      <View style={[styles.rowIcon, { backgroundColor: color + '22', overflow: 'hidden' }]}>
+        <CatCover category={item.category} />
       </View>
       <View style={styles.rowContent}>
         <Text style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.rowCat}>{item.category}</Text>
+        <Text style={styles.rowCat}>{label}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
           <Star size={11} color={T.purple} fill={T.purple} />
           <Text style={styles.rowRating}>{item.rating_avg?.toFixed(1) ?? '—'}</Text>

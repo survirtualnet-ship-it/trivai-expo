@@ -7,15 +7,10 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { ArrowLeft, Calendar, MapPin, DollarSign, AlignLeft, CheckCircle, X } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
-import { T, F, S, R, getCatEmoji } from '@/lib/tokens'
+import { T, F, S, R, CATEGORIES, getCatEmoji } from '@/lib/tokens'
 import { grantXP, XP } from '@/lib/xp'
 
 type LugarResult = { id: string; name: string; category: string; address: string | null }
-
-const CATEGORIAS = [
-  'Música', 'Arte', 'Gastronomía', 'Deportes',
-  'Entretenimiento', 'Cultura', 'Naturaleza', 'Social',
-]
 
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 
@@ -205,7 +200,7 @@ export default function CrearEvento() {
           <View style={c.campo}>
             <Text style={c.campoLabel}>Categoría <Text style={{ color: T.orange }}>*</Text></Text>
             <View style={c.chips}>
-              {CATEGORIAS.map(cat => (
+              {CATEGORIES.map(cat => (
                 <TouchableOpacity
                   key={cat}
                   style={[c.chip, categoria === cat && c.chipActive]}

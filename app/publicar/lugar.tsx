@@ -7,15 +7,9 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { ArrowLeft, MapPin, Phone, Globe, AlignLeft, Clock, Navigation } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
-import { T, F, S, R } from '@/lib/tokens'
+import { T, F, S, R, CATEGORIES } from '@/lib/tokens'
 import { grantXP, XP } from '@/lib/xp'
 import { getCurrentCoords, resolvePlaceCoords, type Coords } from '@/lib/geolocation'
-
-const CATEGORIAS = [
-  'Restaurante', 'Cafetería', 'Bar', 'Arte y cultura',
-  'Parque', 'Entretenimiento', 'Mercado', 'Música',
-  'Gastronomía', 'Deportes', 'Naturaleza', 'Otros',
-]
 
 const CIUDADES = ['Santa Cruz', 'La Paz', 'Cochabamba', 'Sucre', 'Oruro', 'Potosí']
 
@@ -146,7 +140,7 @@ export default function CrearLugar() {
           <View style={c.campo}>
             <Text style={c.campoLabel}>Categoría <Text style={{ color: T.orange }}>*</Text></Text>
             <View style={c.chips}>
-              {CATEGORIAS.map(cat => (
+              {CATEGORIES.map(cat => (
                 <TouchableOpacity
                   key={cat}
                   style={[c.chip, categoria === cat && c.chipActive]}

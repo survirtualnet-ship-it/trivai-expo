@@ -61,18 +61,18 @@ const SANTA_CRUZ = { lat: -17.7833, lng: -63.1821 }
 const RADIUS     = 8000  // 8 km de radio
 
 const SEARCHES = [
-  { type: 'restaurant',         category: 'Restaurante'     },
-  { type: 'cafe',               category: 'Cafetería'       },
-  { type: 'bar',                category: 'Entretenimiento' },
+  { type: 'restaurant',         category: 'Gastronomía'     },
+  { type: 'cafe',               category: 'Gastronomía'     },
+  { type: 'bar',                category: 'Gastronomía'     },
   { type: 'night_club',         category: 'Entretenimiento' },
-  { type: 'museum',             category: 'Arte y cultura'  },
-  { type: 'art_gallery',        category: 'Arte y cultura'  },
-  { type: 'movie_theater',      category: 'Arte y cultura'  },
-  { type: 'tourist_attraction', category: 'Turismo'         },
-  { type: 'spa',                category: 'Bienestar'       },
-  { type: 'gym',                category: 'Deporte'         },
-  { type: 'shopping_mall',      category: 'Comercio'        },
-  { type: 'park',               category: 'Naturaleza'      },
+  { type: 'museum',             category: 'Entretenimiento' },
+  { type: 'art_gallery',        category: 'Entretenimiento' },
+  { type: 'movie_theater',      category: 'Entretenimiento' },
+  { type: 'tourist_attraction', category: 'Entretenimiento' },
+  { type: 'spa',                category: 'Otros'           },
+  { type: 'gym',                category: 'Entretenimiento' },
+  { type: 'shopping_mall',      category: 'Otros'           },
+  { type: 'park',               category: 'Parques'         },
 ]
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
