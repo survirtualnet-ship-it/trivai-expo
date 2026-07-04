@@ -6,7 +6,7 @@ import { HeartButton } from '@/components/HeartButton'
 import { T, F, S, R, SHADOW, getCatLabel } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import { calcIsOpen } from '@/lib/hours'
-import { getCityZone, distToMinutes } from '@/lib/zones'
+import { getCityZone, distToMinutes, type CityZone } from '@/lib/zones'
 import type { AppLocale } from '@/lib/i18n/discover'
 import { DISCOVER_STRINGS, categoryLabel } from '@/lib/i18n/discover'
 
@@ -21,6 +21,7 @@ export type PlaceCardData = {
   latitude?: number | null
   longitude?: number | null
   _dist?: number
+  _zone?: CityZone | null
 }
 
 type Props = {
@@ -35,9 +36,10 @@ export function PlaceCard({ place, onPress, showHeart = true, locale = 'es' }: P
   const isOpen = calcIsOpen(place.hours, place.is_open ?? false)
   const minutes = place._dist != null ? distToMinutes(place._dist) : null
   const zone =
-    place.latitude != null && place.longitude != null
+    place._zone ??
+    (place.latitude != null && place.longitude != null
       ? getCityZone(place.latitude, place.longitude)
-      : null
+      : null)
   const catLabel = locale === 'es' ? getCatLabel(place.category) : categoryLabel(place.category, locale)
 
   return (

@@ -1,33 +1,37 @@
-﻿import { useState, useEffect, useMemo } from 'react'
+﻿import { useState, useEffect, useMemo, useTransition, useCallback } from 'react'
 import {
-  View, Text, ScrollView, FlatList, TouchableOpacity,
+  View, Text, ScrollView, TouchableOpacity,
   StyleSheet, ActivityIndicator, Keyboard,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
-import { UtensilsCrossed, Palette, Trees, Sparkles } from 'lucide-react-native'
 import { router } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
 import { useLocale } from '@/hooks/useLocale'
 import { useDiscoverSearch } from '@/hooks/useDiscoverSearch'
-import { T, F, S, R, SHADOW, normalizeCategory } from '@/lib/tokens'
+import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
-import type { Category } from '@/lib/categories'
-import { getCityZone, CITY_ZONES, type CityZone } from '@/lib/zones'
+import {
+  applyDiscoverFilters,
+  enrichEventsWithZone,
+  enrichPlacesWithZone,
+  type CategoryFilter,
+  type LocationFilter,
+} from '@/lib/discoverFilters'
 import { DiscoverHeader } from '@/components/ui/DiscoverHeader'
 import { DiscoverSearchBar } from '@/components/ui/DiscoverSearchBar'
-import { FilterChip } from '@/components/ui/FilterChip'
+import { DiscoverFilterBar } from '@/components/discover/DiscoverFilterBar'
 import { EventCard, type EventCardData } from '@/components/ui/EventCard'
 import { HeroCard } from '@/components/ui/HeroCard'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SkeletonCard } from '@/components/ui/Skeleton'
 import { AvatarGroup } from '@/components/ui/AvatarGroup'
-import { PlaceCard, CategoryChip, type PlaceCardData } from '@/components/ui/PlaceCard'
+import { PlaceCard, type PlaceCardData } from '@/components/ui/PlaceCard'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { loadNotifPrefs, prefAllows } from '@/lib/notifPrefs'
 import { deferredPush } from '@/lib/deferredNav'
-import { haversineKm, groupEventsByBucket, esHoy } from '@/lib/eventUtils'
+import { haversineKm, groupEventsByBucket } from '@/lib/eventUtils'
 import { dedupePlaces } from '@/lib/places'
 import { DISCOVER_STRINGS } from '@/lib/i18n/discover'
 import {
@@ -37,38 +41,12 @@ import {
   matchesSearch,
 } from '@/lib/smartSearch'
 
-type LocationFilter = 'hoy' | 'cerca' | CityZone
-type CategoryFilter = Category | 'Todos'
-
 interface FriendActivity {
   id: string
   quien: string
   ini: string
   nombre: string
   href: string
-}
-
-const CATEGORIAS: {
-  label: Category
-  Icon: typeof UtensilsCrossed
-  color: string
-  bg: string
-}[] = [
-  { label: 'Gastronomía',     Icon: UtensilsCrossed, color: T.accent,    bg: T.orangeSoft },
-  { label: 'Entretenimiento', Icon: Palette,         color: T.primary,   bg: T.purpleSoft },
-  { label: 'Parques',         Icon: Trees,           color: T.secondary, bg: T.greenSoft },
-  { label: 'Otros',           Icon: Sparkles,        color: T.fg2,       bg: T.muted },
-]
-
-function placeInZone(place: PlaceCardData, zone: CityZone): boolean {
-  if (place.latitude == null || place.longitude == null) return false
-  return getCityZone(place.latitude, place.longitude) === zone
-}
-
-function eventInZone(event: EventCardData, zone: CityZone): boolean {
-  const pl = event.place as EventCardData['place'] & { latitude?: number; longitude?: number }
-  if (pl?.latitude == null || pl?.longitude == null) return false
-  return getCityZone(pl.latitude, pl.longitude) === zone
 }
 
 export default function Discover() {
@@ -83,7 +61,10 @@ export default function Discover() {
   const [loading, setLoading] = useState(true)
   const [sinLeer, setSinLeer] = useState(0)
   const [locationFilter, setLocationFilter] = useState<LocationFilter | null>(null)
+  const [appliedLocationFilter, setAppliedLocationFilter] = useState<LocationFilter | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('Todos')
+  const [appliedCategoryFilter, setAppliedCategoryFilter] = useState<CategoryFilter>('Todos')
+  const [isFilterPending, startFilterTransition] = useTransition()
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -212,42 +193,34 @@ export default function Discover() {
     [lugaresForView, eventosForView, personas, searchQuery],
   )
 
-  const { filteredPlaces, filteredEvents } = useMemo(() => {
-    let places = [...lugaresConDist]
-    let events = [...eventosConDist]
+  const lugaresEnriched = useMemo(
+    () => enrichPlacesWithZone(lugaresConDist),
+    [lugaresConDist],
+  )
 
-    if (categoryFilter !== 'Todos') {
-      places = places.filter(p => normalizeCategory(p.category) === categoryFilter)
-      events = events.filter(e => normalizeCategory(e.category) === categoryFilter)
-    }
+  const eventosEnriched = useMemo(
+    () => enrichEventsWithZone(eventosConDist),
+    [eventosConDist],
+  )
 
-    if (locationFilter === 'hoy') {
-      events = events.filter(e => esHoy(e.start_datetime))
-      if (categoryFilter === 'Entretenimiento') {
-        places = []
-      }
-    } else if (locationFilter === 'cerca' && userCoords) {
-      places = places
-        .filter(p => p._dist != null)
-        .sort((a, b) => (a._dist ?? 99) - (b._dist ?? 99))
-      events = events
-        .filter(e => e._dist != null)
-        .sort((a, b) => (a._dist ?? 99) - (b._dist ?? 99))
-    } else if (locationFilter != null && locationFilter !== 'hoy' && locationFilter !== 'cerca') {
-      places = places.filter(p => placeInZone(p, locationFilter))
-      events = events.filter(e => eventInZone(e, locationFilter))
-    }
-
-    return { filteredPlaces: places, filteredEvents: events }
-  }, [lugaresConDist, eventosConDist, categoryFilter, locationFilter, userCoords])
+  const { filteredPlaces, filteredEvents } = useMemo(
+    () => applyDiscoverFilters(
+      lugaresEnriched,
+      eventosEnriched,
+      appliedCategoryFilter,
+      appliedLocationFilter,
+      userCoords != null,
+    ),
+    [lugaresEnriched, eventosEnriched, appliedCategoryFilter, appliedLocationFilter, userCoords],
+  )
 
   const lugaresCerca = useMemo(() => {
     let list = [...filteredPlaces]
-    if (locationFilter !== 'cerca') {
+    if (appliedLocationFilter !== 'cerca') {
       list = list.sort((a, b) => (b.rating_avg ?? 0) - (a.rating_avg ?? 0))
     }
     return list.slice(0, 6)
-  }, [filteredPlaces, locationFilter])
+  }, [filteredPlaces, appliedLocationFilter])
 
   const destacados = useMemo(() => {
     const list = [...filteredEvents].sort((a, b) => (b.attendees_count ?? 0) - (a.attendees_count ?? 0))
@@ -257,27 +230,45 @@ export default function Discover() {
   const hero = destacados[0] ?? null
   const { noche, manana, finde } = groupEventsByBucket(filteredEvents)
 
-  const selectLocation = (f: LocationFilter) =>
-    setLocationFilter(prev => (prev === f ? null : f))
+  const selectLocation = useCallback((f: LocationFilter) => {
+    const next = locationFilter === f ? null : f
+    setLocationFilter(next)
+    startFilterTransition(() => setAppliedLocationFilter(next))
+  }, [locationFilter])
 
-  const isFilterMode = locationFilter != null || categoryFilter !== 'Todos' || isSearchActive
+  const selectCategory = useCallback((cat: CategoryFilter) => {
+    setCategoryFilter(cat)
+    startFilterTransition(() => setAppliedCategoryFilter(cat))
+  }, [])
+
+  const clearFilters = useCallback(() => {
+    setLocationFilter(null)
+    setCategoryFilter('Todos')
+    setSearchQuery('')
+    startFilterTransition(() => {
+      setAppliedLocationFilter(null)
+      setAppliedCategoryFilter('Todos')
+    })
+  }, [])
+
+  const isFilterMode = appliedLocationFilter != null || appliedCategoryFilter !== 'Todos' || isSearchActive
   const showBrowseSections = !isFilterMode
-  const showEventSections = locationFilter !== 'cerca' || filteredEvents.length > 0
-  const emphasizePlaces = locationFilter === 'cerca'
+  const showEventSections = appliedLocationFilter !== 'cerca' || filteredEvents.length > 0
+  const emphasizePlaces = appliedLocationFilter === 'cerca'
 
   const locationFilterLabel = useMemo(() => {
-    if (locationFilter == null) return null
-    if (locationFilter === 'hoy') return t.filterHoy
-    if (locationFilter === 'cerca') return t.filterCerca
-    return locationFilter
-  }, [locationFilter, t])
+    if (appliedLocationFilter == null) return null
+    if (appliedLocationFilter === 'hoy') return t.filterHoy
+    if (appliedLocationFilter === 'cerca') return t.filterCerca
+    return appliedLocationFilter
+  }, [appliedLocationFilter, t])
 
   const filterSummary = useMemo(() => {
     const parts: string[] = []
     if (locationFilterLabel) parts.push(locationFilterLabel)
-    if (categoryFilter !== 'Todos') parts.push(categoryFilter)
+    if (appliedCategoryFilter !== 'Todos') parts.push(appliedCategoryFilter)
     return parts.join(' · ')
-  }, [locationFilterLabel, categoryFilter])
+  }, [locationFilterLabel, appliedCategoryFilter])
 
   const handleSignOut = async () => {
     await signOut()
@@ -313,33 +304,19 @@ export default function Discover() {
           showSuggestions
         />
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
-          <FilterChip label={t.filterHoy} active={locationFilter === 'hoy'} onPress={() => selectLocation('hoy')} />
-          <FilterChip label={t.filterCerca} active={locationFilter === 'cerca'} onPress={() => selectLocation('cerca')} accent={T.secondary} />
-          {CITY_ZONES.map(z => (
-            <FilterChip key={z} label={z} active={locationFilter === z} onPress={() => selectLocation(z)} />
-          ))}
-        </ScrollView>
+        <DiscoverFilterBar
+          t={t}
+          locationFilter={locationFilter}
+          categoryFilter={categoryFilter}
+          onSelectLocation={selectLocation}
+          onSelectCategory={selectCategory}
+        />
 
-        <SectionHeader title="Explorar por tipo" />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-          <FilterChip
-            label={t.filterTodos}
-            active={categoryFilter === 'Todos'}
-            onPress={() => setCategoryFilter('Todos')}
-          />
-          {CATEGORIAS.map(c => (
-            <CategoryChip
-              key={c.label}
-              label={c.label}
-              Icon={c.Icon}
-              color={c.color}
-              bg={c.bg}
-              active={categoryFilter === c.label}
-              onPress={() => setCategoryFilter(c.label)}
-            />
-          ))}
-        </ScrollView>
+        {isFilterPending && (
+          <View style={styles.pendingRow}>
+            <ActivityIndicator size="small" color={T.primary} />
+          </View>
+        )}
 
         {showBrowseSections && (
           <>
@@ -363,7 +340,7 @@ export default function Discover() {
           <SectionHeader title={filterSummary || 'Resultados'} />
         )}
 
-        {(isFilterMode || isSearchActive) && filteredPlaces.length > 0 && (
+        {(isFilterMode || isSearchActive) && !isFilterPending && filteredPlaces.length > 0 && (
           <>
             <SectionHeader title="Lugares" actionLabel={t.seeAll} onAction={() => deferredPush('/lugares')} />
             <View style={styles.list}>
@@ -379,7 +356,7 @@ export default function Discover() {
           </>
         )}
 
-        {(isFilterMode || isSearchActive) && filteredEvents.length > 0 && (
+        {(isFilterMode || isSearchActive) && !isFilterPending && filteredEvents.length > 0 && (
           <>
             <SectionHeader title="Eventos" />
             <View style={styles.list}>
@@ -420,17 +397,16 @@ export default function Discover() {
                 <SkeletonCard /><SkeletonCard />
               </ScrollView>
             ) : (
-              <FlatList
-                horizontal
-                data={destacados}
-                keyExtractor={e => e.id}
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.hList}
-                renderItem={({ item }) => (
-                  <EventCard event={item} variant="horizontal" onPress={() => deferredPush(`/eventos/${item.id}`)} />
-                )}
-                ListEmptyComponent={<Text style={styles.emptyHint}>No hay eventos destacados</Text>}
-              />
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hList}>
+                {destacados.map(item => (
+                  <EventCard
+                    key={item.id}
+                    event={item}
+                    variant="horizontal"
+                    onPress={() => deferredPush(`/eventos/${item.id}`)}
+                  />
+                ))}
+              </ScrollView>
             )}
           </>
         )}
@@ -516,16 +492,12 @@ export default function Discover() {
           </>
         )}
 
-        {!loading && !searching && (isSearchActive || isFilterMode) &&
+        {!loading && !searching && !isFilterPending && (isSearchActive || isFilterMode) &&
           filteredEvents.length === 0 && filteredPlaces.length === 0 && personas.length === 0 && (
           <View style={styles.emptyWrap}>
             <Text style={styles.emptyIcon}>{isSearchActive || isFilterMode ? '🔍' : '✨'}</Text>
             <Text style={styles.emptyTitle}>{t.noResults}</Text>
-            <TouchableOpacity onPress={() => {
-              setLocationFilter(null)
-              setCategoryFilter('Todos')
-              setSearchQuery('')
-            }}>
+            <TouchableOpacity onPress={clearFilters}>
               <Text style={styles.emptyLink}>{t.seeAllLink}</Text>
             </TouchableOpacity>
           </View>
@@ -539,7 +511,7 @@ export default function Discover() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
   scroll: { paddingBottom: S.xxxl },
-  filters: { paddingHorizontal: S.lg, gap: S.sm, paddingTop: S.lg, paddingBottom: S.xs },
+  pendingRow: { height: 20, alignItems: 'center', justifyContent: 'center' },
   personRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -563,7 +535,6 @@ const styles = StyleSheet.create({
     fontWeight: F.weight.bold,
     color: T.primary,
   },
-  chips: { paddingHorizontal: S.lg, gap: S.sm, paddingBottom: S.xs },
   hList: { paddingHorizontal: S.lg, gap: S.md, paddingBottom: 4 },
   heroWrap: { paddingHorizontal: S.lg },
   list: { paddingHorizontal: S.lg, gap: S.md },
