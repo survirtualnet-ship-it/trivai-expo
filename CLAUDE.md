@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 1. Editar en Cursor → `git commit` → `git push` a `master`
 2. **Vercel** despliega automáticamente → probar en https://trivai-expo.vercel.app
-3. **Expo Go** (opcional, móvil): `npx expo start --tunnel` + QR — requiere Expo Go SDK 54
+3. **Móvil:** abre https://trivai-expo.vercel.app en el navegador (recomendado). Expo Go + túnel solo si necesitas probar cambios **antes** del deploy y con la PC encendida (`npm run start:tunnel`).
 
 No configurar `http://localhost:8081/auth/callback` en Supabase. Las redirect URLs válidas son:
 
@@ -29,7 +29,7 @@ Ver `README.md` para el flujo completo.
 ## Comandos
 
 ```bash
-npx expo start --tunnel    # Expo Go en dispositivo (recomendado)
+npm run start:tunnel   # Expo Go (PC encendida, URL exp:// temporal)
 ```
 
 No hay tests automatizados. Verificar cambios en Vercel (web) o Expo Go (móvil).

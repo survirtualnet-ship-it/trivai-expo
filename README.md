@@ -25,19 +25,36 @@ Vercel despliega automáticamente cada push a `master`.
 - URL: **https://trivai-expo.vercel.app**
 - El build tarda ~1–3 minutos tras el push.
 
-### 3. Probar en móvil (Expo Go)
+### 3. Probar en el móvil
 
-Desde la máquina donde corre el servidor de Expo (solo para el túnel, no para servir la app en localhost):
+#### Opción A — Recomendada (sin PC encendida)
+
+Abre en el navegador del celular:
+
+**https://trivai-expo.vercel.app**
+
+Puedes agregarla a la pantalla de inicio (Safari → Compartir → “Añadir a inicio”; Chrome → menú → “Instalar app”). No requiere Expo Go ni túnel.
+
+#### Opción B — Expo Go (solo si la PC está corriendo el servidor)
+
+1. Instala **Expo Go SDK 54** en Android/iOS.
+2. En la PC donde clonaste el repo, ejecuta:
 
 ```bash
-npx expo start --tunnel
+npm run start:tunnel
 ```
 
-- Instala **Expo Go SDK 54** en el teléfono.
-- Escanea el QR del túnel.
-- Recarga la app en Expo Go cuando actualices código.
+3. Espera ver `Tunnel ready` en la terminal.
+4. Escanea el **QR nuevo** que aparece en la terminal (no uses QR guardados de sesiones anteriores — la URL cambia).
+5. O en Expo Go → “Enter URL manually”:
 
-> No hace falta abrir `localhost:8081` ni configurar redirect URLs de localhost en Supabase.
+```
+exp://mihvlda-anonymous-8081.exp.direct
+```
+
+> La URL `exp://…` **solo funciona mientras** `npm run start:tunnel` sigue corriendo en esa PC. Si cierras la terminal o apagas la PC, deja de funcionar.
+
+**Si Expo Go no carga:** cierra Expo Go, vuelve a ejecutar `npm run start:tunnel --clear` y escanea el QR nuevo. Verifica que Expo Go sea SDK 54.
 
 ### 4. Variables de entorno
 
@@ -73,8 +90,10 @@ En **Supabase → Authentication → Redirect URLs**:
 ## Scripts útiles
 
 ```bash
-npx expo start --tunnel   # Expo Go en dispositivo físico
+npm run start:tunnel   # Expo Go en dispositivo (requiere PC encendida)
 ```
+
+**Móvil sin PC:** usa https://trivai-expo.vercel.app en el navegador del teléfono.
 
 Scripts de mantenimiento en `scripts/` (requieren `.env.local` con service role key, solo uso administrativo).
 

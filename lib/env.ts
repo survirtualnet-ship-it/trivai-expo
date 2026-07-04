@@ -19,11 +19,9 @@ export const ENV = {
   webApiUrl:       (process.env.EXPO_PUBLIC_WEB_API_URL?.trim() || 'https://trivai.vercel.app').replace(/\/$/, ''),
 } as const
 
-export function requireSupabaseEnv(): { url: string; key: string } {
-  if (!ENV.supabaseUrl || !ENV.supabaseAnonKey) {
-    throw new Error(
-      'Supabase no configurado. Define EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY.',
-    )
-  }
+export const isSupabaseConfigured = !!(ENV.supabaseUrl && ENV.supabaseAnonKey)
+
+export function getSupabaseEnv(): { url: string; key: string } | null {
+  if (!isSupabaseConfigured) return null
   return { url: ENV.supabaseUrl, key: ENV.supabaseAnonKey }
 }

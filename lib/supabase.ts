@@ -2,9 +2,13 @@ import 'react-native-url-polyfill/auto'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Platform } from 'react-native'
 import { createClient } from '@supabase/supabase-js'
-import { requireSupabaseEnv } from '@/lib/env'
+import { getSupabaseEnv, isSupabaseConfigured } from '@/lib/env'
 
-const { url: supabaseUrl, key: supabaseKey } = requireSupabaseEnv()
+export { isSupabaseConfigured }
+
+const cfg = getSupabaseEnv()
+const supabaseUrl  = cfg?.url ?? 'https://placeholder.supabase.co'
+const supabaseKey  = cfg?.key ?? 'placeholder-anon-key'
 
 // En web usar localStorage nativo directamente para que PKCE funcione
 // (AsyncStorage añade una capa async que puede perder el code_verifier entre redirecciones)
