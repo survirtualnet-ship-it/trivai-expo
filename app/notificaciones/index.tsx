@@ -8,6 +8,7 @@ import { router } from 'expo-router'
 import { ArrowLeft } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R } from '@/lib/tokens'
+import { loadNotifPrefs, prefAllows } from '@/lib/notifPrefs'
 
 type Notif = {
   id: string
@@ -55,11 +56,14 @@ export default function Notificaciones() {
         .on('postgres_changes', {
           event: 'INSERT', schema: 'public', table: 'notifications',
           filter: 'user_id=eq.' + userId,
-        }, (payload) => {
+        }, async (payload) => {
           const n = payload.new as any
+          const prefs = await loadNotifPrefs(userId)
+          const tipo = n.type ?? 'system'
+          if (!prefAllows(prefs, tipo)) return
           setNotifs(prev => [{
             id:        n.id,
-            tipo:      n.type ?? 'system',
+            tipo,
             texto:     n.title,
             detalle:   n.body ?? '',
             createdAt: n.created_at,
@@ -79,6 +83,8 @@ export default function Notificaciones() {
     const user = session?.user ?? null
     if (!user) { setLoading(false); return }
 
+    const prefs = await loadNotifPrefs(user.id)
+
     const { data } = await supabase
       .from('notifications')
       .select('*')
@@ -87,7 +93,9 @@ export default function Notificaciones() {
       .limit(50)
 
     if (data && data.length > 0) {
-      setNotifs(data.map((n: any) => ({
+      setNotifs(data
+        .filter((n: any) => prefAllows(prefs, n.type ?? 'system'))
+        .map((n: any) => ({
         id:        n.id,
         tipo:      n.type ?? 'system',
         texto:     n.title,

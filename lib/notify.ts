@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { getNotifPrefsForUser, prefAllows } from './notifPrefs'
 
 type Tipo = 'amigo' | 'evento' | 'lugar' | 'system'
 
@@ -17,6 +18,9 @@ export async function crearNotificacion({
   emoji?: string
   data?: Record<string, unknown>
 }) {
+  const prefs = await getNotifPrefsForUser(userId)
+  if (!prefAllows(prefs, tipo)) return
+
   await supabase.from('notifications').insert({
     user_id:    userId,
     type:       tipo,

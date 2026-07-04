@@ -11,6 +11,7 @@ import { useUser } from '@/hooks/useUser'
 import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
 import { calcIsOpen } from '@/lib/hours'
 import { getCurrentCoords } from '@/lib/geolocation'
+import { loadNotifPrefs, prefAllows } from '@/lib/notifPrefs'
 
 interface Place {
   id: string; name: string; category: string
@@ -174,7 +175,7 @@ export default function Inicio() {
         baseQueries.push(
           supabase.from('friendships').select('friend_id').eq('user_id', user.id).eq('status', 'accepted'),
           supabase.from('friendships').select('user_id').eq('friend_id', user.id).eq('status', 'accepted'),
-          supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false)
+          supabase.from('notifications').select('id, type').eq('user_id', user.id).eq('is_read', false)
         )
       }
 
@@ -183,7 +184,12 @@ export default function Inicio() {
 
       if (lugRes?.data) setLugares(lugRes.data)
       if (evtRes?.data) setEventos(evtRes.data as Event[])
-      if (notifRes?.count) setSinLeer(notifRes.count)
+      if (notifRes?.data && user) {
+        const prefs = await loadNotifPrefs(user.id)
+        const count = (notifRes.data as { id: string; type: string }[])
+          .filter(n => prefAllows(prefs, n.type ?? 'system')).length
+        setSinLeer(count)
+      }
 
       if (user && (f1Res?.data?.length || f2Res?.data?.length)) {
         const ids1 = (f1Res?.data ?? []).map((f: any) => f.friend_id)
@@ -231,7 +237,11 @@ export default function Inicio() {
         .on('postgres_changes', {
           event: 'INSERT', schema: 'public', table: 'notifications',
           filter: 'user_id=eq.' + userId,
-        }, () => setSinLeer(n => n + 1))
+        }, async (payload) => {
+          const tipo = (payload.new as any)?.type ?? 'system'
+          const prefs = await loadNotifPrefs(userId)
+          if (prefAllows(prefs, tipo)) setSinLeer(n => n + 1)
+        })
         .subscribe()
     })
     return () => { if (channel) supabase.removeChannel(channel) }
