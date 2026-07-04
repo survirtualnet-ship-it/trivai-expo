@@ -9,6 +9,7 @@ import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import { signInWithGoogle } from '@/lib/auth/googleOAuth'
 import { ensureProfile } from '@/lib/auth/ensureProfile'
+import { getAuthRedirectUrl } from '@/lib/auth/redirectUrl'
 import { mapAuthError } from '@/lib/auth/authErrors'
 import { T, F, S, R } from '@/lib/tokens'
 
@@ -59,9 +60,7 @@ export default function Login() {
     setLoading(true)
     setError('')
 
-    const redirectTo = Platform.OS === 'web' && typeof window !== 'undefined'
-      ? `${window.location.origin}/auth/callback`
-      : 'trivai://auth/callback'
+    const redirectTo = getAuthRedirectUrl('auth/callback')
 
     const { error: err } = await supabase.auth.resetPasswordForEmail(trimmed, { redirectTo })
     setLoading(false)

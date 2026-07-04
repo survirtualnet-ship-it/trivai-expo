@@ -1,5 +1,6 @@
 import * as Location from 'expo-location'
 import { Platform } from 'react-native'
+import { ENV } from '@/lib/env'
 
 export type Coords = { lat: number; lng: number }
 
@@ -35,22 +36,21 @@ function webGeolocationFallback(): Promise<Coords | null> {
   })
 }
 
-/** Convierte dirección + ciudad en coordenadas */
-export async function geocodeAddress(address: string, city: string): Promise<Coords | null> {
-  const query = `${address.trim()}, ${city.trim()}, Bolivia`
-
-  if (Platform.OS !== 'web') {
-    try {
-      const results = await Location.geocodeAsync(query)
-      if (results[0]) {
-        return { lat: results[0].latitude, lng: results[0].longitude }
-      }
-    } catch {
-      // fallback a Google Geocoding
+async function geocodeWithExpo(query: string): Promise<Coords | null> {
+  try {
+    const results = await Location.geocodeAsync(query)
+    if (results[0]) {
+      return { lat: results[0].latitude, lng: results[0].longitude }
     }
+  } catch {
+    // siguiente fallback
   }
+  return null
+}
 
-  const key = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY
+/** Google Geocoding REST — solo nativo (CORS bloquea fetch en web) */
+async function geocodeWithGoogle(query: string): Promise<Coords | null> {
+  const key = ENV.googleMapsKey
   if (!key) return null
 
   try {
@@ -64,6 +64,19 @@ export async function geocodeAddress(address: string, city: string): Promise<Coo
     // sin coords
   }
   return null
+}
+
+/** Convierte dirección + ciudad en coordenadas */
+export async function geocodeAddress(address: string, city: string): Promise<Coords | null> {
+  const query = `${address.trim()}, ${city.trim()}, Bolivia`
+
+  const expoResult = await geocodeWithExpo(query)
+  if (expoResult) return expoResult
+
+  // En web no llamar Google REST directo (CORS)
+  if (Platform.OS === 'web') return null
+
+  return geocodeWithGoogle(query)
 }
 
 /** Manual → geocoding de dirección → ubicación actual */

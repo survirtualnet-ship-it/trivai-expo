@@ -13,6 +13,7 @@ import { T, F, S, R, getCatColor } from '@/lib/tokens'
 import { CatCover, CategoryPill } from '@/components/CatCover'
 import { grantXP, XP } from '@/lib/xp'
 import { calcIsOpen } from '@/lib/hours'
+import { appLink } from '@/lib/appUrl'
 
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
 
@@ -179,10 +180,11 @@ export default function LugarDetalle() {
   const horario = lugar.hours?.[diaHoy] ?? null
 
   const compartir = () => {
+    const url = appLink(`/lugares/${lugar.id}`)
     Share.share({
       title: lugar.name,
-      message: lugar.name + ' en Santa Cruz. Ver en Trivai: https://trivai-expo.vercel.app/lugares/' + lugar.id,
-      url: 'https://trivai-expo.vercel.app/lugares/' + lugar.id,
+      message: `${lugar.name} en Santa Cruz. Ver en Trivai: ${url}`,
+      url,
     })
   }
 
@@ -414,7 +416,7 @@ export default function LugarDetalle() {
           <View style={{ flexDirection: 'row', gap: S.md, marginHorizontal: S.xl, marginBottom: S.xl }}>
             <TouchableOpacity
               style={[styles.mapBtn, { flex: 1, backgroundColor: T.purpleSoft, shadowOpacity: 0 }]}
-              onPress={() => router.push(`/mapa?lugar=${lugar.id}` as any)}>
+              onPress={() => router.push({ pathname: '/mapa', params: { lugar: lugar.id } })}>
               <MapPin size={16} color={T.purple} />
               <Text style={[styles.mapBtnText, { color: T.purple }]}>Ver en mapa</Text>
             </TouchableOpacity>

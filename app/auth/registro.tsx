@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, FlatList,
+  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, FlatList, Alert,
 } from 'react-native'
 import { router } from 'expo-router'
 import { Eye, EyeOff, ChevronDown } from 'lucide-react-native'
 import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
+import { ensureProfile } from '@/lib/auth/ensureProfile'
+import { getAuthRedirectUrl } from '@/lib/auth/redirectUrl'
 import { T, F, S, R } from '@/lib/tokens'
 
 const PAISES = [
@@ -80,6 +82,7 @@ export default function Registro() {
     const { data, error: err } = await supabase.auth.signUp({
       email, password,
       options: {
+        emailRedirectTo: getAuthRedirectUrl('auth/callback'),
         data: {
           full_name: fullName,
           username:  username.toLowerCase(),
@@ -91,17 +94,25 @@ export default function Registro() {
     if (err) { setError(err.message); setLoading(false); return }
 
     if (data.user) {
-      await supabase.from('profiles').upsert({
-        id:         data.user.id,
+      await ensureProfile(data.user)
+      await supabase.from('profiles').update({
         full_name:  fullName,
         username:   username.toLowerCase(),
-        city:       'Santa Cruz',
-        bio:        '',
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'id' })
+      }).eq('id', data.user.id)
     }
 
     setLoading(false)
+
+    if (!data.session) {
+      Alert.alert(
+        'Revisa tu correo',
+        'Te enviamos un enlace para confirmar tu cuenta antes de iniciar sesión.',
+        [{ text: 'Entendido', onPress: () => router.replace('/auth/login') }],
+      )
+      return
+    }
+
     router.replace('/')
   }
 

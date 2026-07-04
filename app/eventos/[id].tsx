@@ -12,6 +12,7 @@ import type { Event, Place } from '@/lib/supabase'
 import { T, F, S, R } from '@/lib/tokens'
 import { CatCover, CategoryPill } from '@/components/CatCover'
 import { grantXP, XP } from '@/lib/xp'
+import { appLink } from '@/lib/appUrl'
 
 function formatFecha(dt: string) {
   return new Date(dt).toLocaleDateString('es-BO', {
@@ -115,7 +116,8 @@ export default function EventoDetalle() {
   )
 
   const compartir = () => {
-    Share.share({ title: evento.name, message: evento.name + ' - Ver en Trivai: https://trivai-expo.vercel.app/eventos/' + evento.id, url: 'https://trivai-expo.vercel.app/eventos/' + evento.id })
+    const url = appLink(`/eventos/${evento.id}`)
+    Share.share({ title: evento.name, message: `${evento.name} - Ver en Trivai: ${url}`, url })
   }
 
   const abrirMaps = () => {

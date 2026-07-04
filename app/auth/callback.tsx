@@ -9,26 +9,42 @@ export default function AuthCallback() {
   useEffect(() => {
     let navigated = false
 
-    const goHome = async (user: any) => {
+    const goHome = async (user: Parameters<typeof ensureProfile>[0]) => {
       if (navigated) return
       navigated = true
       await ensureProfile(user)
       router.replace('/')
     }
 
-    // Caso 1: la sesión ya está disponible (detectSessionInUrl la procesó al montar)
+    const goResetPassword = () => {
+      if (navigated) return
+      navigated = true
+      router.replace('/auth/reset-password')
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) goHome(session.user)
+      if (!session?.user) return
+      // Tras link de recuperación Supabase entrega sesión temporal
+      const type = new URLSearchParams(
+        typeof window !== 'undefined' ? window.location.hash.slice(1) : '',
+      ).get('type')
+      if (type === 'recovery') {
+        goResetPassword()
+        return
+      }
+      goHome(session.user)
     })
 
-    // Caso 2: Supabase termina de procesar el token y dispara SIGNED_IN
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        goResetPassword()
+        return
+      }
       if (event === 'SIGNED_IN' && session?.user) {
         goHome(session.user)
       }
     })
 
-    // Timeout de seguridad: si en 10s no hay sesión, volver al login
     const timeout = setTimeout(() => {
       if (!navigated) {
         navigated = true

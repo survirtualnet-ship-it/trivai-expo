@@ -17,6 +17,7 @@ import { DiscoveryCard } from '@/components/DiscoveryCard'
 import { DiscoveryRow } from '@/components/DiscoveryRow'
 import { calcIsOpen } from '@/lib/hours'
 import { getCurrentCoords } from '@/lib/geolocation'
+import { ENV } from '@/lib/env'
 
 interface Place {
   id: string; name: string; category: string
@@ -75,9 +76,8 @@ const PILLS: {
 ]
 
 /** Mapa estático de Santa Cruz sin marcadores (sin pines) */
-const MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY
-const MAP_PREVIEW_URI = MAPS_KEY
-  ? `https://maps.googleapis.com/maps/api/staticmap?center=-17.7833,-63.1821&zoom=13&size=640x280&scale=2&style=feature:poi|visibility:off&key=${MAPS_KEY}`
+const MAP_PREVIEW_URI = ENV.googleMapsKey
+  ? `https://maps.googleapis.com/maps/api/staticmap?center=-17.7833,-63.1821&zoom=13&size=640x280&scale=2&style=feature:poi|visibility:off&key=${ENV.googleMapsKey}`
   : null
 
 export default function Lugares() {

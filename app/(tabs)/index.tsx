@@ -276,7 +276,10 @@ export default function Inicio() {
           contentContainerStyle={{ paddingHorizontal: S.lg, gap: S.sm }}>
           {ZONAS.map(z => (
             <TouchableOpacity key={z.nombre} style={[styles.zonaCard, { backgroundColor: z.bg }]}
-              onPress={() => router.push(`/mapa?lat=${z.lat}&lng=${z.lng}&zona=${encodeURIComponent(z.nombre)}`)}
+              onPress={() => router.push({
+                pathname: '/mapa',
+                params: { lat: String(z.lat), lng: String(z.lng), zona: z.nombre },
+              })}
               activeOpacity={0.8}>
               <Text style={styles.zonaEmoji}>{z.emoji}</Text>
               <Text style={[styles.zonaNombre, { color: z.fg }]}>{z.nombre}</Text>

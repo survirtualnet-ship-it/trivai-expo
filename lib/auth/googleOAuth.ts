@@ -1,27 +1,23 @@
-import * as Linking from 'expo-linking'
 import * as WebBrowser from 'expo-web-browser'
 import { Platform } from 'react-native'
 import { supabase } from '@/lib/supabase'
 import { ensureProfile } from '@/lib/auth/ensureProfile'
+import { getAuthRedirectUrl } from '@/lib/auth/redirectUrl'
 
 WebBrowser.maybeCompleteAuthSession()
 
 export async function signInWithGoogle(): Promise<void> {
+  const redirectTo = getAuthRedirectUrl('auth/callback')
+
   if (Platform.OS === 'web') {
-    // Web: redirect the whole page (no popup) so the session lands in the main window
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: window.location.origin + '/auth/callback',
-      },
+      options: { redirectTo },
     })
     if (error) throw error
-    // Page navigates away — this line won't be reached
     return
   }
 
-  // Native: use expo-web-browser in-app browser
-  const redirectTo = Linking.createURL('auth/callback')
   const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo, skipBrowserRedirect: true },

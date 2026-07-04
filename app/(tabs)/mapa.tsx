@@ -8,6 +8,7 @@ import { Navigation } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor, CATEGORY_CHIPS, normalizeCategory, type Category } from '@/lib/tokens'
 import { getCurrentCoords } from '@/lib/geolocation'
+import { ENV } from '@/lib/env'
 
 interface Marcador {
   id: string; name: string; category: string
@@ -112,7 +113,7 @@ export default function Mapa() {
   const [seleccionado, setSeleccionado] = useState<Marcador | null>(null)
   const [userPos,      setUserPos]      = useState<{ lat: number; lng: number } | null>(null)
 
-  const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY ?? ''
+  const apiKey = ENV.googleMapsKey
 
   // Carga inicial de datos
   useEffect(() => {
