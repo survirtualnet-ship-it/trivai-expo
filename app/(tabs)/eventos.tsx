@@ -7,7 +7,7 @@ import { Search, SlidersHorizontal } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R } from '@/lib/tokens'
 import { AppHeader, HeaderLogo } from '@/components/ui/AppHeader'
-import { FilterChip, FilterChipGhost } from '@/components/ui/FilterChip'
+import { FilterChip } from '@/components/ui/FilterChip'
 import { HeroCard, HERO_H } from '@/components/ui/HeroCard'
 import { EventCard, type EventCardData } from '@/components/ui/EventCard'
 import { SectionHeader } from '@/components/ui/SectionHeader'
@@ -106,7 +106,6 @@ export default function Eventos() {
           {SMART.slice(0, 3).map(f => (
             <FilterChip key={f} label={f} active={filter === f} onPress={() => setFilter(f)} />
           ))}
-          <FilterChipGhost label="Editar filtros" onPress={() => deferredPush('/buscar')} />
         </ScrollView>
 
         {loading ? (
