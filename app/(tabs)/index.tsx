@@ -36,6 +36,13 @@ import {
   minutesLabel,
   zoneLabel,
 } from '@/lib/discoverCardUtils'
+import {
+  buildCercaDeTi,
+  buildMasDestacados,
+  topFeaturedEvent,
+  suggestionKey,
+  type DiscoverSuggestion,
+} from '@/lib/discoverSuggestions'
 import { haversineKm, groupEventsByBucket, formatEventDateShort } from '@/lib/eventUtils'
 import { calcIsOpen } from '@/lib/hours'
 import { getCurrentCoords } from '@/lib/geolocation'
@@ -57,6 +64,8 @@ interface FriendActivity {
   nombre: string
   href: string
 }
+
+const SC_CENTER = { lat: -17.7833, lng: -63.1821 }
 
 export default function Discover() {
   const { profile, isAuthenticated, signOut } = useUser()
@@ -97,13 +106,13 @@ export default function Discover() {
           .select('id,name,category,address,rating_avg,is_open,hours,latitude,longitude,photos')
           .not('latitude', 'is', null)
           .order('rating_avg', { ascending: false })
-          .limit(24),
+          .limit(64),
         supabase.from('events')
           .select('id,name,category,start_datetime,is_free,price,attendees_count,photos,place:places(name,address,latitude,longitude)')
           .eq('is_active', true)
           .gte('start_datetime', new Date().toISOString())
           .order('start_datetime', { ascending: true })
-          .limit(40),
+          .limit(64),
       ]
 
       if (user) {
@@ -176,26 +185,26 @@ export default function Discover() {
     )
   }, [actividad, searchQuery])
 
+  const distOrigin = userCoords ?? SC_CENTER
+
   const lugaresConDist = useMemo(() => {
-    if (!userCoords) return lugaresForView
     return lugaresForView.map(l => {
       if (l.latitude && l.longitude) {
-        return { ...l, _dist: haversineKm(userCoords.lat, userCoords.lng, l.latitude, l.longitude) }
+        return { ...l, _dist: haversineKm(distOrigin.lat, distOrigin.lng, l.latitude, l.longitude) }
       }
       return l
     })
-  }, [lugaresForView, userCoords])
+  }, [lugaresForView, distOrigin])
 
   const eventosConDist = useMemo(() => {
-    if (!userCoords) return eventosForView
     return eventosForView.map(ev => {
       const pl = ev.place as EventCardData['place'] & { latitude?: number; longitude?: number }
       if (pl?.latitude && pl?.longitude) {
-        return { ...ev, _dist: haversineKm(userCoords.lat, userCoords.lng, pl.latitude, pl.longitude) }
+        return { ...ev, _dist: haversineKm(distOrigin.lat, distOrigin.lng, pl.latitude, pl.longitude) }
       }
       return ev
     })
-  }, [eventosForView, userCoords])
+  }, [eventosForView, distOrigin])
 
   const searchSuggestions = useMemo(
     () => buildSearchSuggestions(lugaresForView, eventosForView, personas, searchQuery),
@@ -223,20 +232,23 @@ export default function Discover() {
     [lugaresEnriched, eventosEnriched, appliedCategoryFilter, appliedLocationFilter, userCoords],
   )
 
-  const lugaresCerca = useMemo(() => {
-    let list = [...filteredPlaces]
-    if (appliedLocationFilter !== 'cerca') {
-      list = list.sort((a, b) => (b.rating_avg ?? 0) - (a.rating_avg ?? 0))
-    }
-    return list.slice(0, 6)
-  }, [filteredPlaces, appliedLocationFilter])
+  const cercaDeTi = useMemo(
+    () => buildCercaDeTi(lugaresEnriched, eventosEnriched),
+    [lugaresEnriched, eventosEnriched],
+  )
 
-  const destacados = useMemo(() => {
-    const list = [...filteredEvents].sort((a, b) => (b.attendees_count ?? 0) - (a.attendees_count ?? 0))
-    return list.slice(0, 8)
-  }, [filteredEvents])
+  const masDestacados = useMemo(
+    () => buildMasDestacados(lugaresEnriched, eventosEnriched),
+    [lugaresEnriched, eventosEnriched],
+  )
 
-  const hero = destacados[0] ?? null
+  const hero = useMemo(() => topFeaturedEvent(eventosEnriched), [eventosEnriched])
+
+  const carouselDestacados = useMemo(() => {
+    if (!hero) return masDestacados
+    return masDestacados.filter(s => !(s.kind === 'event' && s.data.id === hero.id))
+  }, [masDestacados, hero])
+
   const { noche, manana, finde } = groupEventsByBucket(filteredEvents)
 
   const selectLocation = useCallback((f: LocationFilter) => {
@@ -263,7 +275,6 @@ export default function Discover() {
   const isFilterMode = appliedLocationFilter != null || appliedCategoryFilter !== 'Todos' || isSearchActive
   const showBrowseSections = !isFilterMode
   const showEventSections = appliedLocationFilter !== 'cerca' || filteredEvents.length > 0
-  const emphasizePlaces = appliedLocationFilter === 'cerca'
 
   const locationFilterLabel = useMemo(() => {
     if (appliedLocationFilter == null) return null
@@ -279,11 +290,9 @@ export default function Discover() {
     return parts.join(' · ')
   }, [locationFilterLabel, appliedCategoryFilter])
 
-  const carouselDestacados = hero ? destacados.slice(1) : destacados
-
-  const renderPlaceCarouselCard = (lu: PlaceCardData) => (
+  const renderPlaceCarouselCard = (lu: PlaceCardData, key?: string) => (
     <DiscoverCarouselCard
-      key={lu.id}
+      key={key ?? lu.id}
       title={lu.name}
       category={lu.category}
       locale={locale}
@@ -297,9 +306,9 @@ export default function Discover() {
     />
   )
 
-  const renderEventCarouselCard = (ev: EventCardData & { _zone?: string | null }) => (
+  const renderEventCarouselCard = (ev: EventCardData & { _zone?: string | null }, key?: string) => (
     <DiscoverCarouselCard
-      key={ev.id}
+      key={key ?? ev.id}
       title={ev.name}
       category={ev.category}
       locale={locale}
@@ -311,6 +320,13 @@ export default function Discover() {
       onPress={() => deferredPush(`/eventos/${ev.id}`)}
     />
   )
+
+  const renderSuggestionCard = (s: DiscoverSuggestion) => {
+    const key = suggestionKey(s)
+    return s.kind === 'place'
+      ? renderPlaceCarouselCard(s.data, key)
+      : renderEventCarouselCard(s.data, key)
+  }
 
   const handleSignOut = async () => {
     await signOut()
@@ -394,20 +410,20 @@ export default function Discover() {
           </DiscoverCarouselSection>
         )}
 
-        {showBrowseSections && (emphasizePlaces || !loading) && lugaresCerca.length > 0 && (
+        {showBrowseSections && !loading && cercaDeTi.length > 0 && (
           <DiscoverCarouselSection
-            title={emphasizePlaces ? 'Lugares cerca de ti' : 'Cerca de ti'}
+            title="Cerca de ti"
             actionLabel={t.seeAll}
             onAction={() => deferredPush('/lugares')}
             loading={loading}
           >
-            {lugaresCerca.slice(0, emphasizePlaces ? 6 : 8).map(renderPlaceCarouselCard)}
+            {cercaDeTi.map(renderSuggestionCard)}
           </DiscoverCarouselSection>
         )}
 
-        {showBrowseSections && showEventSections && (
+        {showBrowseSections && showEventSections && carouselDestacados.length > 0 && (
           <DiscoverCarouselSection title="Más Destacados" loading={loading}>
-            {carouselDestacados.map(renderEventCarouselCard)}
+            {carouselDestacados.map(renderSuggestionCard)}
           </DiscoverCarouselSection>
         )}
 
