@@ -3,7 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { MapEmbed } from '@/components/MapEmbed'
-import { AppHeader, HeaderLogo } from '@/components/ui/AppHeader'
+import { HeaderLogo } from '@/components/ui/AppHeader'
+import { BrandDateHeader } from '@/components/ui/BrandDateHeader'
+import { useUser } from '@/hooks/useUser'
+import { useLocale } from '@/hooks/useLocale'
 import { Navigation } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor, CATEGORY_CHIPS, normalizeCategory, type Category } from '@/lib/tokens'
@@ -105,6 +108,9 @@ function initMap() {
 
 export default function Mapa() {
   const params = useLocalSearchParams<{ lugar?: string; lat?: string; lng?: string; zona?: string }>()
+  const { profile } = useUser()
+  const { locale } = useLocale()
+  const cityName = profile?.city ?? 'Santa Cruz de la Sierra'
 
   const [todos,        setTodos]        = useState<Marcador[]>([])
   const [marcadores,   setMarcadores]   = useState<Marcador[]>([])
@@ -191,8 +197,9 @@ export default function Mapa() {
     <SafeAreaView style={styles.root} edges={['top']}>
 
       {/* TOPBAR */}
-      <AppHeader
-        title={typeof params.zona === 'string' && params.zona ? params.zona : 'Mapa'}
+      <BrandDateHeader
+        cityName={cityName}
+        locale={locale}
         left={<HeaderLogo onPress={() => deferredPush('/')} />}
         right={
           <TouchableOpacity style={[styles.locBtn, userPos && { backgroundColor: T.primary }]} onPress={async () => {

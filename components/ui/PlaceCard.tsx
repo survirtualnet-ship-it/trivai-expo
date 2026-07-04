@@ -89,18 +89,27 @@ export function ZoneCard({
 
 /** Chip de categoría con icono */
 export function CategoryChip({
-  label, Icon, color, bg, onPress,
+  label, Icon, color, bg, onPress, active = false,
 }: {
   label: string
   Icon: ComponentType<{ size: number; color: string; strokeWidth?: number }>
   color: string
   bg: string
   onPress: () => void
+  active?: boolean
 }) {
   return (
-    <TouchableOpacity style={[styles.chip, { backgroundColor: bg }]} onPress={onPress} activeOpacity={0.8}>
-      <Icon size={14} color={color} strokeWidth={2} />
-      <Text style={[styles.chipText, { color }]}>{label}</Text>
+    <TouchableOpacity
+      style={[
+        styles.chip,
+        { backgroundColor: active ? color : bg },
+        active && styles.chipActive,
+      ]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <Icon size={14} color={active ? '#fff' : color} strokeWidth={2} />
+      <Text style={[styles.chipText, { color: active ? '#fff' : color }]}>{label}</Text>
     </TouchableOpacity>
   )
 }
@@ -151,6 +160,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: S.lg,
     paddingVertical: 10,
     borderRadius: R.full,
+  },
+  chipActive: {
+    ...SHADOW.sm,
   },
   chipText: { fontFamily: FONT.semibold, fontSize: F.size.sm, fontWeight: F.weight.semibold },
 })

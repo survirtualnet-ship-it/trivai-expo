@@ -13,7 +13,9 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
 import { T, F, S, R } from '@/lib/tokens'
-import { AppHeader, HeaderLogo } from '@/components/ui/AppHeader'
+import { HeaderLogo } from '@/components/ui/AppHeader'
+import { BrandDateHeader } from '@/components/ui/BrandDateHeader'
+import { useLocale } from '@/hooks/useLocale'
 import { deferredPush } from '@/lib/deferredNav'
 import { CatCover } from '@/components/CatCover'
 import { grantXP, XP } from '@/lib/xp'
@@ -112,7 +114,9 @@ function statusAmigo(id: string, enEvento: boolean): Amigo['status'] {
 }
 
 export default function Amigos() {
-  const { isAuthenticated } = useUser()
+  const { isAuthenticated, profile } = useUser()
+  const { locale } = useLocale()
+  const cityName = profile?.city ?? 'Santa Cruz de la Sierra'
   const [miId,        setMiId]        = useState<string | null>(null)
   const [amigos,      setAmigos]      = useState<Amigo[]>([])
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
@@ -353,8 +357,9 @@ export default function Amigos() {
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
 
-        <AppHeader
-          title="Actividad"
+        <BrandDateHeader
+          cityName={cityName}
+          locale={locale}
           left={<HeaderLogo onPress={() => deferredPush('/')} />}
           right={(
             <TouchableOpacity style={styles.roundBtnSurface} onPress={() => deferredPush('/notificaciones')}>

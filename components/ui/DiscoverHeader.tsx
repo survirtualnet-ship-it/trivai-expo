@@ -1,13 +1,9 @@
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Linking } from 'react-native'
 import { Bell, User } from 'lucide-react-native'
-import { HeaderLogo } from '@/components/ui/AppHeader'
+import { BrandDateHeader } from '@/components/ui/BrandDateHeader'
 import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
-import {
-  DISCOVER_STRINGS,
-  formatCityDateLine,
-  type AppLocale,
-} from '@/lib/i18n/discover'
+import { DISCOVER_STRINGS, type AppLocale } from '@/lib/i18n/discover'
 
 type Props = {
   cityName: string
@@ -70,19 +66,11 @@ export function DiscoverHeader({
   }
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.topRow}>
-        <View style={styles.sideLeft}>
-          <HeaderLogo height={32} />
-        </View>
-
-        <View style={styles.centerCol}>
-          <Text style={styles.locationLine} numberOfLines={2}>
-            {formatCityDateLine(cityName, locale)}
-          </Text>
-        </View>
-
-        <View style={styles.actions}>
+    <BrandDateHeader
+      cityName={cityName}
+      locale={locale}
+      right={(
+        <>
           <TouchableOpacity style={styles.iconBtn} onPress={openLanguageMenu} activeOpacity={0.85}>
             <Text style={styles.flag}>{flag}</Text>
           </TouchableOpacity>
@@ -99,50 +87,13 @@ export function DiscoverHeader({
               </View>
             )}
           </TouchableOpacity>
-        </View>
-      </View>
-    </View>
+        </>
+      )}
+    />
   )
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    paddingHorizontal: S.lg,
-    paddingTop: S.md,
-    paddingBottom: S.sm,
-    backgroundColor: T.bg,
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: S.sm,
-  },
-  sideLeft: {
-    width: 118,
-    justifyContent: 'center',
-  },
-  centerCol: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: S.xs,
-  },
-  locationLine: {
-    fontFamily: FONT.medium,
-    fontSize: F.size.sm,
-    fontWeight: F.weight.medium,
-    color: T.fg2,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  actions: {
-    width: 118,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: S.sm,
-  },
   iconBtn: {
     width: 44,
     height: 44,

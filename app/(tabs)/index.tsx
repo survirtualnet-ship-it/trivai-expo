@@ -11,8 +11,10 @@ import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
 import { useLocale } from '@/hooks/useLocale'
 import { useDiscoverSearch } from '@/hooks/useDiscoverSearch'
-import { T, F, S, R, SHADOW } from '@/lib/tokens'
+import { T, F, S, R, SHADOW, normalizeCategory } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
+import type { Category } from '@/lib/categories'
+import { getCityZone, CITY_ZONES, type CityZone } from '@/lib/zones'
 import { DiscoverHeader } from '@/components/ui/DiscoverHeader'
 import { DiscoverSearchBar } from '@/components/ui/DiscoverSearchBar'
 import { FilterChip } from '@/components/ui/FilterChip'
@@ -21,7 +23,7 @@ import { HeroCard } from '@/components/ui/HeroCard'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SkeletonCard } from '@/components/ui/Skeleton'
 import { AvatarGroup } from '@/components/ui/AvatarGroup'
-import { PlaceCard, ZoneCard, CategoryChip, type PlaceCardData } from '@/components/ui/PlaceCard'
+import { PlaceCard, CategoryChip, type PlaceCardData } from '@/components/ui/PlaceCard'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { loadNotifPrefs, prefAllows } from '@/lib/notifPrefs'
 import { deferredPush } from '@/lib/deferredNav'
@@ -35,7 +37,7 @@ import {
   matchesSearch,
 } from '@/lib/smartSearch'
 
-type QuickFilter = 'hoy' | 'cerca' | 'trending' | null
+type QuickFilter = 'hoy' | 'cerca' | null
 
 interface FriendActivity {
   id: string
@@ -45,19 +47,28 @@ interface FriendActivity {
   href: string
 }
 
-const ZONAS = [
-  { nombre: 'Centro',     emoji: '🏛️', bg: T.purpleSoft, fg: T.purpleInk, lat: -17.7833, lng: -63.1821 },
-  { nombre: 'Equipetrol', emoji: '🍺', bg: T.orangeSoft, fg: T.orangeInk, lat: -17.7697, lng: -63.2017 },
-  { nombre: 'Las Palmas', emoji: '🌳', bg: T.greenSoft,  fg: T.greenInk,  lat: -17.7521, lng: -63.1919 },
-  { nombre: 'Urbarí',     emoji: '🖼️', bg: T.muted,      fg: T.fg2,       lat: -17.7992, lng: -63.1734 },
+const CATEGORIAS: {
+  label: Category
+  Icon: typeof UtensilsCrossed
+  color: string
+  bg: string
+}[] = [
+  { label: 'Gastronomía',     Icon: UtensilsCrossed, color: T.accent,    bg: T.orangeSoft },
+  { label: 'Entretenimiento', Icon: Palette,         color: T.primary,   bg: T.purpleSoft },
+  { label: 'Parques',         Icon: Trees,           color: T.secondary, bg: T.greenSoft },
+  { label: 'Otros',           Icon: Sparkles,        color: T.fg2,       bg: T.muted },
 ]
 
-const CATEGORIAS = [
-  { label: 'Gastronomía',     Icon: UtensilsCrossed, color: T.accent,    bg: T.orangeSoft, go: () => deferredPush({ pathname: '/lugares', params: { cat: 'Gastronomía' } }) },
-  { label: 'Entretenimiento', Icon: Palette,         color: T.primary,   bg: T.purpleSoft, go: () => deferredPush({ pathname: '/lugares', params: { cat: 'Entretenimiento' } }) },
-  { label: 'Parques',         Icon: Trees,           color: T.secondary, bg: T.greenSoft,  go: () => deferredPush({ pathname: '/lugares', params: { cat: 'Parques' } }) },
-  { label: 'Otros',           Icon: Sparkles,        color: T.fg2,       bg: T.muted,      go: () => deferredPush({ pathname: '/lugares', params: { cat: 'Otros' } }) },
-]
+function placeInZone(place: PlaceCardData, zone: CityZone): boolean {
+  if (place.latitude == null || place.longitude == null) return false
+  return getCityZone(place.latitude, place.longitude) === zone
+}
+
+function eventInZone(event: EventCardData, zone: CityZone): boolean {
+  const pl = event.place as EventCardData['place'] & { latitude?: number; longitude?: number }
+  if (pl?.latitude == null || pl?.longitude == null) return false
+  return getCityZone(pl.latitude, pl.longitude) === zone
+}
 
 export default function Discover() {
   const { profile, isAuthenticated, signOut } = useUser()
@@ -71,6 +82,8 @@ export default function Discover() {
   const [loading, setLoading] = useState(true)
   const [sinLeer, setSinLeer] = useState(0)
   const [quickFilter, setQuickFilter] = useState<QuickFilter>(null)
+  const [zoneFilter, setZoneFilter] = useState<CityZone | null>(null)
+  const [categoryFilter, setCategoryFilter] = useState<Category | null>(null)
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -199,38 +212,68 @@ export default function Discover() {
     [lugaresForView, eventosForView, personas, searchQuery],
   )
 
-  const filteredEvents = useMemo(() => {
-    let list = [...eventosConDist]
-    if (quickFilter === 'hoy') list = list.filter(e => esHoy(e.start_datetime))
-    if (quickFilter === 'cerca') list = [...list].filter(e => e._dist != null).sort((a, b) => (a._dist ?? 99) - (b._dist ?? 99))
-    if (quickFilter === 'trending') list = [...list].sort((a, b) => (b.attendees_count ?? 0) - (a.attendees_count ?? 0))
-    return list
-  }, [eventosConDist, quickFilter])
+  const { filteredPlaces, filteredEvents } = useMemo(() => {
+    let places = [...lugaresConDist]
+    let events = [...eventosConDist]
+
+    if (categoryFilter) {
+      places = places.filter(p => normalizeCategory(p.category) === categoryFilter)
+      events = events.filter(e => normalizeCategory(e.category) === categoryFilter)
+    }
+
+    if (zoneFilter) {
+      places = places.filter(p => placeInZone(p, zoneFilter))
+      events = events.filter(e => eventInZone(e, zoneFilter))
+    }
+
+    if (quickFilter === 'hoy') {
+      events = events.filter(e => esHoy(e.start_datetime))
+    }
+
+    if (quickFilter === 'cerca' && userCoords) {
+      places = places
+        .filter(p => p._dist != null)
+        .sort((a, b) => (a._dist ?? 99) - (b._dist ?? 99))
+      events = events
+        .filter(e => e._dist != null)
+        .sort((a, b) => (a._dist ?? 99) - (b._dist ?? 99))
+    }
+
+    return { filteredPlaces: places, filteredEvents: events }
+  }, [lugaresConDist, eventosConDist, categoryFilter, zoneFilter, quickFilter, userCoords])
 
   const lugaresCerca = useMemo(() => {
-    let list = [...lugaresConDist]
-    if (quickFilter === 'cerca' && userCoords) {
-      list = list.filter(l => l._dist != null).sort((a, b) => (a._dist ?? 99) - (b._dist ?? 99))
-    } else {
+    let list = [...filteredPlaces]
+    if (quickFilter !== 'cerca') {
       list = list.sort((a, b) => (b.rating_avg ?? 0) - (a.rating_avg ?? 0))
     }
     return list.slice(0, 6)
-  }, [lugaresConDist, quickFilter, userCoords])
+  }, [filteredPlaces, quickFilter])
 
   const destacados = useMemo(() => {
-    let list = [...filteredEvents]
-    if (quickFilter === null || quickFilter === 'hoy') {
-      list.sort((a, b) => (b.attendees_count ?? 0) - (a.attendees_count ?? 0))
-    }
+    const list = [...filteredEvents].sort((a, b) => (b.attendees_count ?? 0) - (a.attendees_count ?? 0))
     return list.slice(0, 8)
-  }, [filteredEvents, quickFilter])
+  }, [filteredEvents])
 
   const hero = destacados[0] ?? null
   const { noche, manana, finde } = groupEventsByBucket(filteredEvents)
   const toggleQuick = (f: QuickFilter) => setQuickFilter(prev => (prev === f ? null : f))
+  const toggleZone = (z: CityZone) => setZoneFilter(prev => (prev === z ? null : z))
+  const toggleCategory = (cat: Category) => setCategoryFilter(prev => (prev === cat ? null : cat))
 
+  const isFilterMode = categoryFilter != null || zoneFilter != null || quickFilter != null
+  const showBrowseSections = !isFilterMode && !isSearchActive
   const showEventSections = quickFilter !== 'cerca' || filteredEvents.length > 0
   const emphasizePlaces = quickFilter === 'cerca'
+
+  const filterSummary = useMemo(() => {
+    const parts: string[] = []
+    if (categoryFilter) parts.push(categoryFilter)
+    if (zoneFilter) parts.push(zoneFilter)
+    if (quickFilter === 'hoy') parts.push(t.filterHoy)
+    if (quickFilter === 'cerca') parts.push(t.filterCerca)
+    return parts.join(' · ')
+  }, [categoryFilter, zoneFilter, quickFilter, t])
 
   const handleSignOut = async () => {
     await signOut()
@@ -269,45 +312,76 @@ export default function Discover() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
           <FilterChip label={t.filterHoy} active={quickFilter === 'hoy'} onPress={() => toggleQuick('hoy')} />
           <FilterChip label={t.filterCerca} active={quickFilter === 'cerca'} onPress={() => toggleQuick('cerca')} accent={T.secondary} />
-          <FilterChip label={t.filterDestacados} active={quickFilter === 'trending'} onPress={() => toggleQuick('trending')} accent={T.accent} />
+          {CITY_ZONES.map(z => (
+            <FilterChip key={z} label={z} active={zoneFilter === z} onPress={() => toggleZone(z)} />
+          ))}
         </ScrollView>
 
         <SectionHeader title="Explorar por tipo" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {CATEGORIAS.map(c => (
-            <CategoryChip key={c.label} label={c.label} Icon={c.Icon} color={c.color} bg={c.bg} onPress={c.go} />
-          ))}
-        </ScrollView>
-
-        <SectionHeader title="Explorar por zona" actionLabel="Ver mapa" onAction={() => deferredPush('/mapa')} />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hList}>
-          {ZONAS.map(z => (
-            <ZoneCard
-              key={z.nombre}
-              nombre={z.nombre}
-              emoji={z.emoji}
-              bg={z.bg}
-              fg={z.fg}
-              onPress={() => deferredPush({ pathname: '/mapa', params: { lat: String(z.lat), lng: String(z.lng), zona: z.nombre } })}
+            <CategoryChip
+              key={c.label}
+              label={c.label}
+              Icon={c.Icon}
+              color={c.color}
+              bg={c.bg}
+              active={categoryFilter === c.label}
+              onPress={() => toggleCategory(c.label)}
             />
           ))}
         </ScrollView>
 
-        <LinearGradient colors={[T.primary, '#8E6CFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cta}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.ctaTitle}>Planifica con amigos</Text>
-            <Text style={styles.ctaSub}>Organiza tu próxima salida y compártela.</Text>
-          </View>
-          <TouchableOpacity style={styles.ctaBtn} onPress={() => deferredPush('/publicar')} activeOpacity={0.9}>
-            <Text style={styles.ctaBtnText}>Crear plan</Text>
-          </TouchableOpacity>
-        </LinearGradient>
+        {showBrowseSections && (
+          <>
+            <LinearGradient colors={[T.primary, '#8E6CFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cta}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.ctaTitle}>Planifica con amigos</Text>
+                <Text style={styles.ctaSub}>Organiza tu próxima salida y compártela.</Text>
+              </View>
+              <TouchableOpacity style={styles.ctaBtn} onPress={() => deferredPush('/publicar')} activeOpacity={0.9}>
+                <Text style={styles.ctaBtnText}>Crear plan</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </>
+        )}
 
         {isSearchActive && (
           <SectionHeader title={`Resultados · "${searchQuery.trim()}"`} />
         )}
 
-        {(emphasizePlaces || !loading) && lugaresCerca.length > 0 && (
+        {isFilterMode && (
+          <SectionHeader title={filterSummary || 'Resultados'} />
+        )}
+
+        {(isFilterMode || isSearchActive) && filteredPlaces.length > 0 && (
+          <>
+            <SectionHeader title="Lugares" actionLabel={t.seeAll} onAction={() => deferredPush('/lugares')} />
+            <View style={styles.list}>
+              {filteredPlaces.map(lu => (
+                <PlaceCard
+                  key={lu.id}
+                  place={lu}
+                  locale={locale}
+                  onPress={() => deferredPush(`/lugares/${lu.id}`)}
+                />
+              ))}
+            </View>
+          </>
+        )}
+
+        {(isFilterMode || isSearchActive) && filteredEvents.length > 0 && (
+          <>
+            <SectionHeader title="Eventos" />
+            <View style={styles.list}>
+              {filteredEvents.map(ev => (
+                <EventCard key={ev.id} event={ev} variant="list" onPress={() => deferredPush(`/eventos/${ev.id}`)} />
+              ))}
+            </View>
+          </>
+        )}
+
+        {showBrowseSections && (emphasizePlaces || !loading) && lugaresCerca.length > 0 && (
           <>
             <SectionHeader
               title={emphasizePlaces ? 'Lugares cerca de ti' : 'Cerca de ti'}
@@ -329,7 +403,7 @@ export default function Discover() {
           </>
         )}
 
-        {showEventSections && (
+        {showBrowseSections && showEventSections && (
           <>
             <SectionHeader title="Más Destacados" />
             {loading ? (
@@ -376,7 +450,7 @@ export default function Discover() {
           </>
         )}
 
-        {actividadForView.length > 0 && (
+        {showBrowseSections && actividadForView.length > 0 && (
           <>
             <SectionHeader title="Actividad de amigos" actionLabel="Ver más" onAction={() => deferredPush('/amigos')} />
             <TouchableOpacity style={styles.friendCard} onPress={() => deferredPush(actividadForView[0].href as any)} activeOpacity={0.9}>
@@ -391,7 +465,7 @@ export default function Discover() {
           </>
         )}
 
-        {hero && !loading && showEventSections && (
+        {showBrowseSections && hero && !loading && showEventSections && (
           <>
             <SectionHeader title="Experiencia destacada" />
             <View style={styles.heroWrap}>
@@ -400,7 +474,7 @@ export default function Discover() {
           </>
         )}
 
-        {noche.length > 0 && (
+        {showBrowseSections && noche.length > 0 && (
           <>
             <SectionHeader title="Esta noche" />
             <View style={styles.list}>
@@ -411,7 +485,7 @@ export default function Discover() {
           </>
         )}
 
-        {manana.length > 0 && (
+        {showBrowseSections && manana.length > 0 && (
           <>
             <SectionHeader title="Mañana" />
             <View style={styles.list}>
@@ -422,7 +496,7 @@ export default function Discover() {
           </>
         )}
 
-        {finde.length > 0 && (
+        {showBrowseSections && finde.length > 0 && (
           <>
             <SectionHeader title="Este fin de semana" />
             <View style={styles.list}>
@@ -433,12 +507,17 @@ export default function Discover() {
           </>
         )}
 
-        {!loading && !searching && isSearchActive &&
-          filteredEvents.length === 0 && lugaresCerca.length === 0 && personas.length === 0 && (
+        {!loading && !searching && (isSearchActive || isFilterMode) &&
+          filteredEvents.length === 0 && filteredPlaces.length === 0 && personas.length === 0 && (
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyIcon}>{isSearchActive ? '🔍' : '✨'}</Text>
+            <Text style={styles.emptyIcon}>{isSearchActive || isFilterMode ? '🔍' : '✨'}</Text>
             <Text style={styles.emptyTitle}>{t.noResults}</Text>
-            <TouchableOpacity onPress={() => { setQuickFilter(null); setSearchQuery('') }}>
+            <TouchableOpacity onPress={() => {
+              setQuickFilter(null)
+              setZoneFilter(null)
+              setCategoryFilter(null)
+              setSearchQuery('')
+            }}>
               <Text style={styles.emptyLink}>{t.seeAllLink}</Text>
             </TouchableOpacity>
           </View>
