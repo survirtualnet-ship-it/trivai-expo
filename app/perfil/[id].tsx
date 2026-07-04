@@ -5,7 +5,8 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
-import { ArrowLeft, Star, UserCheck, UserPlus, Clock } from 'lucide-react-native'
+import { Star, UserCheck, UserPlus, Clock } from 'lucide-react-native'
+import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R } from '@/lib/tokens'
 import { grantXP, XP } from '@/lib/xp'
@@ -130,13 +131,7 @@ export default function PerfilPublico() {
 
   if (!perfil) return (
     <SafeAreaView style={s.root} edges={['top']}>
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <ArrowLeft size={20} color={T.fg1} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle}>Perfil</Text>
-        <View style={{ width: 36 }} />
-      </View>
+      <ScreenHeader title="Perfil" fallbackHref="/amigos" />
       <View style={s.center}><Text style={{ color: T.fg3 }}>Usuario no encontrado</Text></View>
     </SafeAreaView>
   )
@@ -179,13 +174,7 @@ export default function PerfilPublico() {
 
   return (
     <SafeAreaView style={s.root} edges={['top']}>
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <ArrowLeft size={20} color={T.fg1} />
-        </TouchableOpacity>
-        <Text style={s.headerTitle} numberOfLines={1}>{nombre}</Text>
-        <View style={{ width: 36 }} />
-      </View>
+      <ScreenHeader title={nombre} fallbackHref="/amigos" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
 

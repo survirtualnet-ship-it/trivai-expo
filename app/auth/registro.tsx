@@ -4,7 +4,8 @@ import {
   StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, FlatList,
 } from 'react-native'
 import { router } from 'expo-router'
-import { ArrowLeft, Eye, EyeOff, ChevronDown } from 'lucide-react-native'
+import { Eye, EyeOff, ChevronDown } from 'lucide-react-native'
+import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R } from '@/lib/tokens'
 
@@ -133,13 +134,11 @@ export default function Registro() {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
         {/* HEADER */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => step === 2 ? setStep(1) : router.back()} style={styles.back}>
-            <ArrowLeft size={22} color={T.fg1} />
-          </TouchableOpacity>
-          <Text style={styles.headerLogo}>trivai</Text>
-          <Text style={styles.stepLabel}>Paso {step} de 2</Text>
-        </View>
+        <ScreenHeader
+          title="Crear cuenta"
+          onBack={() => step === 2 ? setStep(1) : router.back()}
+          right={<Text style={styles.stepLabel}>Paso {step} de 2</Text>}
+        />
 
         <View style={styles.content}>
           <Text style={styles.title}>{step === 1 ? 'Crea tu cuenta' : 'Tu acceso'}</Text>

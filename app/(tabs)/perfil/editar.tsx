@@ -6,7 +6,7 @@ import {
 import * as ImagePicker from 'expo-image-picker'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { ArrowLeft } from 'lucide-react-native'
+import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
 import { uploadAvatarFromUri } from '@/lib/auth/uploadAvatar'
@@ -100,18 +100,17 @@ export default function EditarPerfil() {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.back} onPress={() => router.back()}>
-          <ArrowLeft size={22} color={T.fg1} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Editar perfil</Text>
-        <TouchableOpacity style={styles.saveBtn} onPress={guardar} disabled={guardando}>
-          {guardando
-            ? <ActivityIndicator size="small" color="#fff" />
-            : <Text style={styles.saveBtnText}>Guardar</Text>
-          }
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title="Editar perfil"
+        right={
+          <TouchableOpacity style={styles.saveBtn} onPress={guardar} disabled={guardando}>
+            {guardando
+              ? <ActivityIndicator size="small" color="#fff" />
+              : <Text style={styles.saveBtnText}>Guardar</Text>
+            }
+          </TouchableOpacity>
+        }
+      />
 
       <ScrollView contentContainerStyle={{ padding: S.lg }} keyboardShouldPersistTaps="handled">
         {/* AVATAR */}

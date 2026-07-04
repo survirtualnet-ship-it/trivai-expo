@@ -5,9 +5,10 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { Search, Plus, UserCheck, UserPlus, Users } from 'lucide-react-native'
+import { Search, Plus, UserCheck, UserPlus, Users, SlidersHorizontal } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R } from '@/lib/tokens'
+import { TrivaiHeader } from '@/components/TrivaiHeader'
 import { grantXP, XP } from '@/lib/xp'
 import { crearNotificacion } from '@/lib/notify'
 
@@ -215,18 +216,26 @@ export default function Amigos() {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* HEADER */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Amigos</Text>
-          <Text style={styles.subtitle}>Conecta y descubre juntos</Text>
-        </View>
-      </View>
+      <TrivaiHeader
+        title="Amigos"
+        subtitle={<Text style={styles.subtitle}>Conecta con amigos y descubre juntos</Text>}
+        left={
+          <TouchableOpacity style={styles.headerIconBtn} onPress={() => router.push('/buscar')} hitSlop={8}>
+            <UserPlus size={20} color={T.fg1} strokeWidth={1.75} />
+          </TouchableOpacity>
+        }
+      />
 
-      {/* BUSCADOR */}
-      <TouchableOpacity style={styles.searchBox} onPress={() => router.push('/buscar')}>
-        <Search size={18} color={T.fg3} />
-        <Text style={styles.searchText}>Buscar amigos...</Text>
-      </TouchableOpacity>
+      {/* BUSCADOR + FILTRO */}
+      <View style={styles.searchRow}>
+        <TouchableOpacity style={styles.searchBox} onPress={() => router.push('/buscar')}>
+          <Search size={18} color={T.fg3} />
+          <Text style={styles.searchText}>Buscar amigos...</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.filterBtn} onPress={() => router.push('/buscar')}>
+          <SlidersHorizontal size={18} color={T.purple} />
+        </TouchableOpacity>
+      </View>
 
       {/* TABS */}
       <View style={styles.tabBar}>
@@ -264,8 +273,12 @@ export default function Amigos() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.md, paddingRight: S.lg }}>
                   {amigos.slice(0, 8).map(a => (
                     <TouchableOpacity key={a.id} style={styles.friendChip} onPress={() => router.push(`/perfil/${a.id}`)}>
-                      <Avatar nombre={a.nombre} colorIdx={a.colorIdx} size={56} />
+                      <View>
+                        <Avatar nombre={a.nombre} colorIdx={a.colorIdx} size={56} />
+                        <View style={styles.onlineDot} />
+                      </View>
                       <Text style={styles.friendChipName} numberOfLines={1}>{a.nombre.split(' ')[0]}</Text>
+                      {a.usuario ? <Text style={styles.friendChipUser} numberOfLines={1}>{a.usuario}</Text> : null}
                     </TouchableOpacity>
                   ))}
                   {amigos.length === 0 && (
@@ -320,7 +333,7 @@ export default function Amigos() {
               {/* Sugerencias */}
               {sugerencias.length > 0 && (
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Personas que quizás conozcas</Text>
+                  <Text style={styles.sectionTitle}>Sugerencias para ti</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ gap: S.md, paddingRight: S.lg, marginTop: S.md }}>
                     {sugerencias.map(sug => (
@@ -385,11 +398,11 @@ export default function Amigos() {
               <View style={styles.planBanner}>
                 <View style={styles.planIcon}><Users size={20} color={T.greenInk} /></View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.planTitle}>¡Explora con amigos!</Text>
-                  <Text style={styles.planSub}>Descubre eventos y lugares juntos.</Text>
+                  <Text style={styles.planTitle}>¡Planifica juntos!</Text>
+                  <Text style={styles.planSub}>Crea un plan y coordina con tus amigos.</Text>
                 </View>
                 <TouchableOpacity style={styles.planBtn} onPress={() => router.push('/eventos')}>
-                  <Text style={styles.planBtnText}>Ver eventos</Text>
+                  <Text style={styles.planBtnText}>Crear plan</Text>
                 </TouchableOpacity>
               </View>
             </>
@@ -471,11 +484,14 @@ export default function Amigos() {
 const styles = StyleSheet.create({
   root:                    { flex: 1, backgroundColor: T.bg },
   center:                  { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header:                  { backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
-  title:                   { fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.fg1 },
   subtitle:                { fontSize: F.size.sm, color: T.fg3, marginTop: 2 },
-  searchBox:               { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, marginHorizontal: S.lg, marginTop: S.md, borderRadius: R.full, paddingHorizontal: S.lg, height: 48, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 },
+  headerIconBtn:           { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.surface, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  searchRow:               { flexDirection: 'row', alignItems: 'center', gap: S.sm, marginHorizontal: S.lg, marginTop: S.md },
+  searchBox:               { flex: 1, flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, borderRadius: R.full, paddingHorizontal: S.lg, height: 48, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 },
   searchText:              { fontSize: F.size.md, color: T.fg3 },
+  filterBtn:               { width: 48, height: 48, borderRadius: R.xl, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+  onlineDot:               { position: 'absolute', bottom: 1, right: 1, width: 13, height: 13, borderRadius: 7, backgroundColor: T.green, borderWidth: 2, borderColor: T.bg },
+  friendChipUser:          { fontSize: F.size.xs, color: T.fg3, marginTop: 1, textAlign: 'center' },
   tabBar:                  { flexDirection: 'row', backgroundColor: T.surface, marginTop: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
   tabBtn:                  { flex: 1, alignItems: 'center' },
   tabLabelRow:             { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: S.md },

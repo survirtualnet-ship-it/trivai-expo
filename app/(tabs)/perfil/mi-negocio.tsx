@@ -5,7 +5,8 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { ArrowLeft, Phone, Globe, AlignLeft, ShieldCheck, ShieldAlert, Camera } from 'lucide-react-native'
+import { Phone, Globe, AlignLeft, ShieldCheck, ShieldAlert, Camera } from 'lucide-react-native'
+import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
 import { T, F, S, R, CATEGORIES } from '@/lib/tokens'
@@ -113,13 +114,7 @@ export default function MiNegocio() {
 
   return (
     <SafeAreaView style={c.root} edges={['top']}>
-      <View style={c.header}>
-        <TouchableOpacity style={c.back} onPress={() => router.back()}>
-          <ArrowLeft size={22} color={T.fg1} />
-        </TouchableOpacity>
-        <Text style={c.title}>Mi negocio</Text>
-        <View style={{ width: 36 }} />
-      </View>
+      <ScreenHeader title="Mi negocio" />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={{ padding: S.lg }} keyboardShouldPersistTaps="handled">

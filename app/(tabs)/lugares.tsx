@@ -4,10 +4,11 @@ import {
   StyleSheet, ActivityIndicator, TextInput,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { Search, MapPin, ArrowLeft } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
-import { T, F, S, R, PLACE_CATEGORY_FILTERS } from '@/lib/tokens'
+import { T, F, S, R, PLACE_CATEGORY_FILTERS, normalizeCategory, getCatColor } from '@/lib/tokens'
+import { TrivaiHeader } from '@/components/TrivaiHeader'
 import { DiscoveryCard } from '@/components/DiscoveryCard'
 import { DiscoveryRow } from '@/components/DiscoveryRow'
 import { CategoryChip } from '@/components/CategoryChip'
@@ -28,11 +29,17 @@ const ZONAS = [
 ]
 
 export default function Lugares() {
+  const { cat: catParam } = useLocalSearchParams<{ cat?: string }>()
   const [lugares,       setLugares]       = useState<Place[]>([])
   const [searchResults, setSearchResults] = useState<Place[]>([])
   const [loading,       setLoading]       = useState(true)
   const [searchLoading, setSearchLoading] = useState(false)
-  const [cat,           setCat]           = useState('Todos')
+  const [cat,           setCat]           = useState(typeof catParam === 'string' && catParam ? catParam : 'Todos')
+
+  // Si llega un filtro por parámetro (ej. desde las categorías del Home), aplicarlo
+  useEffect(() => {
+    if (typeof catParam === 'string' && catParam) setCat(catParam)
+  }, [catParam])
   const [busqueda,      setBusqueda]      = useState('')
   const [buscando,      setBuscando]      = useState(false)
 
@@ -86,19 +93,21 @@ export default function Lugares() {
     <SafeAreaView style={styles.root} edges={['top']}>
 
       {/* TOPBAR */}
-      <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
-          <ArrowLeft size={24} color={T.fg1} strokeWidth={2} />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Lugares</Text>
-          <Text style={styles.sub}>Descubre los mejores lugares</Text>
-        </View>
-        <TouchableOpacity style={styles.iconBtn}
-          onPress={() => { setBuscando(v => !v); setBusqueda('') }}>
-          <Search size={20} color={buscando ? T.purple : T.fg2} />
-        </TouchableOpacity>
-      </View>
+      <TrivaiHeader
+        title="Lugares"
+        subtitle={<Text style={styles.sub}>Descubre los mejores lugares cerca de ti</Text>}
+        left={
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
+            <ArrowLeft size={24} color={T.fg1} strokeWidth={2} />
+          </TouchableOpacity>
+        }
+        right={
+          <TouchableOpacity style={styles.iconBtn}
+            onPress={() => { setBuscando(v => !v); setBusqueda('') }}>
+            <Search size={20} color={buscando ? T.purple : T.fg2} />
+          </TouchableOpacity>
+        }
+      />
 
       {/* BUSCADOR */}
       {buscando && (
@@ -220,13 +229,16 @@ function CardLugar({ item }: { item: Place }) {
     <DiscoveryCard
       category={item.category}
       title={item.name}
-      subtitle={item.rating_avg ? `★ ${item.rating_avg.toFixed(1)} · ${item.rating_count ?? 0} reseñas` : undefined}
+      subtitle={item.rating_avg ? `★ ${item.rating_avg.toFixed(1)} (${item.rating_count ?? 0})` : normalizeCategory(item.category)}
+      pillLabel={normalizeCategory(item.category)}
+      pillColor={getCatColor(item.category)}
       badge={
-        <View style={[styles.badge, { backgroundColor: isOpen ? T.greenSoft : T.muted }]}>
-          <Text style={[styles.badgeText, { color: isOpen ? T.green : T.fg3 }]}>
+        <Text style={{ fontSize: F.size.xs }}>
+          <Text style={{ color: T.fg3 }}>{normalizeCategory(item.category)} · </Text>
+          <Text style={{ color: isOpen ? T.green : T.fg3, fontWeight: F.weight.semibold }}>
             {isOpen ? 'Abierto' : 'Cerrado'}
           </Text>
-        </View>
+        </Text>
       }
       onPress={() => router.push(`/lugares/${item.id}`)}
     />
@@ -239,17 +251,8 @@ function RowLugar({ item }: { item: Place }) {
     <DiscoveryRow
       category={item.category}
       title={item.name}
-      lines={[
-        item.rating_avg ? `★ ${item.rating_avg.toFixed(1)}` : '',
-        item.address ?? '',
-      ].filter(Boolean)}
-      trailing={
-        <View style={[styles.badge, { backgroundColor: isOpen ? T.greenSoft : T.muted }]}>
-          <Text style={[styles.badgeText, { color: isOpen ? T.green : T.fg3 }]}>
-            {isOpen ? 'Abierto' : 'Cerrado'}
-          </Text>
-        </View>
-      }
+      status={{ label: isOpen ? 'Abierto' : 'Cerrado', color: isOpen ? T.green : T.fg3 }}
+      lines={[item.address ?? ''].filter(Boolean)}
       onPress={() => router.push(`/lugares/${item.id}`)}
     />
   )
@@ -257,16 +260,13 @@ function RowLugar({ item }: { item: Place }) {
 
 const styles = StyleSheet.create({
   root:           { flex: 1, backgroundColor: T.bg },
-  topbar:         { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
   backBtn:        { padding: 2 },
-  title:          { fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.fg1 },
   sub:            { fontSize: F.size.sm, color: T.fg3, marginTop: 2 },
-  iconBtn:        { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.muted, alignItems: 'center', justifyContent: 'center' },
-  searchBar:      { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.sm, borderBottomWidth: 1, borderBottomColor: T.border },
+  iconBtn:        { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.surface, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  searchBar:      { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, marginHorizontal: S.lg, marginTop: S.sm, borderRadius: R.full, paddingHorizontal: S.md, height: 44, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
   searchInput:    { flex: 1, fontSize: F.size.base, color: T.fg1, paddingVertical: 8 },
   cats:           { paddingHorizontal: S.lg, paddingVertical: S.sm, gap: S.sm },
-  badge:          { paddingHorizontal: S.sm, paddingVertical: 3, borderRadius: R.full, alignSelf: 'flex-start' },
-  ubicacion:      { flexDirection: 'row', alignItems: 'center', gap: S.md, margin: S.lg, backgroundColor: T.surface, borderRadius: R.md, padding: S.md, borderWidth: 1, borderColor: T.border },
+  ubicacion:      { flexDirection: 'row', alignItems: 'center', gap: S.md, marginHorizontal: S.lg, marginTop: S.sm, backgroundColor: T.purpleSoft, borderRadius: R.lg, padding: S.md },
   ubicacionCity:  { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
   ubicacionSub:   { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold, marginTop: 2 },
   chevron:        { fontSize: 20, color: T.fg3 },
@@ -277,7 +277,6 @@ const styles = StyleSheet.create({
   sectionHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: S.lg, marginTop: S.lg, marginBottom: S.sm },
   sectionTitle:   { fontSize: F.size.lg, fontWeight: F.weight.bold, color: T.fg1 },
   sectionAction:  { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold },
-  badgeText:      { fontSize: F.size.xs, fontWeight: F.weight.semibold },
   zonaCard:       { width: 130, height: 90, borderRadius: R.lg, padding: S.md, justifyContent: 'flex-end' },
   zonaEmoji:      { fontSize: 22, position: 'absolute', top: 10, right: 10 },
   zonaNombre:     { fontSize: F.size.md, fontWeight: F.weight.bold, color: '#fff' },

@@ -5,7 +5,8 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, router } from 'expo-router'
-import { ArrowLeft, MapPin, Phone, Globe, Clock, Star, Navigation, Heart, MessageSquare, Share2 } from 'lucide-react-native'
+import { MapPin, Phone, Globe, Clock, Star, Navigation, Heart, MessageSquare, Share2 } from 'lucide-react-native'
+import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import type { Place } from '@/lib/supabase'
 import { T, F, S, R, getCatColor } from '@/lib/tokens'
@@ -196,20 +197,20 @@ export default function LugarDetalle() {
     <SafeAreaView style={styles.root} edges={['top']}>
 
       {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeft size={20} color={T.fg1} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>{lugar.name}</Text>
-        <View style={{ flexDirection: 'row', gap: 4 }}>
-          <TouchableOpacity style={styles.backBtn} onPress={compartir}>
-            <Share2 size={20} color={T.fg2} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.backBtn} onPress={toggleFavorito} disabled={togFav}>
-            <Heart size={22} color={favorito ? T.danger : T.fg3} fill={favorito ? T.danger : 'none'} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <ScreenHeader
+        title={lugar.name}
+        fallbackHref="/lugares"
+        right={
+          <View style={{ flexDirection: 'row', gap: 4 }}>
+            <TouchableOpacity style={styles.backBtn} onPress={compartir}>
+              <Share2 size={20} color={T.fg2} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.backBtn} onPress={toggleFavorito} disabled={togFav}>
+              <Heart size={22} color={favorito ? T.danger : T.fg3} fill={favorito ? T.danger : 'none'} />
+            </TouchableOpacity>
+          </View>
+        }
+      />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 

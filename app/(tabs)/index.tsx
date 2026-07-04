@@ -1,14 +1,19 @@
 ﻿import { useState, useEffect } from 'react'
 import {
   View, Text, ScrollView, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator, TextInput, Image,
+  StyleSheet, ActivityIndicator, Image,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { Search, Bell, MapPin, Calendar } from 'lucide-react-native'
+import { LinearGradient } from 'expo-linear-gradient'
+import {
+  Search, Bell, SlidersHorizontal, Ticket,
+  UtensilsCrossed, Coffee, Moon, Palette,
+} from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
-import { T, F, S, R, normalizeCategory } from '@/lib/tokens'
+import { T, F, S, R } from '@/lib/tokens'
+import { TrivaiHeader } from '@/components/TrivaiHeader'
 import { DiscoveryCard } from '@/components/DiscoveryCard'
 import { DiscoveryRow } from '@/components/DiscoveryRow'
 import { calcIsOpen } from '@/lib/hours'
@@ -40,88 +45,56 @@ interface Event {
   place?: { name: string } | null
 }
 
-function fechaHoy() {
-  return new Date().toLocaleDateString('es-BO', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  })
-}
-
 function formatDate(dt: string) {
   return new Date(dt).toLocaleDateString('es-BO', {
     weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   })
 }
 
-function StatusBadge({ open, hours }: { open: boolean; hours?: Record<string, string> | null }) {
-  const isOpen = calcIsOpen(hours, open)
-  return (
-    <View style={[styles.badge, { backgroundColor: isOpen ? T.greenSoft : T.dangerSoft }]}>
-      <Text style={[styles.badgeText, { color: isOpen ? T.green : T.danger }]}>
-        {isOpen ? 'Abierto' : 'Cerrado'}
-      </Text>
-    </View>
-  )
+function esHoy(dt: string) {
+  return new Date(dt).toDateString() === new Date().toDateString()
 }
 
-function PriceBadge({ isFree, price }: { isFree: boolean; price: number }) {
-  return (
-    <View style={[styles.badge, { backgroundColor: isFree ? T.greenSoft : T.purpleSoft }]}>
-      <Text style={[styles.badgeText, { color: isFree ? T.green : T.purple }]}>
-        {isFree ? 'Gratis' : `Bs. ${price}`}
-      </Text>
-    </View>
-  )
-}
-
-function CardLugar({ item }: { item: Place }) {
-  return (
-    <DiscoveryCard
-      category={item.category}
-      title={item.name}
-      badge={<StatusBadge open={item.is_open} hours={item.hours} />}
-      onPress={() => router.push(`/lugares/${item.id}`)}
-    />
-  )
-}
-
+/** Card de evento destacado: badge "Hoy" o "Popular", fecha y lugar */
 function CardEvento({ item }: { item: Event }) {
+  const hoy = esHoy(item.start_datetime)
   return (
     <DiscoveryCard
       category={item.category}
       title={item.name}
       subtitle={formatDate(item.start_datetime)}
-      badge={<PriceBadge isFree={item.is_free} price={item.price} />}
-      onPress={() => router.push(`/eventos/${item.id}`)}
-    />
-  )
-}
-
-function RowEvento({ item }: { item: Event }) {
-  return (
-    <DiscoveryRow
-      category={item.category}
-      title={item.name}
-      lines={[
-        formatDate(item.start_datetime),
-        ...(item.place ? [item.place.name] : []),
-      ]}
-      trailing={<PriceBadge isFree={item.is_free} price={item.price} />}
+      pillLabel={hoy ? 'Hoy' : 'Popular'}
+      pillColor={hoy ? T.green : T.orange}
+      badge={item.place?.name
+        ? <Text style={{ fontSize: F.size.xs, color: T.fg3 }} numberOfLines={1}>{item.place.name}</Text>
+        : undefined}
       onPress={() => router.push(`/eventos/${item.id}`)}
     />
   )
 }
 
 function RowLugar({ item, dist }: { item: Place; dist?: number }) {
+  const isOpen = calcIsOpen(item.hours, item.is_open)
   return (
     <DiscoveryRow
       category={item.category}
       title={item.name}
-      lines={dist != null ? [`📍 ${formatDist(dist)}`] : []}
-      trailing={<StatusBadge open={item.is_open} hours={item.hours} />}
+      status={{ label: isOpen ? 'Abierto' : 'Cerrado', color: isOpen ? T.green : T.fg3 }}
+      rating={item.rating_avg || null}
+      distance={dist != null ? `a ${formatDist(dist)}` : undefined}
       onPress={() => router.push(`/lugares/${item.id}`)}
     />
   )
 }
+
+/** Categorías de descubrimiento del Home */
+const CATEGORIAS_HOME = [
+  { label: 'Eventos',       Icon: Ticket,          color: '#FF6B2C', bg: '#FFE9DD', go: () => router.push('/eventos') },
+  { label: 'Restaurantes',  Icon: UtensilsCrossed, color: '#2BB673', bg: '#DFF5EA', go: () => router.push({ pathname: '/lugares', params: { cat: 'Gastronomía' } }) },
+  { label: 'Cafés',         Icon: Coffee,          color: '#FF6B2C', bg: '#FFE9DD', go: () => router.push({ pathname: '/lugares', params: { cat: 'Gastronomía' } }) },
+  { label: 'Vida nocturna', Icon: Moon,            color: '#6C4CF1', bg: '#EBE6FD', go: () => router.push({ pathname: '/lugares', params: { cat: 'Entretenimiento' } }) },
+  { label: 'Cultura',       Icon: Palette,         color: '#2BB673', bg: '#DFF5EA', go: () => router.push({ pathname: '/lugares', params: { cat: 'Entretenimiento' } }) },
+]
 
 interface ActividadAmigo {
   id: string
@@ -135,7 +108,7 @@ interface ActividadAmigo {
 }
 
 export default function Inicio() {
-  const { displayName } = useUser()
+  const { initials, avatarUrl } = useUser()
   const [lugares,     setLugares]     = useState<Place[]>([])
   const [eventos,     setEventos]     = useState<Event[]>([])
   const [actividad,   setActividad]   = useState<ActividadAmigo[]>([])
@@ -247,106 +220,81 @@ export default function Inicio() {
         .slice(0, 6)
     : lugares.slice(0, 6)
 
-  const recomendados = [
-    ...eventos.slice(0, 2).map(e => ({ type: 'evento' as const, data: e })),
-    ...lugares.slice(0, 2).map(l => ({ type: 'lugar' as const, data: l })),
-  ]
-
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
 
-        {/* HEADER */}
-        <View style={styles.header}>
-          <View style={{ flex: 1 }}>
-            <Image
-              source={require('../../assets/logo-trivai.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-              accessibilityRole="header"
-              accessibilityLabel="Trivai"
-            />
-            <Text style={styles.fecha}>{fechaHoy()}</Text>
-          </View>
-          <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/notificaciones')}>
-            <Bell size={20} color={sinLeer > 0 ? T.purple : T.fg2} />
-            {sinLeer > 0 && (
-              <View style={styles.notifBadge}>
-                <Text style={styles.notifBadgeText}>{sinLeer > 9 ? '9+' : sinLeer}</Text>
-              </View>
-            )}
+        {/* 1. HEADER */}
+        <TrivaiHeader
+          title="Explorar"
+          subtitle={<Text style={styles.headerSub}>Descubre planes cerca de ti</Text>}
+          left={
+            <TouchableOpacity style={styles.avatarBtn} onPress={() => router.push('/perfil')}>
+              {avatarUrl
+                ? <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
+                : <Text style={styles.avatarIni}>{initials}</Text>}
+            </TouchableOpacity>
+          }
+          right={
+            <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/notificaciones')}>
+              <Bell size={20} color={sinLeer > 0 ? T.purple : T.fg2} />
+              {sinLeer > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>{sinLeer > 9 ? '9+' : sinLeer}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          }
+        />
+
+        {/* 2. BUSCADOR + FILTRO */}
+        <View style={styles.searchRow}>
+          <TouchableOpacity style={styles.searchBox} onPress={() => router.push('/buscar')} activeOpacity={0.8}>
+            <Search size={17} color={T.fg3} />
+            <Text style={styles.searchPlaceholder}>Buscar eventos, lugares...</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.filterBtn} onPress={() => router.push('/buscar')} activeOpacity={0.8}>
+            <SlidersHorizontal size={18} color={T.purple} />
           </TouchableOpacity>
         </View>
 
-        {/* SALUDO */}
-        <View style={styles.section}>
-          <Text style={styles.saludo}>¡Hola, {displayName}!</Text>
-          <Text style={styles.subSaludo}>¿Qué planes tienes hoy?</Text>
-
-          {/* BUSCADOR */}
-          <TouchableOpacity style={styles.searchBox} onPress={() => router.push('/buscar')}>
-            <Search size={16} color={T.fg3} />
-            <Text style={styles.searchPlaceholder}>Buscar lugares, eventos...</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* CHIPS rápidos */}
+        {/* 3. CATEGORÍAS */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
-          contentContainerStyle={[styles.chips, { paddingTop: S.sm }]}>
-          <TouchableOpacity style={[styles.chip, styles.chipActive]}>
-            <Text style={[styles.chipText, styles.chipTextActive]}>Explorar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.chip} onPress={() => router.push('/eventos')}>
-            <Text style={styles.chipText}>Eventos</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.chip} onPress={() => router.push('/lugares')}>
-            <Text style={styles.chipText}>Lugares</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.chip} onPress={() => router.push('/mapa')}>
-            <Text style={styles.chipText}>Mapa</Text>
-          </TouchableOpacity>
+          contentContainerStyle={styles.chips}>
+          {CATEGORIAS_HOME.map(c => (
+            <TouchableOpacity
+              key={c.label}
+              style={[styles.chip, { backgroundColor: c.bg }]}
+              onPress={c.go}
+              activeOpacity={0.75}
+            >
+              <c.Icon size={14} color={c.color} strokeWidth={2} />
+              <Text style={[styles.chipText, { color: c.color }]}>{c.label}</Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
 
-        {/* RECOMENDADOS */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recomendados para ti</Text>
-          <TouchableOpacity onPress={() => router.push('/lugares')}>
-            <Text style={styles.sectionAction}>Ver todos</Text>
-          </TouchableOpacity>
-        </View>
-        {loading
-          ? <ActivityIndicator color={T.purple} style={{ marginVertical: 20 }} />
-          : (
+        {/* 4. EVENTOS DESTACADOS */}
+        {eventos.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Eventos destacados</Text>
+              <TouchableOpacity onPress={() => router.push('/eventos')}>
+                <Text style={styles.sectionAction}>Ver todos</Text>
+              </TouchableOpacity>
+            </View>
             <FlatList
               horizontal
-              data={recomendados}
-              keyExtractor={(_, i) => String(i)}
+              data={eventos.slice(0, 6)}
+              keyExtractor={e => e.id}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingHorizontal: S.lg, gap: 12, paddingBottom: 4 }}
-              renderItem={({ item }) =>
-                item.type === 'evento'
-                  ? <CardEvento item={item.data as Event} />
-                  : <CardLugar item={item.data as Place} />
-              }
+              renderItem={({ item }) => <CardEvento item={item} />}
             />
-          )
-        }
+          </>
+        )}
 
-        {/* EVENTOS PRÓXIMOS */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Eventos próximos</Text>
-          <TouchableOpacity onPress={() => router.push('/eventos')}>
-            <Text style={styles.sectionAction}>Ver todos</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={{ paddingHorizontal: S.lg }}>
-          {loading
-            ? <ActivityIndicator color={T.purple} />
-            : eventos.slice(0, 4).map(ev => <RowEvento key={ev.id} item={ev} />)
-          }
-        </View>
-
-        {/* CERCA DE TI */}
+        {/* 5. CERCA DE TI */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Cerca de ti</Text>
           <TouchableOpacity onPress={() => router.push('/mapa')}>
@@ -355,41 +303,58 @@ export default function Inicio() {
         </View>
         <View style={{ paddingHorizontal: S.lg }}>
           {loading
-            ? <ActivityIndicator color={T.purple} />
+            ? <ActivityIndicator color={T.purple} style={{ marginVertical: 20 }} />
             : lugaresCerca.slice(0, 4).map(lu => (
                 <RowLugar key={lu.id} item={lu} dist={(lu as any)._dist} />
               ))
           }
         </View>
 
-        {/* ACTIVIDAD DE AMIGOS */}
+        {/* 6. SOCIAL PROOF */}
         {actividad.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Actividad de amigos</Text>
-              <TouchableOpacity onPress={() => router.push('/amigos')}>
-                <Text style={styles.sectionAction}>Ver amigos</Text>
-              </TouchableOpacity>
+              <Text style={styles.sectionTitle}>Tus amigos están yendo a...</Text>
             </View>
-            <View style={{ paddingHorizontal: S.lg }}>
-              {actividad.map(a => (
-                <TouchableOpacity key={a.id} style={styles.actividadRow} onPress={() => router.push(a.href as any)}>
-                  <View style={[styles.actividadAvatar, { backgroundColor: a.color }]}>
-                    <Text style={styles.actividadIni}>{a.ini}</Text>
+            <TouchableOpacity
+              style={styles.socialCard}
+              onPress={() => router.push(actividad[0].href as any)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.socialAvatars}>
+                {actividad.slice(0, 3).map((a, i) => (
+                  <View key={a.id} style={[styles.socialAvatar, { backgroundColor: a.color, marginLeft: i === 0 ? 0 : -12, zIndex: 3 - i }]}>
+                    <Text style={styles.socialIni}>{a.ini}</Text>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.actividadTexto}>
-                      <Text style={{ fontWeight: F.weight.bold }}>{a.quien} </Text>
-                      <Text style={{ color: T.fg2 }}>{a.accion} </Text>
-                      <Text style={{ color: T.purple, fontWeight: F.weight.semibold }}>{a.nombre}</Text>
-                    </Text>
-                  </View>
-                  <Text style={{ color: T.fg4, fontSize: 16 }}>›</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                ))}
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.socialEvento} numberOfLines={1}>{actividad[0].nombre}</Text>
+                <Text style={styles.socialTexto} numberOfLines={1}>
+                  {actividad[0].quien}
+                  {actividad.length > 1 ? ` y ${actividad.length - 1} más van` : ' va'} a este plan
+                </Text>
+              </View>
+              <Text style={{ color: T.fg4, fontSize: 18 }}>›</Text>
+            </TouchableOpacity>
           </>
         )}
+
+        {/* 7. CTA PLANIFICA */}
+        <LinearGradient
+          colors={[T.purple, '#8E6CFF']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.ctaCard}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.ctaTitle}>Planifica con amigos</Text>
+            <Text style={styles.ctaSub}>Organiza tu próxima salida y compártela.</Text>
+          </View>
+          <TouchableOpacity style={styles.ctaBtn} onPress={() => router.push('/eventos')} activeOpacity={0.85}>
+            <Text style={styles.ctaBtnText}>Crear plan</Text>
+          </TouchableOpacity>
+        </LinearGradient>
 
       </ScrollView>
     </SafeAreaView>
@@ -397,30 +362,35 @@ export default function Inicio() {
 }
 
 const styles = StyleSheet.create({
-  root:              { flex: 1, backgroundColor: T.bg },
-  header:            { flexDirection: 'row', alignItems: 'center', paddingHorizontal: S.lg, paddingVertical: S.md, backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
-  logoImage:         { height: 44, width: 170, alignSelf: 'flex-start', marginBottom: S.xs },
-  fecha:             { fontSize: F.size.xs, color: T.fg3, marginTop: 2, textTransform: 'capitalize' },
-  notifBtn:          { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.muted, alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'visible' },
-  notifBadge:        { position: 'absolute', top: -4, right: -4, backgroundColor: T.danger, borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  root:              { flex: 1, backgroundColor: '#FFFFFF' },
+  headerSub:         { fontSize: F.size.sm, color: T.fg3 },
+  avatarBtn:         { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarImg:         { width: 38, height: 38, borderRadius: R.full },
+  avatarIni:         { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.purple },
+  notifBtn:          { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.surface, alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'visible', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  notifBadge:        { position: 'absolute', top: -4, right: -4, backgroundColor: T.orange, borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   notifBadgeText:    { fontSize: 9, fontWeight: F.weight.bold, color: '#fff' },
-  section:           { padding: S.lg },
-  saludo:            { fontSize: F.size.h1, fontWeight: F.weight.bold, color: T.fg1, letterSpacing: -0.5 },
-  subSaludo:         { fontSize: F.size.md, color: T.fg2, marginTop: 4, marginBottom: S.md },
-  searchBox:         { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, borderRadius: R.lg, paddingHorizontal: S.md, paddingVertical: 12, borderWidth: 1, borderColor: T.border },
-  searchPlaceholder: { fontSize: F.size.base, color: T.fg3, flex: 1 },
-  chips:             { paddingHorizontal: S.lg, gap: S.sm, paddingBottom: 4 },
-  chip:              { paddingHorizontal: S.md, paddingVertical: 8, borderRadius: R.full, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border },
-  chipActive:        { backgroundColor: T.purple, borderColor: T.purple },
-  chipText:          { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.fg2 },
-  chipTextActive:    { color: '#fff' },
-  sectionHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: S.lg, marginTop: S.xl, marginBottom: S.sm },
-  sectionTitle:      { fontSize: F.size.lg, fontWeight: F.weight.bold, color: T.fg1 },
+  searchRow:         { flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingHorizontal: S.lg, marginTop: S.lg },
+  searchBox:         { flex: 1, flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.bg, borderRadius: R.xl, paddingHorizontal: S.lg, height: 48 },
+  searchPlaceholder: { fontSize: F.size.sm, color: T.fg3, flex: 1 },
+  filterBtn:         { width: 48, height: 48, borderRadius: R.xl, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+  chips:             { paddingHorizontal: S.lg, gap: S.sm, paddingTop: S.lg, paddingBottom: 4 },
+  chip:              { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: S.lg, paddingVertical: 10, borderRadius: R.full },
+  chipText:          { fontSize: F.size.sm, fontWeight: F.weight.semibold },
+  sectionHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: S.lg, marginTop: S.xxl, marginBottom: S.md },
+  sectionTitle:      { fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.fg1, letterSpacing: -0.3 },
   sectionAction:     { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold },
-  badge:             { paddingHorizontal: S.sm, paddingVertical: 3, borderRadius: R.full, alignSelf: 'flex-start' },
-  badgeText:         { fontSize: F.size.xs, fontWeight: F.weight.semibold },
-  actividadRow:     { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
-  actividadAvatar:  { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  actividadIni:     { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.fg1 },
-  actividadTexto:   { fontSize: F.size.sm, color: T.fg1, lineHeight: 18 },
+  // Social proof
+  socialCard:        { flexDirection: 'row', alignItems: 'center', gap: S.md, marginHorizontal: S.lg, backgroundColor: T.surface, borderRadius: R.xl, padding: S.lg, shadowColor: '#15131A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 14, elevation: 3 },
+  socialAvatars:     { flexDirection: 'row', alignItems: 'center' },
+  socialAvatar:      { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
+  socialIni:         { fontSize: F.size.xs, fontWeight: F.weight.bold, color: T.fg1 },
+  socialEvento:      { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
+  socialTexto:       { fontSize: F.size.xs, color: T.fg3, marginTop: 2 },
+  // CTA
+  ctaCard:           { flexDirection: 'row', alignItems: 'center', gap: S.md, marginHorizontal: S.lg, marginTop: S.xxl, borderRadius: R.xl, padding: S.xl, shadowColor: T.purple, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 6 },
+  ctaTitle:          { fontSize: F.size.xl, fontWeight: F.weight.bold, color: '#fff' },
+  ctaSub:            { fontSize: F.size.sm, color: 'rgba(255,255,255,0.85)', marginTop: 3 },
+  ctaBtn:            { backgroundColor: '#fff', paddingHorizontal: S.xl, paddingVertical: 11, borderRadius: R.full, flexShrink: 0 },
+  ctaBtnText:        { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.purple },
 })

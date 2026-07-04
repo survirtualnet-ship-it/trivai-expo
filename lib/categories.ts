@@ -13,10 +13,10 @@ export const CATEGORY_META: Record<
   Category,
   { emoji: string; color: string; label: string; slug: string }
 > = {
-  Gastronomía:      { emoji: '🍽️', color: '#F26B1F', label: 'Gastronomía',      slug: 'gastronomia'      },
-  Entretenimiento:  { emoji: '🎭', color: '#6D28FF', label: 'Entretenimiento',  slug: 'entretenimiento'  },
-  Parques:          { emoji: '🌳', color: '#21A24A', label: 'Parques',          slug: 'parques'          },
-  Otros:            { emoji: '📍', color: '#8A8590', label: 'Otros',            slug: 'otros'            },
+  Gastronomía:      { emoji: '🍽️', color: '#FF6B2C', label: 'Gastronomía',      slug: 'gastronomia'      },
+  Entretenimiento:  { emoji: '🎭', color: '#6C4CF1', label: 'Entretenimiento',  slug: 'entretenimiento'  },
+  Parques:          { emoji: '🌳', color: '#2BB673', label: 'Parques',          slug: 'parques'          },
+  Otros:            { emoji: '✨', color: '#8A8590', label: 'Otros',            slug: 'otros'            },
 }
 
 /** Valores legacy en Supabase → categoría nueva */

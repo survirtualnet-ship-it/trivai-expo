@@ -1,7 +1,8 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { ArrowLeft, MapPin, Ticket, Star, Map, Camera, ChevronRight } from 'lucide-react-native'
+import { MapPin, Ticket, Star, Map, Camera, ChevronRight } from 'lucide-react-native'
+import ScreenHeader from '@/components/ScreenHeader'
 import { useUser } from '@/hooks/useUser'
 import { T, F, S, R } from '@/lib/tokens'
 
@@ -50,13 +51,7 @@ export default function Publicar() {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.back} onPress={() => router.back()}>
-          <ArrowLeft size={22} color={T.fg1} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Crear</Text>
-        <View style={{ width: 36 }} />
-      </View>
+      <ScreenHeader title="Crear" fallbackHref="/" />
 
       <ScrollView contentContainerStyle={{ padding: S.lg }}>
         {/* HERO */}

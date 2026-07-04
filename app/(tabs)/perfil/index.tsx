@@ -13,7 +13,9 @@ import {
 } from 'lucide-react-native'
 import { useUser } from '@/hooks/useUser'
 import { supabase } from '@/lib/supabase'
-import { T, F, S, R, getCatEmoji } from '@/lib/tokens'
+import { T, F, S, R } from '@/lib/tokens'
+import { TrivaiHeader } from '@/components/TrivaiHeader'
+import { CatCover } from '@/components/CatCover'
 
 const NIVELES = [
   { min: 0,    max: 49,        nombre: 'Curioso',    emoji: '🌱', color: T.green   },
@@ -98,15 +100,15 @@ export default function Perfil() {
     <SafeAreaView style={styles.root} edges={['top']}>
 
       {/* HEADER */}
-      <View style={styles.header}>
-        {isAuthenticated
-          ? <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/perfil/configuracion')}>
-              <Settings size={20} color={T.fg1} strokeWidth={1.75} />
-            </TouchableOpacity>
-          : <View style={{ width: 36 }} />
-        }
-        {isAuthenticated && (
-          <View style={{ flexDirection: 'row', gap: S.sm }}>
+      <TrivaiHeader
+        title="Perfil"
+        left={isAuthenticated ? (
+          <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/perfil/configuracion')}>
+            <Settings size={20} color={T.fg1} strokeWidth={1.75} />
+          </TouchableOpacity>
+        ) : undefined}
+        right={isAuthenticated ? (
+          <>
             <TouchableOpacity
               style={styles.iconBtn}
               onPress={() => Share.share({ title: 'Trivai', message: 'Descubre Santa Cruz con Trivai 🌆' })}
@@ -116,9 +118,9 @@ export default function Perfil() {
             <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/perfil/editar')}>
               <Pencil size={18} color={T.fg1} strokeWidth={1.75} />
             </TouchableOpacity>
-          </View>
-        )}
-      </View>
+          </>
+        ) : undefined}
+      />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
@@ -166,10 +168,10 @@ export default function Perfil() {
 
         {/* STATS */}
         <View style={styles.statsRow}>
-          {STAT_TILES.map((s, i) => (
+          {STAT_TILES.map(s => (
             <TouchableOpacity
               key={s.key}
-              style={[styles.statTile, i < STAT_TILES.length - 1 && styles.statTileBorder]}
+              style={styles.statTile}
               onPress={() => isAuthenticated && router.push(s.href as any)}
             >
               <View style={[styles.statIcon, { backgroundColor: s.bg }]}>
@@ -220,7 +222,7 @@ export default function Perfil() {
                 const p = f.place; if (!p) return null
                 return (
                   <TouchableOpacity key={p.id ?? i} style={styles.favCard} onPress={() => router.push(`/lugares/${p.id}`)}>
-                    <View style={styles.favIcon}><Text style={{ fontSize: 28 }}>{getCatEmoji(p.category)}</Text></View>
+                    <CatCover category={p.category} variant="banner" style={{ height: 80 }} />
                     <Text style={styles.favNombre} numberOfLines={1}>{p.name}</Text>
                     <Text style={styles.favCat} numberOfLines={1}>{p.category}</Text>
                   </TouchableOpacity>
@@ -245,7 +247,7 @@ export default function Perfil() {
               return (
                 <TouchableOpacity key={r.id} style={styles.resenaRow} onPress={() => router.push(place ? `/lugares/${place.id}` : '/lugares')}>
                   <View style={styles.resenaIcon}>
-                    <Text style={{ fontSize: 20 }}>{getCatEmoji(place?.category ?? '')}</Text>
+                    <CatCover category={place?.category ?? ''} variant="thumb" style={{ height: 64 }} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -318,7 +320,6 @@ const styles = StyleSheet.create({
   root:           { flex: 1, backgroundColor: T.bg },
   center:         { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: T.bg },
   // Header
-  header:         { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.sm, borderBottomWidth: 1, borderBottomColor: T.border },
   iconBtn:        { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center' },
   // Banner login
   loginBanner:    { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.purpleSoft, paddingHorizontal: S.lg, paddingVertical: S.md },
@@ -334,9 +335,8 @@ const styles = StyleSheet.create({
   city:           { fontSize: F.size.sm, color: T.fg2 },
   bio:            { fontSize: F.size.sm, color: T.fg2, marginTop: S.sm, lineHeight: 20 },
   // Stats
-  statsRow:       { flexDirection: 'row', backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
-  statTile:       { flex: 1, alignItems: 'center', paddingVertical: S.md, gap: 4 },
-  statTileBorder: { borderRightWidth: 1, borderRightColor: T.border },
+  statsRow:       { flexDirection: 'row', gap: S.sm, paddingHorizontal: S.lg, marginTop: S.md },
+  statTile:       { flex: 1, alignItems: 'center', paddingVertical: S.md, gap: 4, backgroundColor: T.surface, borderRadius: R.lg, shadowColor: '#15131A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   statIcon:       { width: 32, height: 32, borderRadius: R.sm, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
   statValue:      { fontSize: F.size.lg, fontWeight: F.weight.bold, color: T.fg1 },
   statLabel:      { fontSize: 9, color: T.fg3, textAlign: 'center', lineHeight: 12 },
@@ -353,12 +353,11 @@ const styles = StyleSheet.create({
   sectionHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: S.md },
   sectionTitle:   { fontSize: F.size.lg, fontWeight: F.weight.bold, color: T.fg1 },
   sectionAction:  { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold },
-  favCard:        { width: 140, backgroundColor: T.surface, borderRadius: R.lg, borderWidth: 1, borderColor: T.border, overflow: 'hidden' },
-  favIcon:        { height: 80, backgroundColor: T.muted, alignItems: 'center', justifyContent: 'center' },
+  favCard:        { width: 140, backgroundColor: T.surface, borderRadius: R.lg, overflow: 'hidden', shadowColor: '#15131A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   favNombre:      { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.fg1, paddingHorizontal: S.sm, paddingTop: S.sm },
   favCat:         { fontSize: F.size.xs, color: T.fg3, paddingHorizontal: S.sm, paddingBottom: S.sm },
   resenaRow:      { flexDirection: 'row', gap: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
-  resenaIcon:     { width: 64, height: 64, borderRadius: R.md, backgroundColor: T.muted, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  resenaIcon:     { width: 64, height: 64, borderRadius: R.md, backgroundColor: T.muted, overflow: 'hidden', flexShrink: 0 },
   resenaNombre:   { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.fg1, flex: 1 },
   resenaFecha:    { fontSize: 10, color: T.fg3 },
   resenaTexto:    { fontSize: F.size.xs, color: T.fg2, marginTop: 4, lineHeight: 16 },

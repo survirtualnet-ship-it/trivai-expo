@@ -5,7 +5,8 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { ArrowLeft, X, Search } from 'lucide-react-native'
+import { X, Search } from 'lucide-react-native'
+import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
 
@@ -126,11 +127,11 @@ export default function Buscar() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      {/* HEADER BÚSQUEDA */}
+      {/* HEADER */}
+      <ScreenHeader title="Buscar" fallbackHref="/" />
+
+      {/* BARRA DE BÚSQUEDA */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.back} onPress={() => router.back()}>
-          <ArrowLeft size={22} color={T.fg1} />
-        </TouchableOpacity>
         <View style={[styles.inputWrap, q && styles.inputWrapActive]}>
           <Search size={16} color={q ? T.purple : T.fg3} />
           <TextInput
@@ -285,8 +286,7 @@ export default function Buscar() {
 
 const styles = StyleSheet.create({
   root:              { flex: 1, backgroundColor: T.bg },
-  header:            { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, paddingHorizontal: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
-  back:              { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  header:            { flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingHorizontal: S.lg, paddingTop: S.sm, paddingBottom: S.md },
   inputWrap:         { flex: 1, flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.bg, borderRadius: R.md, paddingHorizontal: S.md, height: 44, borderWidth: 1.5, borderColor: 'transparent' },
   inputWrapActive:   { borderColor: T.purple, backgroundColor: T.surface },
   input:             { flex: 1, fontSize: F.size.md, color: T.fg1 },

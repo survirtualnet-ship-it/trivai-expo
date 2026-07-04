@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { MapEmbed } from '@/components/MapEmbed'
+import { TrivaiHeader } from '@/components/TrivaiHeader'
 import { Navigation } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor, CATEGORY_CHIPS, normalizeCategory, type Category } from '@/lib/tokens'
@@ -185,24 +186,24 @@ export default function Mapa() {
     <SafeAreaView style={styles.root} edges={['top']}>
 
       {/* TOPBAR */}
-      <View style={styles.topbar}>
-        <Text style={styles.title}>
-          {params.zona ? params.zona : 'Mapa'}
-        </Text>
-        <TouchableOpacity style={[styles.locBtn, userPos && { backgroundColor: T.purple }]} onPress={async () => {
-          const p = await getCurrentCoords()
-          if (p) {
-            setUserPos(p)
-            setCentro(p)
-            setSeleccionado(null)
-          } else {
-            setCentro(SANTA_CRUZ)
-            setSeleccionado(null)
-          }
-        }}>
-          <Navigation size={16} color={userPos ? '#fff' : T.purple} />
-        </TouchableOpacity>
-      </View>
+      <TrivaiHeader
+        title={typeof params.zona === 'string' && params.zona ? params.zona : 'Mapa'}
+        right={
+          <TouchableOpacity style={[styles.locBtn, userPos && { backgroundColor: T.purple }]} onPress={async () => {
+            const p = await getCurrentCoords()
+            if (p) {
+              setUserPos(p)
+              setCentro(p)
+              setSeleccionado(null)
+            } else {
+              setCentro(SANTA_CRUZ)
+              setSeleccionado(null)
+            }
+          }}>
+            <Navigation size={16} color={userPos ? '#fff' : T.purple} />
+          </TouchableOpacity>
+        }
+      />
 
       {/* FILTROS */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false}
@@ -265,8 +266,6 @@ export default function Mapa() {
 
 const styles = StyleSheet.create({
   root:         { flex: 1, backgroundColor: T.bg },
-  topbar:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
-  title:        { fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.fg1 },
   locBtn:       { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center' },
   filtrosWrap:  { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, maxHeight: 52 },
   filtros:      { paddingHorizontal: S.lg, paddingVertical: S.sm, gap: S.sm, alignItems: 'center' },

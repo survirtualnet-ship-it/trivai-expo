@@ -5,7 +5,7 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { ArrowLeft } from 'lucide-react-native'
+import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R } from '@/lib/tokens'
 import { loadNotifPrefs, prefAllows } from '@/lib/notifPrefs'
@@ -125,16 +125,14 @@ export default function Notificaciones() {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.back} onPress={() => router.back()}>
-          <ArrowLeft size={22} color={T.fg1} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Notificaciones</Text>
-        {sinLeer > 0
+      <ScreenHeader
+        title="Notificaciones"
+        fallbackHref="/"
+        right={sinLeer > 0
           ? <TouchableOpacity onPress={marcarTodas}><Text style={styles.leerTodas}>Leer todas</Text></TouchableOpacity>
-          : <View style={{ width: 70 }} />
+          : undefined
         }
-      </View>
+      />
 
       {/* BADGE SIN LEER */}
       {!loading && sinLeer > 0 && (

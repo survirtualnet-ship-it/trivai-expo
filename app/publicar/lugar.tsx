@@ -5,7 +5,8 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { ArrowLeft, MapPin, Phone, Globe, AlignLeft, Clock, Navigation } from 'lucide-react-native'
+import { MapPin, Phone, Globe, AlignLeft, Clock, Navigation } from 'lucide-react-native'
+import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, CATEGORIES } from '@/lib/tokens'
 import { grantXP, XP } from '@/lib/xp'
@@ -120,13 +121,7 @@ export default function CrearLugar() {
 
   return (
     <SafeAreaView style={c.root} edges={['top']}>
-      <View style={c.header}>
-        <TouchableOpacity style={c.back} onPress={() => router.back()}>
-          <ArrowLeft size={22} color={T.fg1} />
-        </TouchableOpacity>
-        <Text style={c.title}>Agregar un lugar</Text>
-        <View style={{ width: 36 }} />
-      </View>
+      <ScreenHeader title="Agregar un lugar" fallbackHref="/publicar" />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={{ padding: S.lg }} keyboardShouldPersistTaps="handled">

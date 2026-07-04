@@ -1,14 +1,14 @@
 // Design tokens — equivalente a T.* en trivai web
 
 export const T = {
-  green:       '#21A24A',
-  greenSoft:   '#DCF1E1',
-  orange:      '#F26B1F',
-  orangeSoft:  '#FDE6D6',
-  purple:      '#6D28FF',
-  purpleSoft:  '#ECE3FF',
-  purpleInk:   '#5B21D6',
-  fab:         '#6531F0',
+  green:       '#2BB673',
+  greenSoft:   '#DFF5EA',
+  orange:      '#FF6B2C',
+  orangeSoft:  '#FFE9DD',
+  purple:      '#6C4CF1',
+  purpleSoft:  '#EBE6FD',
+  purpleInk:   '#5335D9',
+  fab:         '#6C4CF1',
   bg:          '#F6F5F7',
   surface:     '#FFFFFF',
   muted:       '#F1EFF3',

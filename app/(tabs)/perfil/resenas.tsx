@@ -5,7 +5,8 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { ArrowLeft, Star } from 'lucide-react-native'
+import { Star } from 'lucide-react-native'
+import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R } from '@/lib/tokens'
 
@@ -69,13 +70,7 @@ export default function MisResenas() {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.back} onPress={() => router.back()}>
-          <ArrowLeft size={22} color={T.fg1} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Mis reseñas</Text>
-        <View style={{ width: 36 }} />
-      </View>
+      <ScreenHeader title="Mis reseñas" />
 
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={T.purple} size="large" /></View>

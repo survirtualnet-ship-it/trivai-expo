@@ -5,7 +5,8 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, router } from 'expo-router'
-import { ArrowLeft, Calendar, MapPin, Users, Clock, Heart, Navigation, Share2 } from 'lucide-react-native'
+import { Calendar, MapPin, Users, Clock, Heart, Navigation, Share2 } from 'lucide-react-native'
+import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import type { Event, Place } from '@/lib/supabase'
 import { T, F, S, R } from '@/lib/tokens'
@@ -127,21 +128,21 @@ export default function EventoDetalle() {
     <SafeAreaView style={styles.root} edges={['top']}>
 
       {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <ArrowLeft size={20} color={T.fg1} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>{evento.name}</Text>
-        <View style={{ flexDirection: 'row', gap: 4 }}>
-          <TouchableOpacity style={styles.heartBtn} onPress={compartir}>
-            <Share2 size={20} color={T.fg3} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.heartBtn} onPress={toggleAsistencia}>
-            <Heart size={20} color={asistire ? T.danger : T.fg3}
-              fill={asistire ? T.danger : 'none'} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <ScreenHeader
+        title={evento.name}
+        fallbackHref="/eventos"
+        right={
+          <View style={{ flexDirection: 'row', gap: 4 }}>
+            <TouchableOpacity style={styles.heartBtn} onPress={compartir}>
+              <Share2 size={20} color={T.fg3} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.heartBtn} onPress={toggleAsistencia}>
+              <Heart size={20} color={asistire ? T.danger : T.fg3}
+                fill={asistire ? T.danger : 'none'} />
+            </TouchableOpacity>
+          </View>
+        }
+      />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 

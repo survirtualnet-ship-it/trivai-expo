@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
 import {
-  View, Text, ScrollView, FlatList, TouchableOpacity,
+  View, Text, ScrollView, Dimensions, TouchableOpacity,
   StyleSheet, ActivityIndicator, TextInput,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { Search, X, ArrowLeft } from 'lucide-react-native'
+import { Search, X, ArrowLeft, Calendar, MapPin } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, normalizeCategory, EVENT_CATEGORY_FILTERS } from '@/lib/tokens'
+import { TrivaiHeader } from '@/components/TrivaiHeader'
 import { DiscoveryRow } from '@/components/DiscoveryRow'
+import { CatCover } from '@/components/CatCover'
+import { HeartButton } from '@/components/HeartButton'
 
 interface Evento {
   id: string; name: string; category: string
@@ -92,18 +95,22 @@ export default function Eventos() {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       {/* TOPBAR */}
-      <View style={styles.topbar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
-          <ArrowLeft size={24} color={T.fg1} strokeWidth={2} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Eventos</Text>
-        <TouchableOpacity
-          style={[styles.searchBtn, buscando && { backgroundColor: T.purpleSoft }]}
-          onPress={() => { setBuscando(v => !v); setBusqueda('') }}
-        >
-          <Search size={20} color={buscando ? T.purple : T.fg2} />
-        </TouchableOpacity>
-      </View>
+      <TrivaiHeader
+        title="Eventos"
+        left={
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
+            <ArrowLeft size={24} color={T.fg1} strokeWidth={2} />
+          </TouchableOpacity>
+        }
+        right={
+          <TouchableOpacity
+            style={[styles.searchBtn, buscando && { backgroundColor: T.purpleSoft }]}
+            onPress={() => { setBuscando(v => !v); setBusqueda('') }}
+          >
+            <Search size={20} color={buscando ? T.purple : T.fg2} />
+          </TouchableOpacity>
+        }
+      />
 
       {/* BARRA DE BÚSQUEDA */}
       {buscando && (
@@ -160,21 +167,6 @@ export default function Eventos() {
           </ScrollView>
         )}
 
-        {/* CABECERA LISTA */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            {buscando && busqueda.length >= 2
-              ? `${eventosFiltrados.length} resultado${eventosFiltrados.length !== 1 ? 's' : ''}`
-              : diaActivo !== null
-              ? `${dias[diaActivo].dia} ${dias[diaActivo].num} ${dias[diaActivo].mes}`
-              : `Todos los eventos (${eventosFiltrados.length})`}
-          </Text>
-          <TouchableOpacity onPress={() => router.push('/mapa')}>
-            <Text style={styles.sectionAction}>Ver mapa</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* LISTA */}
         {loading ? (
           <ActivityIndicator color={T.purple} style={{ marginTop: 40 }} />
         ) : eventosFiltrados.length === 0 ? (
@@ -183,27 +175,60 @@ export default function Eventos() {
             <Text style={styles.emptyText}>No hay eventos para este filtro</Text>
           </View>
         ) : (
-          <View style={{ paddingHorizontal: S.lg }}>
-            {eventosFiltrados.map(ev => (
-              <DiscoveryRow
-                key={ev.id}
-                category={ev.category}
-                title={ev.name}
-                lines={[
-                  formatFecha(ev.start_datetime),
-                  ...(ev.place?.name ? [ev.place.name] : []),
-                ]}
-                trailing={
-                  <View style={[styles.badge, { backgroundColor: ev.is_free ? T.greenSoft : T.purpleSoft }]}>
-                    <Text style={[styles.badgeText, { color: ev.is_free ? T.green : T.purple }]}>
-                      {ev.is_free ? 'Gratis' : `Bs. ${ev.price}`}
-                    </Text>
-                  </View>
-                }
-                onPress={() => router.push(`/eventos/${ev.id}`)}
-              />
-            ))}
-          </View>
+          <>
+            {/* EVENTOS DESTACADOS */}
+            {!buscando && (
+              <>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Eventos destacados</Text>
+                  <TouchableOpacity onPress={() => router.push('/mapa')}>
+                    <Text style={styles.sectionAction}>Ver mapa</Text>
+                  </TouchableOpacity>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  snapToInterval={HERO_W + 12}
+                  decelerationRate="fast"
+                  contentContainerStyle={{ paddingHorizontal: S.lg, gap: 12 }}
+                >
+                  {eventosFiltrados.slice(0, 3).map(ev => <HeroEvento key={ev.id} ev={ev} />)}
+                </ScrollView>
+              </>
+            )}
+
+            {/* LISTA */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {buscando && busqueda.length >= 2
+                  ? `${eventosFiltrados.length} resultado${eventosFiltrados.length !== 1 ? 's' : ''}`
+                  : diaActivo !== null
+                  ? `${dias[diaActivo].dia} ${dias[diaActivo].num} ${dias[diaActivo].mes}`
+                  : 'Todos los eventos'}
+              </Text>
+            </View>
+            <View style={{ paddingHorizontal: S.lg }}>
+              {eventosFiltrados.map(ev => (
+                <DiscoveryRow
+                  key={ev.id}
+                  category={ev.category}
+                  title={ev.name}
+                  lines={[
+                    formatFecha(ev.start_datetime),
+                    ...(ev.place?.name ? [ev.place.name] : []),
+                  ]}
+                  trailing={
+                    <View style={[styles.badge, { backgroundColor: ev.is_free ? T.greenSoft : T.purpleSoft }]}>
+                      <Text style={[styles.badgeText, { color: ev.is_free ? T.green : T.purple }]}>
+                        {ev.is_free ? 'Gratis' : `Bs. ${ev.price}`}
+                      </Text>
+                    </View>
+                  }
+                  onPress={() => router.push(`/eventos/${ev.id}`)}
+                />
+              ))}
+            </View>
+          </>
         )}
 
       </ScrollView>
@@ -211,11 +236,60 @@ export default function Eventos() {
   )
 }
 
+const HERO_W = Dimensions.get('window').width - S.lg * 2
+
+function HeroEvento({ ev }: { ev: Evento }) {
+  return (
+    <TouchableOpacity
+      style={heroStyles.card}
+      activeOpacity={0.92}
+      onPress={() => router.push(`/eventos/${ev.id}`)}
+    >
+      <CatCover category={ev.category} variant="hero" style={{ height: 210 }} />
+      <View style={heroStyles.scrim} />
+      <View style={heroStyles.topRow}>
+        <View style={heroStyles.destacadoPill}>
+          <Text style={heroStyles.destacadoText}>Destacado</Text>
+        </View>
+        <HeartButton floating />
+      </View>
+      <View style={heroStyles.info}>
+        <Text style={heroStyles.nombre} numberOfLines={1}>{ev.name}</Text>
+        <View style={heroStyles.metaRow}>
+          <Calendar size={13} color="#fff" strokeWidth={2} />
+          <Text style={heroStyles.metaText}>{formatFecha(ev.start_datetime)}</Text>
+        </View>
+        {ev.place?.name ? (
+          <View style={heroStyles.metaRow}>
+            <MapPin size={13} color="#fff" strokeWidth={2} />
+            <Text style={heroStyles.metaText} numberOfLines={1}>{ev.place.name}</Text>
+          </View>
+        ) : null}
+        <View style={heroStyles.catPill}>
+          <Text style={heroStyles.catPillText}>{normalizeCategory(ev.category)}</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  )
+}
+
+const heroStyles = StyleSheet.create({
+  card:          { width: HERO_W, height: 210, borderRadius: R.xl, overflow: 'hidden', position: 'relative' },
+  scrim:         { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,8,14,0.32)' },
+  topRow:        { position: 'absolute', top: 12, left: 12, right: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  destacadoPill: { backgroundColor: T.orange, paddingHorizontal: 12, paddingVertical: 5, borderRadius: R.full },
+  destacadoText: { fontSize: F.size.xs, fontWeight: F.weight.bold, color: '#fff' },
+  info:          { position: 'absolute', left: 14, right: 14, bottom: 12, gap: 4 },
+  nombre:        { fontSize: F.size.xxl, fontWeight: F.weight.bold, color: '#fff' },
+  metaRow:       { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  metaText:      { fontSize: F.size.sm, color: '#fff', fontWeight: F.weight.medium },
+  catPill:       { alignSelf: 'flex-start', backgroundColor: 'rgba(109,40,255,0.85)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: R.full, marginTop: 4 },
+  catPillText:   { fontSize: F.size.xs, fontWeight: F.weight.semibold, color: '#fff' },
+})
+
 const styles = StyleSheet.create({
   root:            { flex: 1, backgroundColor: T.bg },
-  topbar:          { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
   backBtn:         { padding: 2 },
-  title:           { flex: 1, fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.fg1 },
   searchBtn:       { width: 36, height: 36, borderRadius: R.full, alignItems: 'center', justifyContent: 'center' },
   searchBar:       { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.sm, borderBottomWidth: 1, borderBottomColor: T.border },
   searchInput:     { flex: 1, fontSize: F.size.base, color: T.fg1, paddingVertical: 8 },
@@ -232,7 +306,7 @@ const styles = StyleSheet.create({
   diaMes:          { fontSize: F.size.xs, color: T.fg3 },
   diaTextoActive:  { color: '#fff' },
   sectionHeader:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: S.lg, marginTop: S.md, marginBottom: S.sm },
-  sectionTitle:    { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
+  sectionTitle:    { fontSize: F.size.lg, fontWeight: F.weight.bold, color: T.fg1 },
   sectionAction:   { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold },
   empty:           { alignItems: 'center', paddingTop: 48 },
   emptyIcon:       { fontSize: 40, marginBottom: S.md },

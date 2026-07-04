@@ -4,7 +4,8 @@ import {
   StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert,
 } from 'react-native'
 import { router } from 'expo-router'
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react-native'
+import { Eye, EyeOff } from 'lucide-react-native'
+import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import { signInWithGoogle } from '@/lib/auth/googleOAuth'
 import { ensureProfile } from '@/lib/auth/ensureProfile'
@@ -80,12 +81,7 @@ export default function Login() {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
         {/* HEADER */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-            <ArrowLeft size={22} color={T.fg1} />
-          </TouchableOpacity>
-          <Text style={styles.headerLogo}>trivai</Text>
-        </View>
+        <ScreenHeader title="Iniciar sesión" fallbackHref="/auth" />
 
         <View style={styles.content}>
           <Text style={styles.title}>Bienvenido de vuelta</Text>

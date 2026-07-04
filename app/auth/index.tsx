@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native'
+import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
 import { signInWithGoogle } from '@/lib/auth/googleOAuth'
 import { mapAuthError } from '@/lib/auth/authErrors'
@@ -28,7 +28,12 @@ export default function Bienvenida() {
 
       {/* LOGO */}
       <View style={styles.logoArea}>
-        <Text style={styles.logoText}>trivai</Text>
+        <Image
+          source={require('../../assets/logo-trivai.png')}
+          style={styles.logoImg}
+          resizeMode="contain"
+          accessibilityLabel="Trivai"
+        />
         <Text style={styles.logoSub}>Bolivia en la palma de tu mano</Text>
       </View>
 
@@ -99,7 +104,7 @@ export default function Bienvenida() {
 const styles = StyleSheet.create({
   root:            { flex: 1, backgroundColor: '#fff', paddingHorizontal: S.xl, paddingTop: 80, paddingBottom: 48, justifyContent: 'space-between' },
   logoArea:        { alignItems: 'center', gap: S.sm },
-  logoText:        { fontSize: 52, fontWeight: F.weight.bold, color: T.purple, letterSpacing: -2 },
+  logoImg:         { height: 64, width: 220 },
   logoSub:         { fontSize: F.size.base, color: T.fg3, fontWeight: F.weight.medium },
   textArea:        { alignItems: 'center' },
   headline:        { fontSize: 28, fontWeight: F.weight.bold, color: T.fg1, textAlign: 'center', lineHeight: 36, marginBottom: S.md },
