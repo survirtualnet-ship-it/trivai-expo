@@ -8,8 +8,9 @@ import { router } from 'expo-router'
 import { Search, Bell, MapPin, Calendar } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
-import { T, F, S, R, getCatColor, normalizeCategory } from '@/lib/tokens'
-import { CatCover } from '@/components/CatCover'
+import { T, F, S, R, normalizeCategory } from '@/lib/tokens'
+import { DiscoveryCard } from '@/components/DiscoveryCard'
+import { DiscoveryRow } from '@/components/DiscoveryRow'
 import { calcIsOpen } from '@/lib/hours'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { loadNotifPrefs, prefAllows } from '@/lib/notifPrefs'
@@ -51,91 +52,74 @@ function formatDate(dt: string) {
   })
 }
 
-function CardLugar({ item }: { item: Place }) {
-  const color = getCatColor(item.category)
-  const label = normalizeCategory(item.category)
+function StatusBadge({ open, hours }: { open: boolean; hours?: Record<string, string> | null }) {
+  const isOpen = calcIsOpen(hours, open)
   return (
-    <TouchableOpacity style={[styles.card, { borderTopColor: color, borderTopWidth: 3 }]}
-      onPress={() => router.push(`/lugares/${item.id}`)}>
-      <View style={[styles.cardIcon, { backgroundColor: color + '22', overflow: 'hidden' }]}>
-        <CatCover category={item.category} />
-      </View>
-      <Text style={styles.cardTitle} numberOfLines={2}>{item.name}</Text>
-      <Text style={styles.cardSub} numberOfLines={1}>{label}</Text>
-      <View style={styles.cardRow}>
-        <View style={[styles.badge, { backgroundColor: calcIsOpen(item.hours, item.is_open) ? T.greenSoft : T.dangerSoft }]}>
-          <Text style={[styles.badgeText, { color: calcIsOpen(item.hours, item.is_open) ? T.green : T.danger }]}>
-            {calcIsOpen(item.hours, item.is_open) ? 'Abierto' : 'Cerrado'}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
+    <View style={[styles.badge, { backgroundColor: isOpen ? T.greenSoft : T.dangerSoft }]}>
+      <Text style={[styles.badgeText, { color: isOpen ? T.green : T.danger }]}>
+        {isOpen ? 'Abierto' : 'Cerrado'}
+      </Text>
+    </View>
+  )
+}
+
+function PriceBadge({ isFree, price }: { isFree: boolean; price: number }) {
+  return (
+    <View style={[styles.badge, { backgroundColor: isFree ? T.greenSoft : T.purpleSoft }]}>
+      <Text style={[styles.badgeText, { color: isFree ? T.green : T.purple }]}>
+        {isFree ? 'Gratis' : `Bs. ${price}`}
+      </Text>
+    </View>
+  )
+}
+
+function CardLugar({ item }: { item: Place }) {
+  return (
+    <DiscoveryCard
+      category={item.category}
+      title={item.name}
+      badge={<StatusBadge open={item.is_open} hours={item.hours} />}
+      onPress={() => router.push(`/lugares/${item.id}`)}
+    />
   )
 }
 
 function CardEvento({ item }: { item: Event }) {
-  const color = getCatColor(item.category)
-  const label = normalizeCategory(item.category)
   return (
-    <TouchableOpacity style={[styles.card, { borderTopColor: color, borderTopWidth: 3 }]}
-      onPress={() => router.push(`/eventos/${item.id}`)}>
-      <View style={[styles.cardIcon, { backgroundColor: color + '22', overflow: 'hidden' }]}>
-        <CatCover category={item.category} />
-      </View>
-      <Text style={styles.cardTitle} numberOfLines={2}>{item.name}</Text>
-      <Text style={styles.cardSub} numberOfLines={1}>{formatDate(item.start_datetime)}</Text>
-      <View style={styles.cardRow}>
-        <View style={[styles.badge, { backgroundColor: item.is_free ? T.greenSoft : T.purpleSoft }]}>
-          <Text style={[styles.badgeText, { color: item.is_free ? T.green : T.purple }]}>
-            {item.is_free ? 'Gratis' : `Bs. ${item.price}`}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
+    <DiscoveryCard
+      category={item.category}
+      title={item.name}
+      subtitle={formatDate(item.start_datetime)}
+      badge={<PriceBadge isFree={item.is_free} price={item.price} />}
+      onPress={() => router.push(`/eventos/${item.id}`)}
+    />
   )
 }
 
 function RowEvento({ item }: { item: Event }) {
-  const label = normalizeCategory(item.category)
   return (
-    <TouchableOpacity style={styles.row} onPress={() => router.push(`/eventos/${item.id}`)}>
-      <View style={[styles.rowIcon, { overflow: 'hidden' }]}>
-        <CatCover category={item.category} />
-      </View>
-      <View style={styles.rowContent}>
-        <Text style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.rowSub}>📅 {formatDate(item.start_datetime)}</Text>
-        {item.place && <Text style={styles.rowSub} numberOfLines={1}>📍 {item.place.name}</Text>}
-      </View>
-      <View style={[styles.badge, { backgroundColor: item.is_free ? T.greenSoft : T.purpleSoft }]}>
-        <Text style={[styles.badgeText, { color: item.is_free ? T.green : T.purple }]}>
-          {item.is_free ? 'Gratis' : `Bs. ${item.price}`}
-        </Text>
-      </View>
-    </TouchableOpacity>
+    <DiscoveryRow
+      category={item.category}
+      title={item.name}
+      lines={[
+        formatDate(item.start_datetime),
+        ...(item.place ? [item.place.name] : []),
+      ]}
+      trailing={<PriceBadge isFree={item.is_free} price={item.price} />}
+      onPress={() => router.push(`/eventos/${item.id}`)}
+    />
   )
 }
 
 function RowLugar({ item, dist }: { item: Place; dist?: number }) {
-  const color = getCatColor(item.category)
-  const label = normalizeCategory(item.category)
   return (
-    <TouchableOpacity style={styles.row} onPress={() => router.push(`/lugares/${item.id}`)}>
-      <View style={[styles.rowIcon, { backgroundColor: color + '22', overflow: 'hidden' }]}>
-        <CatCover category={item.category} />
-      </View>
-      <View style={styles.rowContent}>
-        <Text style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.rowSub}>
-          {label}{dist != null ? '  ·  📍 ' + formatDist(dist) : ''}
-        </Text>
-      </View>
-      <View style={[styles.badge, { backgroundColor: calcIsOpen(item.hours, item.is_open) ? T.greenSoft : T.muted }]}>
-        <Text style={[styles.badgeText, { color: calcIsOpen(item.hours, item.is_open) ? T.green : T.fg3 }]}>
-          {calcIsOpen(item.hours, item.is_open) ? 'Abierto' : 'Cerrado'}
-        </Text>
-      </View>
-    </TouchableOpacity>
+    <DiscoveryRow
+      category={item.category}
+      title={item.name}
+      lines={dist != null ? [`📍 ${formatDist(dist)}`] : []}
+      trailing={<StatusBadge open={item.is_open} hours={item.hours} />}
+      onPress={() => router.push(`/lugares/${item.id}`)}
+    />
   )
 }
 
@@ -306,24 +290,20 @@ export default function Inicio() {
           </TouchableOpacity>
         </View>
 
-        {/* CHIPS */}
+        {/* CHIPS rápidos */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chips}>
-          <TouchableOpacity style={[styles.chip, { backgroundColor: T.green }]}
-            onPress={() => {}}>
-            <Text style={[styles.chipText, { color: '#fff' }]}>Todos</Text>
+          contentContainerStyle={[styles.chips, { paddingTop: S.sm }]}>
+          <TouchableOpacity style={[styles.chip, styles.chipActive]}>
+            <Text style={[styles.chipText, styles.chipTextActive]}>Explorar</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.chip, { backgroundColor: T.muted }]}
-            onPress={() => router.push('/eventos')}>
-            <Text style={[styles.chipText, { color: T.fg2 }]}>Eventos</Text>
+          <TouchableOpacity style={styles.chip} onPress={() => router.push('/eventos')}>
+            <Text style={styles.chipText}>Eventos</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.chip, { backgroundColor: T.muted }]}
-            onPress={() => router.push('/lugares')}>
-            <Text style={[styles.chipText, { color: T.fg2 }]}>Lugares</Text>
+          <TouchableOpacity style={styles.chip} onPress={() => router.push('/lugares')}>
+            <Text style={styles.chipText}>Lugares</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.chip, { backgroundColor: T.muted }]}
-            onPress={() => router.push('/amigos')}>
-            <Text style={[styles.chipText, { color: T.fg2 }]}>Amigos</Text>
+          <TouchableOpacity style={styles.chip} onPress={() => router.push('/mapa')}>
+            <Text style={styles.chipText}>Mapa</Text>
           </TouchableOpacity>
         </ScrollView>
 
@@ -430,24 +410,15 @@ const styles = StyleSheet.create({
   searchBox:         { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, borderRadius: R.lg, paddingHorizontal: S.md, paddingVertical: 12, borderWidth: 1, borderColor: T.border },
   searchPlaceholder: { fontSize: F.size.base, color: T.fg3, flex: 1 },
   chips:             { paddingHorizontal: S.lg, gap: S.sm, paddingBottom: 4 },
-  chip:              { paddingHorizontal: S.md, paddingVertical: 8, borderRadius: R.full },
-  chipText:          { fontSize: F.size.base, fontWeight: F.weight.semibold },
+  chip:              { paddingHorizontal: S.md, paddingVertical: 8, borderRadius: R.full, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border },
+  chipActive:        { backgroundColor: T.purple, borderColor: T.purple },
+  chipText:          { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.fg2 },
+  chipTextActive:    { color: '#fff' },
   sectionHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: S.lg, marginTop: S.xl, marginBottom: S.sm },
   sectionTitle:      { fontSize: F.size.lg, fontWeight: F.weight.bold, color: T.fg1 },
   sectionAction:     { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold },
-  card:              { width: 180, backgroundColor: T.surface, borderRadius: R.lg, padding: S.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  cardIcon:          { width: 44, height: 44, borderRadius: R.md, alignItems: 'center', justifyContent: 'center', marginBottom: S.sm },
-  cardEmoji:         { fontSize: 22 },
-  cardTitle:         { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1, marginBottom: 2 },
-  cardSub:           { fontSize: F.size.sm, color: T.fg3, marginBottom: S.sm },
-  cardRow:           { flexDirection: 'row' },
-  badge:             { paddingHorizontal: S.sm, paddingVertical: 3, borderRadius: R.full },
+  badge:             { paddingHorizontal: S.sm, paddingVertical: 3, borderRadius: R.full, alignSelf: 'flex-start' },
   badgeText:         { fontSize: F.size.xs, fontWeight: F.weight.semibold },
-  row:              { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
-  rowIcon:          { width: 52, height: 52, borderRadius: R.md, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  rowContent:       { flex: 1 },
-  rowTitle:         { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
-  rowSub:           { fontSize: F.size.sm, color: T.fg3, marginTop: 2 },
   actividadRow:     { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
   actividadAvatar:  { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   actividadIni:     { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.fg1 },

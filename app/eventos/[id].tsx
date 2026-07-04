@@ -8,7 +8,8 @@ import { useLocalSearchParams, router } from 'expo-router'
 import { ArrowLeft, Calendar, MapPin, Users, Clock, Heart, Navigation, Share2 } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import type { Event, Place } from '@/lib/supabase'
-import { T, F, S, R, normalizeCategory } from '@/lib/tokens'
+import { T, F, S, R } from '@/lib/tokens'
+import { CatCover, CategoryPill } from '@/components/CatCover'
 import { CatCover } from '@/components/CatCover'
 import { grantXP, XP } from '@/lib/xp'
 
@@ -113,8 +114,6 @@ export default function EventoDetalle() {
     </View>
   )
 
-  const catLabel = normalizeCategory(evento.category)
-
   const compartir = () => {
     Share.share({ title: evento.name, message: evento.name + ' - Ver en Trivai: https://trivai-expo.vercel.app/eventos/' + evento.id, url: 'https://trivai-expo.vercel.app/eventos/' + evento.id })
   }
@@ -161,10 +160,8 @@ export default function EventoDetalle() {
             <View style={styles.photoBadge}>
               <Text style={styles.photoBadgeText}>{evento.photos.length} fotos</Text>
             </View>
-            <View style={[styles.heroBadges, { position: 'absolute', bottom: S.lg }]}>
-              <View style={[styles.badge, { backgroundColor: T.orangeSoft }]}>
-                <Text style={[styles.badgeText, { color: T.orange }]}>{catLabel}</Text>
-              </View>
+            <View style={[styles.heroBadges, { position: 'absolute', bottom: S.lg, left: S.lg, right: S.lg }]}>
+              <CategoryPill category={evento.category} />
               <View style={[styles.badge, { backgroundColor: evento.is_free ? T.greenSoft : T.purpleSoft }]}>
                 <Text style={[styles.badgeText, { color: evento.is_free ? T.green : T.purple }]}>
                   {evento.is_free ? 'Gratis' : `Bs. ${evento.price}`}
@@ -173,12 +170,10 @@ export default function EventoDetalle() {
             </View>
           </View>
         ) : (
-          <View style={{ height: 220, position: 'relative' }}>
+          <View style={{ position: 'relative' }}>
             <CatCover category={evento.category} variant="hero" />
             <View style={[styles.heroBadges, { position: 'absolute', bottom: S.lg, left: S.lg, right: S.lg }]}>
-              <View style={[styles.badge, { backgroundColor: T.orangeSoft }]}>
-                <Text style={[styles.badgeText, { color: T.orange }]}>{catLabel}</Text>
-              </View>
+              <CategoryPill category={evento.category} />
               <View style={[styles.badge, { backgroundColor: evento.is_free ? T.greenSoft : T.purpleSoft }]}>
                 <Text style={[styles.badgeText, { color: evento.is_free ? T.green : T.purple }]}>
                   {evento.is_free ? 'Gratis' : `Bs. ${evento.price}`}

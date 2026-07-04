@@ -8,7 +8,8 @@ import { useLocalSearchParams, router } from 'expo-router'
 import { ArrowLeft, MapPin, Phone, Globe, Clock, Star, Navigation, Heart, MessageSquare, Share2 } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import type { Place } from '@/lib/supabase'
-import { T, F, S, R, getCatColor, normalizeCategory } from '@/lib/tokens'
+import { T, F, S, R, getCatColor } from '@/lib/tokens'
+import { CatCover, CategoryPill } from '@/components/CatCover'
 import { CatCover } from '@/components/CatCover'
 import { grantXP, XP } from '@/lib/xp'
 import { calcIsOpen } from '@/lib/hours'
@@ -173,8 +174,7 @@ export default function LugarDetalle() {
     </View>
   )
 
-  const color    = getCatColor(lugar.category)
-  const catLabel = normalizeCategory(lugar.category)
+  const color = getCatColor(lugar.category)
   const diaHoy = DIAS[new Date().getDay()]
   const horario = lugar.hours?.[diaHoy] ?? null
 
@@ -229,15 +229,15 @@ export default function LugarDetalle() {
             <View style={styles.photoBadge}>
               <Text style={styles.photoBadgeText}>{lugar.photos.length} fotos</Text>
             </View>
-            <View style={[styles.categoryBadge, { backgroundColor: color, position: 'absolute', top: 12, left: 16 }]}>
-              <Text style={styles.categoryText}>{catLabel}</Text>
+            <View style={{ position: 'absolute', top: 12, left: 16 }}>
+              <CategoryPill category={lugar.category} />
             </View>
           </View>
         ) : (
-          <View style={{ height: 220, position: 'relative' }}>
+          <View style={{ position: 'relative' }}>
             <CatCover category={lugar.category} variant="hero" />
-            <View style={[styles.categoryBadge, { backgroundColor: color, position: 'absolute', bottom: S.lg, left: 16 }]}>
-              <Text style={styles.categoryText}>{catLabel}</Text>
+            <View style={{ position: 'absolute', left: S.lg, bottom: S.lg }}>
+              <CategoryPill category={lugar.category} />
             </View>
           </View>
         )}

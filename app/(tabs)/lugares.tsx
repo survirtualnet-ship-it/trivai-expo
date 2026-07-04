@@ -5,10 +5,12 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { Search, MapPin, Star, ArrowLeft } from 'lucide-react-native'
+import { Search, MapPin, ArrowLeft } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
-import { T, F, S, R, getCatColor, PLACE_CATEGORY_FILTERS, normalizeCategory } from '@/lib/tokens'
-import { CatCover } from '@/components/CatCover'
+import { T, F, S, R, PLACE_CATEGORY_FILTERS } from '@/lib/tokens'
+import { DiscoveryCard } from '@/components/DiscoveryCard'
+import { DiscoveryRow } from '@/components/DiscoveryRow'
+import { CategoryChip } from '@/components/CategoryChip'
 import { calcIsOpen } from '@/lib/hours'
 
 interface Place {
@@ -119,12 +121,14 @@ export default function Lugares() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.cats}>
           {PLACE_CATEGORY_FILTERS.map(c => (
-            <TouchableOpacity key={c.id}
-              style={[styles.catChip, cat === c.id && styles.catChipActive]}
-              onPress={() => setCat(c.id)}>
-              <Text style={styles.catEmoji}>{c.emoji}</Text>
-              <Text style={[styles.catLabel, cat === c.id && styles.catLabelActive]}>{c.label}</Text>
-            </TouchableOpacity>
+            <CategoryChip
+              key={c.id}
+              id={c.id}
+              label={c.label}
+              emoji={c.emoji}
+              active={cat === c.id}
+              onPress={() => setCat(c.id)}
+            />
           ))}
         </ScrollView>
 
@@ -211,53 +215,43 @@ export default function Lugares() {
 }
 
 function CardLugar({ item }: { item: Place }) {
-  const color = getCatColor(item.category)
-  const label = normalizeCategory(item.category)
+  const isOpen = calcIsOpen(item.hours, item.is_open)
   return (
-    <TouchableOpacity style={[styles.card, { borderTopColor: color, borderTopWidth: 3 }]}
-      onPress={() => router.push(`/lugares/${item.id}`)}>
-      <View style={[styles.cardIcon, { backgroundColor: color + '22', overflow: 'hidden' }]}>
-        <CatCover category={item.category} />
-      </View>
-      <Text style={styles.cardTitle} numberOfLines={2}>{item.name}</Text>
-      <Text style={styles.cardCat} numberOfLines={1}>{label}</Text>
-      <View style={styles.cardRow}>
-        <Star size={12} color={T.purple} fill={T.purple} />
-        <Text style={styles.cardRating}>{item.rating_avg?.toFixed(1) ?? '—'}</Text>
-        <Text style={styles.cardReviews}>({item.rating_count ?? 0})</Text>
-      </View>
-      <View style={[styles.badge, { backgroundColor: calcIsOpen(item.hours, item.is_open) ? T.greenSoft : T.muted, marginTop: 6 }]}>
-        <Text style={[styles.badgeText, { color: calcIsOpen(item.hours, item.is_open) ? T.green : T.fg3 }]}>
-          {calcIsOpen(item.hours, item.is_open) ? 'Abierto' : 'Cerrado'}
-        </Text>
-      </View>
-    </TouchableOpacity>
+    <DiscoveryCard
+      category={item.category}
+      title={item.name}
+      subtitle={item.rating_avg ? `★ ${item.rating_avg.toFixed(1)} · ${item.rating_count ?? 0} reseñas` : undefined}
+      badge={
+        <View style={[styles.badge, { backgroundColor: isOpen ? T.greenSoft : T.muted }]}>
+          <Text style={[styles.badgeText, { color: isOpen ? T.green : T.fg3 }]}>
+            {isOpen ? 'Abierto' : 'Cerrado'}
+          </Text>
+        </View>
+      }
+      onPress={() => router.push(`/lugares/${item.id}`)}
+    />
   )
 }
 
 function RowLugar({ item }: { item: Place }) {
-  const color = getCatColor(item.category)
-  const label = normalizeCategory(item.category)
+  const isOpen = calcIsOpen(item.hours, item.is_open)
   return (
-    <TouchableOpacity style={styles.row} onPress={() => router.push(`/lugares/${item.id}`)}>
-      <View style={[styles.rowIcon, { backgroundColor: color + '22', overflow: 'hidden' }]}>
-        <CatCover category={item.category} />
-      </View>
-      <View style={styles.rowContent}>
-        <Text style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.rowCat}>{label}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-          <Star size={11} color={T.purple} fill={T.purple} />
-          <Text style={styles.rowRating}>{item.rating_avg?.toFixed(1) ?? '—'}</Text>
-          {item.address && <Text style={styles.rowAddr} numberOfLines={1}> · {item.address}</Text>}
+    <DiscoveryRow
+      category={item.category}
+      title={item.name}
+      lines={[
+        item.rating_avg ? `★ ${item.rating_avg.toFixed(1)}` : '',
+        item.address ?? '',
+      ].filter(Boolean)}
+      trailing={
+        <View style={[styles.badge, { backgroundColor: isOpen ? T.greenSoft : T.muted }]}>
+          <Text style={[styles.badgeText, { color: isOpen ? T.green : T.fg3 }]}>
+            {isOpen ? 'Abierto' : 'Cerrado'}
+          </Text>
         </View>
-      </View>
-      <View style={[styles.badge, { backgroundColor: calcIsOpen(item.hours, item.is_open) ? T.greenSoft : T.muted }]}>
-        <Text style={[styles.badgeText, { color: calcIsOpen(item.hours, item.is_open) ? T.green : T.fg3 }]}>
-          {calcIsOpen(item.hours, item.is_open) ? 'Abierto' : 'Cerrado'}
-        </Text>
-      </View>
-    </TouchableOpacity>
+      }
+      onPress={() => router.push(`/lugares/${item.id}`)}
+    />
   )
 }
 
@@ -271,11 +265,7 @@ const styles = StyleSheet.create({
   searchBar:      { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.sm, borderBottomWidth: 1, borderBottomColor: T.border },
   searchInput:    { flex: 1, fontSize: F.size.base, color: T.fg1, paddingVertical: 8 },
   cats:           { paddingHorizontal: S.lg, paddingVertical: S.sm, gap: S.sm },
-  catChip:        { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: S.md, paddingVertical: 8, borderRadius: R.full, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border },
-  catChipActive:  { backgroundColor: T.purple, borderColor: T.purple },
-  catEmoji:       { fontSize: 14 },
-  catLabel:       { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.fg2 },
-  catLabelActive: { color: '#fff' },
+  badge:          { paddingHorizontal: S.sm, paddingVertical: 3, borderRadius: R.full, alignSelf: 'flex-start' },
   ubicacion:      { flexDirection: 'row', alignItems: 'center', gap: S.md, margin: S.lg, backgroundColor: T.surface, borderRadius: R.md, padding: S.md, borderWidth: 1, borderColor: T.border },
   ubicacionCity:  { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
   ubicacionSub:   { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold, marginTop: 2 },
@@ -287,23 +277,8 @@ const styles = StyleSheet.create({
   sectionHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: S.lg, marginTop: S.lg, marginBottom: S.sm },
   sectionTitle:   { fontSize: F.size.lg, fontWeight: F.weight.bold, color: T.fg1 },
   sectionAction:  { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold },
-  card:           { width: 180, backgroundColor: T.surface, borderRadius: R.lg, padding: S.md, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  cardIcon:       { width: 44, height: 44, borderRadius: R.md, alignItems: 'center', justifyContent: 'center', marginBottom: S.sm },
-  cardTitle:      { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1, marginBottom: 2 },
-  cardCat:        { fontSize: F.size.sm, color: T.fg3, marginBottom: S.sm },
-  cardRow:        { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  cardRating:     { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.bold },
-  cardReviews:    { fontSize: F.size.xs, color: T.fg3 },
-  badge:          { paddingHorizontal: S.sm, paddingVertical: 3, borderRadius: R.full, alignSelf: 'flex-start' },
   badgeText:      { fontSize: F.size.xs, fontWeight: F.weight.semibold },
   zonaCard:       { width: 130, height: 90, borderRadius: R.lg, padding: S.md, justifyContent: 'flex-end' },
   zonaEmoji:      { fontSize: 22, position: 'absolute', top: 10, right: 10 },
   zonaNombre:     { fontSize: F.size.md, fontWeight: F.weight.bold, color: '#fff' },
-  row:            { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
-  rowIcon:        { width: 52, height: 52, borderRadius: R.md, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  rowContent:     { flex: 1 },
-  rowTitle:       { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
-  rowCat:         { fontSize: F.size.sm, color: T.fg3, marginTop: 1 },
-  rowRating:      { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.bold },
-  rowAddr:        { fontSize: F.size.xs, color: T.fg3, flex: 1 },
 })

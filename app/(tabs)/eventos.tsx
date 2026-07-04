@@ -5,10 +5,10 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { Search, X, MapPin, Calendar, ArrowLeft } from 'lucide-react-native'
+import { Search, X, ArrowLeft } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, normalizeCategory, EVENT_CATEGORY_FILTERS } from '@/lib/tokens'
-import { CatCover } from '@/components/CatCover'
+import { DiscoveryRow } from '@/components/DiscoveryRow'
 
 interface Evento {
   id: string; name: string; category: string
@@ -185,33 +185,23 @@ export default function Eventos() {
         ) : (
           <View style={{ paddingHorizontal: S.lg }}>
             {eventosFiltrados.map(ev => (
-              <TouchableOpacity key={ev.id} style={styles.row}
-                onPress={() => router.push(`/eventos/${ev.id}`)}>
-                <View style={[styles.rowIcon, { overflow: 'hidden' }]}>
-                  <CatCover category={ev.category} />
-                </View>
-                <View style={styles.rowContent}>
-                  <Text style={styles.rowTitle} numberOfLines={2}>{ev.name}</Text>
-                  <Text style={styles.rowCat}>{normalizeCategory(ev.category)}</Text>
-                  <View style={styles.rowMeta}>
-                    <Calendar size={11} color={T.fg3} />
-                    <Text style={styles.rowMetaText}>{formatFecha(ev.start_datetime)}</Text>
+              <DiscoveryRow
+                key={ev.id}
+                category={ev.category}
+                title={ev.name}
+                lines={[
+                  formatFecha(ev.start_datetime),
+                  ...(ev.place?.name ? [ev.place.name] : []),
+                ]}
+                trailing={
+                  <View style={[styles.badge, { backgroundColor: ev.is_free ? T.greenSoft : T.purpleSoft }]}>
+                    <Text style={[styles.badgeText, { color: ev.is_free ? T.green : T.purple }]}>
+                      {ev.is_free ? 'Gratis' : `Bs. ${ev.price}`}
+                    </Text>
                   </View>
-                  {ev.place && (
-                    <View style={styles.rowMeta}>
-                      <MapPin size={11} color={T.fg3} />
-                      <Text style={styles.rowMetaText} numberOfLines={1}>{ev.place.name}</Text>
-                    </View>
-                  )}
-                </View>
-                <View style={[styles.badge,
-                  { backgroundColor: ev.is_free ? T.greenSoft : T.purpleSoft }]}>
-                  <Text style={[styles.badgeText,
-                    { color: ev.is_free ? T.green : T.purple }]}>
-                    {ev.is_free ? 'Gratis' : `Bs. ${ev.price}`}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+                }
+                onPress={() => router.push(`/eventos/${ev.id}`)}
+              />
             ))}
           </View>
         )}
