@@ -1,33 +1,43 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  ActivityIndicator,
+  ActivityIndicator, TextInput, Image,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { Search, Plus, UserCheck, UserPlus, Users, SlidersHorizontal } from 'lucide-react-native'
+import {
+  Search, UserPlus, MessageCircle,
+  Users, ChevronRight, Plus,
+} from 'lucide-react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '@/lib/supabase'
+import { useUser } from '@/hooks/useUser'
 import { T, F, S, R } from '@/lib/tokens'
 import { TrivaiHeader } from '@/components/TrivaiHeader'
+import { CatCover } from '@/components/CatCover'
 import { grantXP, XP } from '@/lib/xp'
 import { crearNotificacion } from '@/lib/notify'
 
-type Tab = 'todos' | 'amigos' | 'solicitudes'
+const COLORS = [T.purpleSoft, T.orangeSoft, T.greenSoft, T.muted]
+const TEXTS  = [T.purple,      T.orange,      T.green,      T.fg2   ]
 
 type Amigo = {
   id: string
   nombre: string
   usuario: string
   initials: string
+  avatarUrl: string | null
   colorIdx: number
+  status: { label: string; color: string; online?: boolean }
 }
 
 type Solicitud = {
-  id: string       // friendship row id
-  uid: string      // sender's user id
+  id: string
+  uid: string
   nombre: string
   usuario: string
   initials: string
+  avatarUrl: string | null
   colorIdx: number
 }
 
@@ -36,55 +46,82 @@ type Sugerencia = {
   nombre: string
   usuario: string
   initials: string
+  avatarUrl: string | null
   colorIdx: number
+  mutuos: number
 }
 
-type Lider = {
+type ActividadAmigo = {
+  id: string
+  quien: string
+  ini: string
+  avatarUrl: string | null
+  colorIdx: number
+  accion: string
+  detalle: string
+  categoria: string
+  href: string
+  tipo: 'evento' | 'lugar'
+}
+
+type GrupoPlan = {
   id: string
   nombre: string
-  initials: string
-  xp: number
-  colorIdx: number
+  actividad: string
+  miembros: { ini: string; colorIdx: number; avatarUrl: string | null }[]
 }
 
-function nivelEmoji(xp: number) {
-  if (xp >= 1000) return '👑'
-  if (xp >= 500)  return '🏆'
-  if (xp >= 200)  return '✈️'
-  if (xp >= 50)   return '🗺️'
-  return '🌱'
-}
-
-function nivelNombre(xp: number) {
-  if (xp >= 1000) return 'Embajador'
-  if (xp >= 500)  return 'Aventurero'
-  if (xp >= 200)  return 'Viajero'
-  if (xp >= 50)   return 'Explorador'
-  return 'Curioso'
-}
-
-const COLORS = [T.greenSoft, T.orangeSoft, T.purpleSoft, T.muted]
-const TEXTS  = [T.greenInk,  T.orange,     T.purple,     T.fg2  ]
-
-function Avatar({ nombre, colorIdx, size = 48 }: { nombre: string; colorIdx: number; size?: number }) {
-  const ini = nombre.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+function FriendAvatar({
+  nombre, initials, avatarUrl, colorIdx, size = 48, online = false,
+}: {
+  nombre: string; initials: string; avatarUrl: string | null
+  colorIdx: number; size?: number; online?: boolean
+}) {
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: COLORS[colorIdx % 4], alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ fontSize: size * 0.34, fontWeight: F.weight.bold, color: TEXTS[colorIdx % 4] }}>{ini}</Text>
+    <View style={{ position: 'relative' }}>
+      {avatarUrl
+        ? <Image source={{ uri: avatarUrl }} style={{ width: size, height: size, borderRadius: size / 2 }} />
+        : (
+          <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: COLORS[colorIdx % 4], alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: size * 0.34, fontWeight: F.weight.bold, color: TEXTS[colorIdx % 4] }}>{initials}</Text>
+          </View>
+        )}
+      {online && <View style={[styles.onlineDot, { width: size * 0.22, height: size * 0.22, borderRadius: size * 0.11, right: 0, bottom: 0 }]} />}
     </View>
   )
 }
 
+function toProfile(p: any, i: number) {
+  const nombre = p.full_name ?? p.username ?? 'Usuario'
+  return {
+    initials: nombre.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+    avatarUrl: p.avatar_url ?? null,
+    colorIdx: i,
+  }
+}
+
+/** Estado simulado cuando no hay presencia real */
+function statusAmigo(id: string, enEvento: boolean): Amigo['status'] {
+  if (enEvento) return { label: 'En evento ahora', color: T.orange }
+  const h = id.charCodeAt(0) % 4
+  if (h === 0) return { label: 'En línea', color: T.green, online: true }
+  if (h === 1) return { label: 'Hace 2h', color: T.fg3 }
+  if (h === 2) return { label: 'Hace 1d', color: T.fg3 }
+  return { label: 'Activo recientemente', color: T.fg3 }
+}
+
 export default function Amigos() {
-  const [tab,           setTab]           = useState<Tab>('todos')
-  const [miId,          setMiId]          = useState<string | null>(null)
-  const [amigos,        setAmigos]        = useState<Amigo[]>([])
-  const [solicitudes,   setSolicitudes]   = useState<Solicitud[]>([])
-  const [sugerencias,   setSugerencias]   = useState<Sugerencia[]>([])
-  const [loading,       setLoading]       = useState(true)
-  const [enviados,      setEnviados]      = useState<Set<string>>(new Set())
-  const [procesando,    setProcesando]    = useState<string | null>(null)
-  const [ranking,       setRanking]       = useState<Lider[]>([])
+  const { initials, avatarUrl, isAuthenticated } = useUser()
+  const [miId,        setMiId]        = useState<string | null>(null)
+  const [amigos,      setAmigos]      = useState<Amigo[]>([])
+  const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
+  const [sugerencias, setSugerencias] = useState<Sugerencia[]>([])
+  const [actividad,   setActividad]   = useState<ActividadAmigo[]>([])
+  const [grupos,      setGrupos]      = useState<GrupoPlan[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [busqueda,    setBusqueda]    = useState('')
+  const [enviados,    setEnviados]    = useState<Set<string>>(new Set())
+  const [procesando,  setProcesando]  = useState<string | null>(null)
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -93,88 +130,194 @@ export default function Amigos() {
     setMiId(me)
     if (!me) { setLoading(false); return }
 
-    // Amigos aceptados (en ambas direcciones)
     const [{ data: sent }, { data: recv }] = await Promise.all([
-      supabase.from('friendships').select('friend:profiles!friend_id(id, full_name, username)').eq('user_id', me).eq('status', 'accepted'),
-      supabase.from('friendships').select('user:profiles!user_id(id, full_name, username)').eq('friend_id', me).eq('status', 'accepted'),
+      supabase.from('friendships').select('friend:profiles!friend_id(id, full_name, username, avatar_url)').eq('user_id', me).eq('status', 'accepted'),
+      supabase.from('friendships').select('user:profiles!user_id(id, full_name, username, avatar_url)').eq('friend_id', me).eq('status', 'accepted'),
     ])
 
-    const amigosSent = (sent ?? []).filter((d: any) => d.friend?.id).map((d: any, i: number) => toAmigo(d.friend, i))
-    const amigosRecv = (recv ?? []).filter((d: any) => d.user?.id).map((d: any, i: number) => toAmigo(d.user, amigosSent.length + i))
-    // Deduplicar
+    const amigosSent = (sent ?? []).filter((d: any) => d.friend?.id).map((d: any, i: number) => {
+      const meta = toProfile(d.friend, i)
+      return {
+        id: d.friend.id,
+        nombre: d.friend.full_name ?? d.friend.username ?? 'Usuario',
+        usuario: d.friend.username ? `@${d.friend.username}` : '',
+        ...meta,
+        status: statusAmigo(d.friend.id, false),
+      } as Amigo
+    })
     const amigosIds = new Set(amigosSent.map(a => a.id))
-    const amigosList = [...amigosSent, ...amigosRecv.filter(a => !amigosIds.has(a.id))]
-    setAmigos(amigosList)
+    const amigosRecv = (recv ?? []).filter((d: any) => d.user?.id && !amigosIds.has(d.user.id)).map((d: any, i: number) => {
+      const meta = toProfile(d.user, amigosSent.length + i)
+      return {
+        id: d.user.id,
+        nombre: d.user.full_name ?? d.user.username ?? 'Usuario',
+        usuario: d.user.username ? `@${d.user.username}` : '',
+        ...meta,
+        status: statusAmigo(d.user.id, false),
+      } as Amigo
+    })
+    const amigosList = [...amigosSent, ...amigosRecv]
+    const friendIds = amigosList.map(a => a.id)
 
-    // Solicitudes recibidas pendientes
+    // Solicitudes pendientes
     const { data: solRaw } = await supabase
       .from('friendships')
-      .select('id, user:profiles!user_id(id, full_name, username)')
+      .select('id, user:profiles!user_id(id, full_name, username, avatar_url)')
       .eq('friend_id', me)
       .eq('status', 'pending')
+
     setSolicitudes(
-      (solRaw ?? []).filter((d: any) => d.user?.id).map((d: any, i: number) => ({
-        id:       d.id,
-        uid:      d.user.id,
-        nombre:   d.user.full_name ?? d.user.username ?? 'Usuario',
-        usuario:  d.user.username ? `@${d.user.username}` : '',
-        initials: (d.user.full_name ?? 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
-        colorIdx: i,
-      }))
+      (solRaw ?? []).filter((d: any) => d.user?.id).map((d: any, i: number) => {
+        const meta = toProfile(d.user, i)
+        return {
+          id: d.id,
+          uid: d.user.id,
+          nombre: d.user.full_name ?? d.user.username ?? 'Usuario',
+          usuario: d.user.username ? `@${d.user.username}` : '',
+          ...meta,
+        }
+      })
     )
 
-    // Solicitudes que ya envié (para saber cuales están "pendientes_sent")
     const { data: sentPending } = await supabase
       .from('friendships').select('friend_id').eq('user_id', me).eq('status', 'pending')
-    const yaEnviados = new Set<string>((sentPending ?? []).map((d: any) => d.friend_id))
-    setEnviados(yaEnviados)
+    setEnviados(new Set((sentPending ?? []).map((d: any) => d.friend_id)))
 
-    // Sugerencias: perfiles que no son amigos ni yo
+    // Actividad + eventos en curso (para status "En evento ahora")
+    const enEventoIds = new Set<string>()
+    let actItems: ActividadAmigo[] = []
+    let gruposItems: GrupoPlan[] = []
+
+    if (friendIds.length > 0) {
+      const [{ data: asistencias }, { data: favs }] = await Promise.all([
+        supabase.from('event_attendees')
+          .select('user_id, created_at, event:events(id,name,category,start_datetime)')
+          .in('user_id', friendIds)
+          .eq('status', 'going')
+          .order('created_at', { ascending: false })
+          .limit(12),
+        supabase.from('favorites')
+          .select('user_id, created_at, place:places(id,name,category)')
+          .in('user_id', friendIds)
+          .order('created_at', { ascending: false })
+          .limit(8),
+      ])
+
+      const amigoMap = new Map(amigosList.map(a => [a.id, a]))
+
+      for (const a of asistencias ?? []) {
+        const ev = (a as any).event
+        if (!ev?.id) continue
+        const am = amigoMap.get(a.user_id)
+        if (!am) continue
+        const evStart = new Date(ev.start_datetime)
+        const enCurso = evStart.getTime() - Date.now() < 3 * 3600000 && evStart.getTime() > Date.now() - 3600000
+        if (enCurso) enEventoIds.add(a.user_id)
+        actItems.push({
+          id: `ev-${ev.id}-${a.user_id}`,
+          quien: am.nombre.split(' ')[0],
+          ini: am.initials,
+          avatarUrl: am.avatarUrl,
+          colorIdx: am.colorIdx,
+          accion: enCurso ? 'Está en un evento' : 'Va a un evento',
+          detalle: ev.name,
+          categoria: ev.category ?? 'Entretenimiento',
+          href: `/eventos/${ev.id}`,
+          tipo: 'evento',
+        })
+      }
+
+      for (const f of favs ?? []) {
+        const pl = (f as any).place
+        if (!pl?.id) continue
+        const am = amigoMap.get(f.user_id)
+        if (!am) continue
+        actItems.push({
+          id: `fav-${pl.id}-${f.user_id}`,
+          quien: am.nombre.split(' ')[0],
+          ini: am.initials,
+          avatarUrl: am.avatarUrl,
+          colorIdx: am.colorIdx,
+          accion: 'Visitó un lugar',
+          detalle: pl.name,
+          categoria: pl.category ?? 'Otros',
+          href: `/lugares/${pl.id}`,
+          tipo: 'lugar',
+        })
+      }
+
+      // Grupos derivados: eventos con 2+ amigos yendo
+      const porEvento = new Map<string, { nombre: string; miembros: GrupoPlan['miembros'] }>()
+      for (const a of asistencias ?? []) {
+        const ev = (a as any).event
+        if (!ev?.id) continue
+        const am = amigoMap.get(a.user_id)
+        if (!am) continue
+        if (!porEvento.has(ev.id)) porEvento.set(ev.id, { nombre: ev.name, miembros: [] })
+        porEvento.get(ev.id)!.miembros.push({ ini: am.initials, colorIdx: am.colorIdx, avatarUrl: am.avatarUrl })
+      }
+      gruposItems = [...porEvento.entries()]
+        .filter(([, g]) => g.miembros.length >= 2)
+        .slice(0, 4)
+        .map(([id, g]) => ({
+          id,
+          nombre: g.nombre,
+          actividad: `${g.miembros.length} amigos van juntos`,
+          miembros: g.miembros.slice(0, 5),
+        }))
+    }
+
+    // Actualizar status con eventos en curso
+    const amigosFinal = amigosList.map(a => ({
+      ...a,
+      status: statusAmigo(a.id, enEventoIds.has(a.id)),
+    }))
+    setAmigos(amigosFinal)
+    setActividad(actItems.slice(0, 8))
+    setGrupos(gruposItems)
+
+    // Sugerencias con amigos en común
     const yaConectados = new Set([me, ...amigosList.map(a => a.id), ...(solRaw ?? []).map((d: any) => d.user?.id).filter(Boolean)])
-    const { data: todos } = await supabase
-      .from('profiles')
-      .select('id, full_name, username')
-      .limit(30)
-    const sugs: Sugerencia[] = (todos ?? [])
-      .filter((p: any) => p.id && !yaConectados.has(p.id))
-      .slice(0, 6)
-      .map((p: any, i: number) => ({
-        id:       p.id,
-        nombre:   p.full_name ?? p.username ?? 'Usuario',
-        usuario:  p.username ? `@${p.username}` : '',
-        initials: (p.full_name ?? 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
-        colorIdx: i,
-      }))
-    setSugerencias(sugs)
+    const { data: todosPerfiles } = await supabase.from('profiles').select('id, full_name, username, avatar_url').limit(40)
+    const candidatos = (todosPerfiles ?? []).filter((p: any) => p.id && !yaConectados.has(p.id)).slice(0, 8)
 
-    // Ranking top XP
-    const { data: topXP } = await supabase
-      .from('profiles')
-      .select('id, full_name, username, xp_points')
-      .order('xp_points', { ascending: false })
-      .limit(5)
-    setRanking((topXP ?? []).map((p: any, i: number) => ({
-      id:       p.id,
-      nombre:   p.full_name ?? p.username ?? 'Usuario',
-      initials: (p.full_name ?? 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
-      xp:       p.xp_points ?? 0,
-      colorIdx: i,
-    })))
+    let grafoAmigos = new Map<string, Set<string>>()
+    if (candidatos.length > 0) {
+      const { data: todasAmistades } = await supabase.from('friendships').select('user_id, friend_id').eq('status', 'accepted')
+      for (const f of todasAmistades ?? []) {
+        if (!grafoAmigos.has(f.user_id)) grafoAmigos.set(f.user_id, new Set())
+        if (!grafoAmigos.has(f.friend_id)) grafoAmigos.set(f.friend_id, new Set())
+        grafoAmigos.get(f.user_id)!.add(f.friend_id)
+        grafoAmigos.get(f.friend_id)!.add(f.user_id)
+      }
+    }
+    const misAmigosSet = new Set(friendIds)
+    setSugerencias(candidatos.map((p: any, i: number) => {
+      const meta = toProfile(p, i)
+      const susAmigos = grafoAmigos.get(p.id) ?? new Set()
+      let mutuos = 0
+      for (const fid of misAmigosSet) if (susAmigos.has(fid)) mutuos++
+      return {
+        id: p.id,
+        nombre: p.full_name ?? p.username ?? 'Usuario',
+        usuario: p.username ? `@${p.username}` : '',
+        mutuos,
+        ...meta,
+      }
+    }))
 
     setLoading(false)
   }, [])
 
   useEffect(() => { cargar() }, [cargar])
 
-  function toAmigo(p: any, i: number): Amigo {
-    return {
-      id:       p.id,
-      nombre:   p.full_name ?? p.username ?? 'Usuario',
-      usuario:  p.username ? `@${p.username}` : '',
-      initials: (p.full_name ?? 'U').split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
-      colorIdx: i,
-    }
-  }
+  const amigosFiltrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase()
+    if (!q) return amigos
+    return amigos.filter(a =>
+      a.nombre.toLowerCase().includes(q) || a.usuario.toLowerCase().includes(q)
+    )
+  }, [amigos, busqueda])
 
   const agregarAmigo = async (uid: string) => {
     if (!miId) { router.push('/auth'); return }
@@ -191,11 +334,11 @@ export default function Amigos() {
     await supabase.from('friendships').update({ status: 'accepted' }).eq('id', sol.id)
     await supabase.from('friendships').upsert({ user_id: miId, friend_id: sol.uid, status: 'accepted' }, { onConflict: 'user_id,friend_id' })
     setSolicitudes(prev => prev.filter(s => s.id !== sol.id))
-    setAmigos(prev => [...prev, { id: sol.uid, nombre: sol.nombre, usuario: sol.usuario, initials: sol.initials, colorIdx: prev.length }])
     crearNotificacion({ userId: sol.uid, tipo: 'amigo', title: '¡Aceptaron tu solicitud!', body: 'Ya son amigos en Trivai', emoji: '🤝', data: { href: '/amigos' } })
     grantXP(miId, XP.amigo)
     grantXP(sol.uid, XP.amigo)
     setProcesando(null)
+    cargar()
   }
 
   const rechazarSolicitud = async (sol: Solicitud) => {
@@ -205,348 +348,347 @@ export default function Amigos() {
     setProcesando(null)
   }
 
-  const pendientes = solicitudes.length
-
-  const tabs: { id: Tab; label: string; badge?: number }[] = [
-    { id: 'todos',       label: 'Todos' },
-    { id: 'amigos',      label: 'Amigos' },
-    { id: 'solicitudes', label: 'Solicitudes', badge: pendientes },
-  ]
-
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      {/* HEADER */}
-      <TrivaiHeader
-        title="Amigos"
-        subtitle={<Text style={styles.subtitle}>Conecta con amigos y descubre juntos</Text>}
-        left={
-          <TouchableOpacity style={styles.headerIconBtn} onPress={() => router.push('/buscar')} hitSlop={8}>
-            <UserPlus size={20} color={T.fg1} strokeWidth={1.75} />
-          </TouchableOpacity>
-        }
-      />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
 
-      {/* BUSCADOR + FILTRO */}
-      <View style={styles.searchRow}>
-        <TouchableOpacity style={styles.searchBox} onPress={() => router.push('/buscar')}>
-          <Search size={18} color={T.fg3} />
-          <Text style={styles.searchText}>Buscar amigos...</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.filterBtn} onPress={() => router.push('/buscar')}>
-          <SlidersHorizontal size={18} color={T.purple} />
-        </TouchableOpacity>
-      </View>
+        {/* 1. HEADER */}
+        <TrivaiHeader
+          title="Amigos"
+          left={
+            <TouchableOpacity style={styles.roundBtn} onPress={() => router.push('/perfil')}>
+              {avatarUrl
+                ? <Image source={{ uri: avatarUrl }} style={styles.headerAvatar} />
+                : <Text style={styles.headerIni}>{initials}</Text>}
+            </TouchableOpacity>
+          }
+          right={
+            <TouchableOpacity style={styles.roundBtnSurface} onPress={() => router.push('/buscar')}>
+              <UserPlus size={20} color={T.purple} strokeWidth={2} />
+            </TouchableOpacity>
+          }
+        />
 
-      {/* TABS */}
-      <View style={styles.tabBar}>
-        {tabs.map(t => (
-          <TouchableOpacity key={t.id} style={styles.tabBtn} onPress={() => setTab(t.id)}>
-            <View style={styles.tabLabelRow}>
-              <Text style={[styles.tabLabel, tab === t.id && styles.tabLabelActive]}>{t.label}</Text>
-              {t.badge != null && t.badge > 0 && (
-                <View style={styles.badge}><Text style={styles.badgeText}>{t.badge}</Text></View>
-              )}
-            </View>
-            <View style={[styles.tabLine, tab === t.id && styles.tabLineActive]} />
-          </TouchableOpacity>
-        ))}
-      </View>
+        {/* 2. BUSCADOR */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchBox}>
+            <Search size={17} color={T.fg3} />
+            <TextInput
+              style={styles.searchInput}
+              value={busqueda}
+              onChangeText={setBusqueda}
+              placeholder="Buscar amigos..."
+              placeholderTextColor={T.fg3}
+              returnKeyType="search"
+            />
+          </View>
+        </View>
 
-      {loading ? (
-        <View style={styles.center}><ActivityIndicator color={T.purple} size="large" /></View>
-      ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
-
-          {/* TAB: TODOS */}
-          {tab === 'todos' && (
-            <>
-              {/* Mis amigos */}
+        {loading ? (
+          <ActivityIndicator color={T.purple} style={{ marginTop: 40 }} />
+        ) : !isAuthenticated ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyEmoji}>👥</Text>
+            <Text style={styles.emptyTitle}>Conecta con amigos</Text>
+            <Text style={styles.emptySub}>Inicia sesión para ver tu red social en Trivai</Text>
+            <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push('/auth')}>
+              <Text style={styles.emptyBtnText}>Iniciar sesión</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {/* 3. SOLICITUDES */}
+            {solicitudes.length > 0 && (
               <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Mis amigos ({amigos.length})</Text>
-                  {amigos.length > 0 && (
-                    <TouchableOpacity onPress={() => setTab('amigos')}>
-                      <Text style={styles.sectionAction}>Ver todos</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.md, paddingRight: S.lg }}>
-                  {amigos.slice(0, 8).map(a => (
-                    <TouchableOpacity key={a.id} style={styles.friendChip} onPress={() => router.push(`/perfil/${a.id}`)}>
-                      <View>
-                        <Avatar nombre={a.nombre} colorIdx={a.colorIdx} size={56} />
-                        <View style={styles.onlineDot} />
-                      </View>
-                      <Text style={styles.friendChipName} numberOfLines={1}>{a.nombre.split(' ')[0]}</Text>
-                      {a.usuario ? <Text style={styles.friendChipUser} numberOfLines={1}>{a.usuario}</Text> : null}
-                    </TouchableOpacity>
-                  ))}
-                  {amigos.length === 0 && (
-                    <Text style={styles.emptyInline}>Agrega amigos para verlos aquí</Text>
-                  )}
-                  <View style={styles.friendChip}>
-                    <TouchableOpacity style={styles.inviteCircle} onPress={() => router.push('/buscar')}>
-                      <Plus size={22} color={T.purple} />
-                    </TouchableOpacity>
-                    <Text style={styles.friendChipName}>Buscar</Text>
-                  </View>
-                </ScrollView>
-              </View>
-
-              {/* Solicitudes pendientes (si hay) */}
-              {pendientes > 0 && (
-                <View style={styles.section}>
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Solicitudes pendientes</Text>
-                    <TouchableOpacity onPress={() => setTab('solicitudes')}>
-                      <Text style={styles.sectionAction}>Ver todas</Text>
-                    </TouchableOpacity>
-                  </View>
-                  {solicitudes.slice(0, 2).map(sol => (
-                    <View key={sol.id} style={styles.solicitudCardCompact}>
-                      <Avatar nombre={sol.nombre} colorIdx={sol.colorIdx} size={44} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.amigoNombre}>{sol.nombre}</Text>
-                        <Text style={styles.amigoUsuario}>{sol.usuario}</Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', gap: S.sm }}>
+                <Text style={styles.sectionTitle}>Solicitudes</Text>
+                <View style={styles.card}>
+                  {solicitudes.map((sol, idx) => (
+                    <View key={sol.id} style={[styles.solicitudRow, idx < solicitudes.length - 1 && styles.rowBorder]}>
+                      <TouchableOpacity style={styles.solicitudInfo} onPress={() => router.push(`/perfil/${sol.uid}`)}>
+                        <FriendAvatar nombre={sol.nombre} initials={sol.initials} avatarUrl={sol.avatarUrl} colorIdx={sol.colorIdx} size={44} />
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={styles.friendName} numberOfLines={1}>{sol.nombre}</Text>
+                          <Text style={styles.friendUser} numberOfLines={1}>{sol.usuario}</Text>
+                        </View>
+                      </TouchableOpacity>
+                      <View style={styles.solicitudActions}>
                         <TouchableOpacity
-                          style={styles.miniAceptar}
+                          style={styles.btnAceptar}
                           onPress={() => aceptarSolicitud(sol)}
                           disabled={procesando === sol.uid}
                         >
-                          <Text style={styles.miniAceptarText}>{procesando === sol.uid ? '...' : 'Aceptar'}</Text>
+                          <Text style={styles.btnAceptarText}>{procesando === sol.uid ? '...' : 'Aceptar'}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                          style={styles.miniRechazar}
+                          style={styles.btnRechazar}
                           onPress={() => rechazarSolicitud(sol)}
                           disabled={procesando === sol.uid}
                         >
-                          <Text style={styles.miniRechazarText}>✕</Text>
+                          <Text style={styles.btnRechazarText}>Rechazar</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
                   ))}
                 </View>
-              )}
-
-              {/* Sugerencias */}
-              {sugerencias.length > 0 && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Sugerencias para ti</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ gap: S.md, paddingRight: S.lg, marginTop: S.md }}>
-                    {sugerencias.map(sug => (
-                      <TouchableOpacity
-                        key={sug.id}
-                        style={styles.sugerenciaCard}
-                        onPress={() => router.push(`/perfil/${sug.id}`)}
-                      >
-                        <Avatar nombre={sug.nombre} colorIdx={sug.colorIdx} size={56} />
-                        <Text style={styles.sugerenciaNombre} numberOfLines={1}>{sug.nombre.split(' ')[0]}</Text>
-                        {sug.usuario ? <Text style={styles.sugerenciaUser} numberOfLines={1}>{sug.usuario}</Text> : null}
-                        <TouchableOpacity
-                          style={[styles.sugerenciaBtn, enviados.has(sug.id) && styles.sugerenciaBtnAdded]}
-                          onPress={() => agregarAmigo(sug.id)}
-                          disabled={enviados.has(sug.id) || procesando === sug.id}
-                        >
-                          {procesando === sug.id
-                            ? <ActivityIndicator size="small" color={T.purple} />
-                            : <Text style={[styles.sugerenciaBtnText, enviados.has(sug.id) && styles.sugerenciaBtnTextAdded]}>
-                                {enviados.has(sug.id) ? '✓ Enviado' : 'Agregar'}
-                              </Text>
-                          }
-                        </TouchableOpacity>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-
-              {/* Ranking */}
-              {ranking.length > 0 && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>🏅 Top Exploradores</Text>
-                  {ranking.map((l, i) => {
-                    const medals = ['🥇', '🥈', '🥉']
-                    const medal  = medals[i] ?? `${i + 1}.`
-                    const isMe   = l.id === miId
-                    return (
-                      <TouchableOpacity
-                        key={l.id}
-                        style={[styles.rankRow, isMe && styles.rankRowMe]}
-                        onPress={() => router.push(`/perfil/${l.id}`)}
-                      >
-                        <Text style={styles.rankMedal}>{medal}</Text>
-                        <View style={[styles.rankAvatar, { backgroundColor: COLORS[l.colorIdx % 4] }]}>
-                          <Text style={[styles.rankIni, { color: TEXTS[l.colorIdx % 4] }]}>{l.initials}</Text>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.rankNombre} numberOfLines={1}>
-                            {l.nombre.split(' ')[0]}{isMe ? ' (tú)' : ''}
-                          </Text>
-                          <Text style={styles.rankNivel}>{nivelEmoji(l.xp)} {nivelNombre(l.xp)}</Text>
-                        </View>
-                        <Text style={styles.rankXP}>{l.xp} XP</Text>
-                      </TouchableOpacity>
-                    )
-                  })}
-                </View>
-              )}
-
-              {/* Banner */}
-              <View style={styles.planBanner}>
-                <View style={styles.planIcon}><Users size={20} color={T.greenInk} /></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.planTitle}>¡Planifica juntos!</Text>
-                  <Text style={styles.planSub}>Crea un plan y coordina con tus amigos.</Text>
-                </View>
-                <TouchableOpacity style={styles.planBtn} onPress={() => router.push('/eventos')}>
-                  <Text style={styles.planBtnText}>Crear plan</Text>
-                </TouchableOpacity>
               </View>
-            </>
-          )}
+            )}
 
-          {/* TAB: AMIGOS */}
-          {tab === 'amigos' && (
-            <View style={{ padding: S.lg }}>
+            {/* 4. LISTA DE AMIGOS */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Tus amigos ({amigos.length})</Text>
+                {amigos.length > 0 && (
+                  <TouchableOpacity onPress={() => router.push('/buscar')}>
+                    <Text style={styles.sectionAction}>Agregar</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
               {amigos.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyEmoji}>👥</Text>
-                  <Text style={styles.emptyTitle}>Aún no tienes amigos</Text>
-                  <Text style={styles.emptySub}>Busca personas que conoces para conectar</Text>
-                  <TouchableOpacity style={styles.emptyBtn} onPress={() => router.push('/buscar')}>
+                <View style={styles.emptyInline}>
+                  <Text style={styles.emptyInlineText}>Aún no tienes amigos. ¡Busca personas que conozcas!</Text>
+                  <TouchableOpacity style={styles.emptyBtnSmall} onPress={() => router.push('/buscar')}>
                     <Text style={styles.emptyBtnText}>Buscar amigos</Text>
                   </TouchableOpacity>
                 </View>
-              ) : amigos.map(a => (
-                <TouchableOpacity key={a.id} style={styles.amigoRow} onPress={() => router.push(`/perfil/${a.id}`)}>
-                  <Avatar nombre={a.nombre} colorIdx={a.colorIdx} size={48} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.amigoNombre}>{a.nombre}</Text>
-                    <Text style={styles.amigoUsuario}>{a.usuario}</Text>
-                  </View>
-                  <UserCheck size={20} color={T.green} />
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {/* TAB: SOLICITUDES */}
-          {tab === 'solicitudes' && (
-            <View style={{ padding: S.lg, gap: S.md }}>
-              {solicitudes.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyEmoji}>✉️</Text>
-                  <Text style={styles.emptyTitle}>Sin solicitudes pendientes</Text>
-                  <Text style={styles.emptySub}>Cuando alguien te agregue, aparecerá aquí</Text>
+              ) : (
+                <View style={styles.card}>
+                  {amigosFiltrados.map((a, idx) => (
+                    <TouchableOpacity
+                      key={a.id}
+                      style={[styles.friendRow, idx < amigosFiltrados.length - 1 && styles.rowBorder]}
+                      onPress={() => router.push(`/perfil/${a.id}`)}
+                      activeOpacity={0.7}
+                    >
+                      <FriendAvatar
+                        nombre={a.nombre} initials={a.initials} avatarUrl={a.avatarUrl}
+                        colorIdx={a.colorIdx} size={48} online={a.status.online}
+                      />
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={styles.friendName} numberOfLines={1}>{a.nombre}</Text>
+                        <Text style={[styles.friendStatus, { color: a.status.color }]}>{a.status.label}</Text>
+                      </View>
+                      <View style={styles.friendActions}>
+                        <TouchableOpacity style={styles.iconAction} onPress={() => router.push(`/perfil/${a.id}`)} hitSlop={8}>
+                          <MessageCircle size={18} color={T.purple} strokeWidth={2} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.inviteBtn} onPress={() => router.push('/eventos')} hitSlop={8}>
+                          <Text style={styles.inviteBtnText}>Invitar</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                  {amigosFiltrados.length === 0 && busqueda.trim() && (
+                    <Text style={styles.noResults}>Sin resultados para "{busqueda.trim()}"</Text>
+                  )}
                 </View>
-              ) : solicitudes.map(sol => (
-                <View key={sol.id} style={styles.solicitudCard}>
-                  <TouchableOpacity
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: S.md, marginBottom: S.md }}
-                    onPress={() => router.push(`/perfil/${sol.uid}`)}
-                  >
-                    <Avatar nombre={sol.nombre} colorIdx={sol.colorIdx} size={48} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.amigoNombre}>{sol.nombre}</Text>
-                      <Text style={styles.amigoUsuario}>{sol.usuario}</Text>
+              )}
+            </View>
+
+            {/* 5. ACTIVIDAD DE AMIGOS */}
+            {actividad.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Actividad de amigos</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.md, paddingRight: S.lg }}>
+                  {actividad.map(act => (
+                    <TouchableOpacity
+                      key={act.id}
+                      style={styles.activityCard}
+                      onPress={() => router.push(act.href as any)}
+                      activeOpacity={0.85}
+                    >
+                      <View style={styles.activityHeader}>
+                        <FriendAvatar nombre={act.quien} initials={act.ini} avatarUrl={act.avatarUrl} colorIdx={act.colorIdx} size={36} />
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={styles.activityQuien} numberOfLines={1}>{act.quien}</Text>
+                          <Text style={styles.activityAccion}>{act.accion}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.activityPreview}>
+                        <CatCover category={act.categoria} variant="banner" style={{ height: 72 }} />
+                        <Text style={styles.activityDetalle} numberOfLines={2}>{act.detalle}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* 6. SUGERENCIAS */}
+            {sugerencias.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Personas que podrías conocer</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.md, paddingRight: S.lg }}>
+                  {sugerencias.map(sug => (
+                    <View key={sug.id} style={styles.suggestionCard}>
+                      <TouchableOpacity onPress={() => router.push(`/perfil/${sug.id}`)} activeOpacity={0.8}>
+                        <FriendAvatar nombre={sug.nombre} initials={sug.initials} avatarUrl={sug.avatarUrl} colorIdx={sug.colorIdx} size={56} />
+                        <Text style={styles.sugNombre} numberOfLines={1}>{sug.nombre.split(' ')[0]}</Text>
+                        {sug.usuario ? <Text style={styles.sugUser} numberOfLines={1}>{sug.usuario}</Text> : null}
+                        {sug.mutuos > 0 && (
+                          <Text style={styles.sugMutuos}>{sug.mutuos} amigo{sug.mutuos !== 1 ? 's' : ''} en común</Text>
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.sugBtn, enviados.has(sug.id) && styles.sugBtnSent]}
+                        onPress={() => agregarAmigo(sug.id)}
+                        disabled={enviados.has(sug.id) || procesando === sug.id}
+                      >
+                        {procesando === sug.id
+                          ? <ActivityIndicator size="small" color={T.purple} />
+                          : <Text style={[styles.sugBtnText, enviados.has(sug.id) && styles.sugBtnTextSent]}>
+                              {enviados.has(sug.id) ? 'Enviado' : 'Agregar'}
+                            </Text>}
+                      </TouchableOpacity>
                     </View>
-                  </TouchableOpacity>
-                  <View style={{ flexDirection: 'row', gap: S.sm }}>
-                    <TouchableOpacity
-                      style={[styles.solicitudBtnAceptar, procesando === sol.uid && { opacity: 0.6 }]}
-                      onPress={() => aceptarSolicitud(sol)}
-                      disabled={procesando === sol.uid}
-                    >
-                      <Text style={styles.solicitudBtnAceptarText}>{procesando === sol.uid ? '...' : 'Aceptar'}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.solicitudBtnRechazar}
-                      onPress={() => rechazarSolicitud(sol)}
-                      disabled={procesando === sol.uid}
-                    >
-                      <Text style={styles.solicitudBtnRechazarText}>Rechazar</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
-        </ScrollView>
-      )}
+            {/* 7. CTA PLANIFICAR */}
+            <LinearGradient
+              colors={[T.orange, T.green]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.ctaCard}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.ctaTitle}>Crea planes con tus amigos</Text>
+                <Text style={styles.ctaSub}>Organiza salidas y comparte la experiencia.</Text>
+              </View>
+              <TouchableOpacity style={styles.ctaBtn} onPress={() => router.push('/publicar')} activeOpacity={0.85}>
+                <Text style={styles.ctaBtnText}>Crear plan</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+
+            {/* 8. GRUPOS (derivados de eventos compartidos) */}
+            {grupos.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Grupos</Text>
+                {grupos.map(g => (
+                  <TouchableOpacity
+                    key={g.id}
+                    style={styles.groupCard}
+                    onPress={() => router.push(`/eventos/${g.id}`)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={styles.groupNombre} numberOfLines={1}>{g.nombre}</Text>
+                      <Text style={styles.groupActividad}>{g.actividad}</Text>
+                      <View style={styles.groupAvatars}>
+                        {g.miembros.map((m, i) => (
+                          <View key={i} style={[styles.groupAvatar, { backgroundColor: COLORS[m.colorIdx % 4], marginLeft: i === 0 ? 0 : -10, zIndex: 5 - i }]}>
+                            {m.avatarUrl
+                              ? <Image source={{ uri: m.avatarUrl }} style={styles.groupAvatarImg} />
+                              : <Text style={styles.groupIni}>{m.ini}</Text>}
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                    <ChevronRight size={18} color={T.fg4} />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Grupo vacío: invitar a crear */}
+            {grupos.length === 0 && amigos.length >= 2 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Grupos</Text>
+                <TouchableOpacity style={styles.groupPlaceholder} onPress={() => router.push('/publicar')} activeOpacity={0.85}>
+                  <View style={styles.groupPlaceholderIcon}>
+                    <Users size={22} color={T.purple} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.groupNombre}>Crea tu primer grupo</Text>
+                    <Text style={styles.groupActividad}>Invita amigos a un plan compartido</Text>
+                  </View>
+                  <Plus size={20} color={T.purple} />
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
+        )}
+
+      </ScrollView>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  root:                    { flex: 1, backgroundColor: T.bg },
-  center:                  { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  subtitle:                { fontSize: F.size.sm, color: T.fg3, marginTop: 2 },
-  headerIconBtn:           { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.surface, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
-  searchRow:               { flexDirection: 'row', alignItems: 'center', gap: S.sm, marginHorizontal: S.lg, marginTop: S.md },
-  searchBox:               { flex: 1, flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, borderRadius: R.full, paddingHorizontal: S.lg, height: 48, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 },
-  searchText:              { fontSize: F.size.md, color: T.fg3 },
-  filterBtn:               { width: 48, height: 48, borderRadius: R.xl, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center' },
-  onlineDot:               { position: 'absolute', bottom: 1, right: 1, width: 13, height: 13, borderRadius: 7, backgroundColor: T.green, borderWidth: 2, borderColor: T.bg },
-  friendChipUser:          { fontSize: F.size.xs, color: T.fg3, marginTop: 1, textAlign: 'center' },
-  tabBar:                  { flexDirection: 'row', backgroundColor: T.surface, marginTop: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
-  tabBtn:                  { flex: 1, alignItems: 'center' },
-  tabLabelRow:             { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: S.md },
-  tabLabel:                { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.fg3 },
-  tabLabelActive:          { color: T.green },
-  tabLine:                 { height: 2, width: '100%', backgroundColor: 'transparent' },
-  tabLineActive:           { backgroundColor: T.green },
-  badge:                   { width: 18, height: 18, borderRadius: 9, backgroundColor: T.purple, alignItems: 'center', justifyContent: 'center' },
-  badgeText:               { fontSize: 10, fontWeight: F.weight.bold, color: '#fff' },
-  section:                 { padding: S.lg, paddingBottom: S.md },
-  sectionHeader:           { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: S.md },
-  sectionTitle:            { fontSize: F.size.lg, fontWeight: F.weight.bold, color: T.fg1 },
-  sectionAction:           { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold },
-  emptyInline:             { fontSize: F.size.sm, color: T.fg3, alignSelf: 'center', paddingVertical: S.md },
-  friendChip:              { alignItems: 'center', width: 72 },
-  friendChipName:          { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.fg1, marginTop: 6, textAlign: 'center' },
-  inviteCircle:            { width: 56, height: 56, borderRadius: 28, borderWidth: 1.5, borderColor: T.purple, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
-  sugerenciaCard:          { width: 130, backgroundColor: T.surface, borderRadius: R.lg, padding: S.md, alignItems: 'center', borderWidth: 1, borderColor: T.border },
-  sugerenciaNombre:        { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.fg1, marginTop: S.sm, textAlign: 'center' },
-  sugerenciaUser:          { fontSize: F.size.xs, color: T.fg3, marginTop: 2, textAlign: 'center' },
-  sugerenciaBtn:           { marginTop: S.sm, width: '100%', height: 32, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center' },
-  sugerenciaBtnAdded:      { backgroundColor: T.greenSoft },
-  sugerenciaBtnText:       { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.purple },
-  sugerenciaBtnTextAdded:  { color: T.green },
-  planBanner:              { flexDirection: 'row', alignItems: 'center', gap: S.md, margin: S.lg, backgroundColor: T.greenSoft, borderRadius: R.lg, padding: S.md },
-  planIcon:                { width: 40, height: 40, borderRadius: R.md, backgroundColor: 'rgba(33,162,74,0.15)', alignItems: 'center', justifyContent: 'center' },
-  planTitle:               { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.fg1 },
-  planSub:                 { fontSize: F.size.xs, color: T.fg2, marginTop: 2 },
-  planBtn:                 { paddingHorizontal: S.md, paddingVertical: 8, backgroundColor: T.green, borderRadius: R.full },
-  planBtnText:             { fontSize: F.size.xs, fontWeight: F.weight.bold, color: '#fff' },
-  amigoRow:                { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
-  amigoNombre:             { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
-  amigoUsuario:            { fontSize: F.size.sm, color: T.fg3 },
-  solicitudCard:           { backgroundColor: T.surface, borderRadius: R.lg, padding: S.md, borderWidth: 1, borderColor: T.border },
-  solicitudCardCompact:    { flexDirection: 'row', alignItems: 'center', gap: S.md, backgroundColor: T.surface, borderRadius: R.lg, padding: S.md, marginBottom: S.sm, borderWidth: 1, borderColor: T.border },
-  solicitudBtnAceptar:     { flex: 1, height: 40, borderRadius: R.md, backgroundColor: T.green, alignItems: 'center', justifyContent: 'center' },
-  solicitudBtnAceptarText: { fontSize: F.size.sm, fontWeight: F.weight.bold, color: '#fff' },
-  solicitudBtnRechazar:    { flex: 1, height: 40, borderRadius: R.md, borderWidth: 1, borderColor: T.border, backgroundColor: T.surface, alignItems: 'center', justifyContent: 'center' },
-  solicitudBtnRechazarText:{ fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.fg2 },
-  miniAceptar:             { paddingHorizontal: S.md, height: 34, borderRadius: R.full, backgroundColor: T.green, alignItems: 'center', justifyContent: 'center' },
-  miniAceptarText:         { fontSize: F.size.xs, fontWeight: F.weight.bold, color: '#fff' },
-  miniRechazar:            { width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: T.border, alignItems: 'center', justifyContent: 'center' },
-  miniRechazarText:        { fontSize: F.size.sm, color: T.fg3 },
-  emptyState:              { alignItems: 'center', paddingVertical: 48, gap: S.md },
-  emptyEmoji:              { fontSize: 40 },
-  emptyTitle:              { fontSize: F.size.lg, fontWeight: F.weight.bold, color: T.fg1, textAlign: 'center' },
-  emptySub:                { fontSize: F.size.sm, color: T.fg3, textAlign: 'center' },
-  emptyBtn:                { paddingHorizontal: S.xl, paddingVertical: S.md, backgroundColor: T.purple, borderRadius: R.full },
-  emptyBtnText:            { fontSize: F.size.sm, fontWeight: F.weight.bold, color: '#fff' },
-  rankRow:                 { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.sm, borderBottomWidth: 1, borderBottomColor: T.border },
-  rankRowMe:               { backgroundColor: T.purpleSoft, borderRadius: R.md, paddingHorizontal: S.sm, borderBottomWidth: 0, marginVertical: 2 },
-  rankMedal:               { fontSize: 20, width: 28, textAlign: 'center' },
-  rankAvatar:              { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  rankIni:                 { fontSize: F.size.sm, fontWeight: F.weight.bold },
-  rankNombre:              { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.fg1 },
-  rankNivel:               { fontSize: F.size.xs, color: T.fg3, marginTop: 1 },
-  rankXP:                  { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.purple },
+  root:              { flex: 1, backgroundColor: '#FFFFFF' },
+  roundBtn:          { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  roundBtnSurface:   { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.surface, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  headerAvatar:      { width: 38, height: 38, borderRadius: 19 },
+  headerIni:         { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.purple },
+  searchRow:         { paddingHorizontal: S.lg, marginTop: S.lg },
+  searchBox:         { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.bg, borderRadius: R.xl, paddingHorizontal: S.lg, height: 48 },
+  searchInput:       { flex: 1, fontSize: F.size.sm, color: T.fg1, paddingVertical: 0 },
+  section:           { paddingHorizontal: S.lg, marginTop: S.xxl },
+  sectionHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: S.md },
+  sectionTitle:      { fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.fg1, letterSpacing: -0.3, marginBottom: S.md },
+  sectionAction:     { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold, marginBottom: S.md },
+  card:              { backgroundColor: T.surface, borderRadius: R.xl, shadowColor: '#15131A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
+  rowBorder:         { borderBottomWidth: 1, borderBottomColor: T.border },
+  onlineDot:         { position: 'absolute', backgroundColor: T.green, borderWidth: 2, borderColor: '#fff' },
+  // Solicitudes
+  solicitudRow:      { padding: S.lg, gap: S.md },
+  solicitudInfo:     { flexDirection: 'row', alignItems: 'center', gap: S.md },
+  solicitudActions:  { flexDirection: 'row', gap: S.sm },
+  btnAceptar:        { flex: 1, height: 38, borderRadius: R.full, backgroundColor: T.green, alignItems: 'center', justifyContent: 'center' },
+  btnAceptarText:    { fontSize: F.size.sm, fontWeight: F.weight.bold, color: '#fff' },
+  btnRechazar:       { flex: 1, height: 38, borderRadius: R.full, backgroundColor: T.muted, alignItems: 'center', justifyContent: 'center' },
+  btnRechazarText:   { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.fg2 },
+  // Amigos
+  friendRow:         { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingHorizontal: S.lg, paddingVertical: S.md },
+  friendName:        { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
+  friendUser:        { fontSize: F.size.xs, color: T.fg3, marginTop: 1 },
+  friendStatus:      { fontSize: F.size.xs, fontWeight: F.weight.medium, marginTop: 2 },
+  friendActions:     { flexDirection: 'row', alignItems: 'center', gap: S.sm },
+  iconAction:        { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+  inviteBtn:         { paddingHorizontal: S.md, paddingVertical: 7, borderRadius: R.full, backgroundColor: T.orangeSoft },
+  inviteBtnText:     { fontSize: F.size.xs, fontWeight: F.weight.bold, color: T.orange },
+  noResults:         { padding: S.lg, textAlign: 'center', fontSize: F.size.sm, color: T.fg3 },
+  // Actividad
+  activityCard:      { width: 220, backgroundColor: T.surface, borderRadius: R.xl, padding: S.md, shadowColor: '#15131A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 14, elevation: 3 },
+  activityHeader:    { flexDirection: 'row', alignItems: 'center', gap: S.sm, marginBottom: S.sm },
+  activityQuien:     { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.fg1 },
+  activityAccion:    { fontSize: F.size.xs, color: T.fg3 },
+  activityPreview:   { borderRadius: R.lg, overflow: 'hidden', backgroundColor: T.muted },
+  activityDetalle:   { fontSize: F.size.xs, fontWeight: F.weight.semibold, color: T.fg1, padding: S.sm },
+  // Sugerencias
+  suggestionCard:    { width: 140, backgroundColor: T.surface, borderRadius: R.xl, padding: S.md, alignItems: 'center', shadowColor: '#15131A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  sugNombre:         { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.fg1, marginTop: S.sm, textAlign: 'center' },
+  sugUser:           { fontSize: F.size.xs, color: T.fg3, marginTop: 2, textAlign: 'center' },
+  sugMutuos:         { fontSize: 10, color: T.purple, fontWeight: F.weight.semibold, marginTop: 4, textAlign: 'center' },
+  sugBtn:            { marginTop: S.sm, width: '100%', height: 34, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+  sugBtnSent:        { backgroundColor: T.greenSoft },
+  sugBtnText:        { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.purple },
+  sugBtnTextSent:    { color: T.green },
+  // CTA
+  ctaCard:           { flexDirection: 'row', alignItems: 'center', gap: S.md, marginHorizontal: S.lg, marginTop: S.xxl, borderRadius: R.xl, padding: S.xl, shadowColor: T.orange, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 6 },
+  ctaTitle:          { fontSize: F.size.xl, fontWeight: F.weight.bold, color: '#fff' },
+  ctaSub:            { fontSize: F.size.sm, color: 'rgba(255,255,255,0.9)', marginTop: 3 },
+  ctaBtn:            { backgroundColor: '#fff', paddingHorizontal: S.xl, paddingVertical: 11, borderRadius: R.full, flexShrink: 0 },
+  ctaBtnText:        { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.orange },
+  // Grupos
+  groupCard:         { flexDirection: 'row', alignItems: 'center', gap: S.md, backgroundColor: T.surface, borderRadius: R.xl, padding: S.lg, marginBottom: S.sm, shadowColor: '#15131A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
+  groupNombre:       { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
+  groupActividad:    { fontSize: F.size.xs, color: T.fg3, marginTop: 2 },
+  groupAvatars:      { flexDirection: 'row', alignItems: 'center', marginTop: S.sm },
+  groupAvatar:       { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff', overflow: 'hidden' },
+  groupAvatarImg:    { width: 28, height: 28, borderRadius: 14 },
+  groupIni:          { fontSize: 10, fontWeight: F.weight.bold, color: T.fg1 },
+  groupPlaceholder:  { flexDirection: 'row', alignItems: 'center', gap: S.md, backgroundColor: T.purpleSoft, borderRadius: R.xl, padding: S.lg },
+  groupPlaceholderIcon: { width: 44, height: 44, borderRadius: R.full, backgroundColor: T.surface, alignItems: 'center', justifyContent: 'center' },
+  // Empty
+  emptyState:        { alignItems: 'center', paddingVertical: 48, paddingHorizontal: S.lg, gap: S.md },
+  emptyInline:       { alignItems: 'center', padding: S.xl, gap: S.md },
+  emptyInlineText:   { fontSize: F.size.sm, color: T.fg3, textAlign: 'center' },
+  emptyEmoji:        { fontSize: 40 },
+  emptyTitle:        { fontSize: F.size.lg, fontWeight: F.weight.bold, color: T.fg1 },
+  emptySub:          { fontSize: F.size.sm, color: T.fg3, textAlign: 'center' },
+  emptyBtn:          { paddingHorizontal: S.xl, paddingVertical: S.md, backgroundColor: T.purple, borderRadius: R.full, marginTop: S.sm },
+  emptyBtnSmall:     { paddingHorizontal: S.lg, paddingVertical: S.sm, backgroundColor: T.purple, borderRadius: R.full },
+  emptyBtnText:      { fontSize: F.size.sm, fontWeight: F.weight.bold, color: '#fff' },
 })

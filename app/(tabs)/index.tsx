@@ -8,7 +8,7 @@ import { router } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import {
   Search, Bell, SlidersHorizontal, Ticket,
-  UtensilsCrossed, Coffee, Moon, Palette,
+  UtensilsCrossed, Palette, Trees, Sparkles,
 } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
@@ -87,13 +87,21 @@ function RowLugar({ item, dist }: { item: Place; dist?: number }) {
   )
 }
 
-/** Categorías de descubrimiento del Home */
+/** Zonas de Santa Cruz para explorar en el mapa */
+const ZONAS = [
+  { nombre: 'Centro',     emoji: '🏛️', bg: T.purpleSoft, fg: T.purpleInk, lat: -17.7833, lng: -63.1821 },
+  { nombre: 'Equipetrol', emoji: '🍺', bg: T.orangeSoft, fg: T.orangeInk, lat: -17.7697, lng: -63.2017 },
+  { nombre: 'Las Palmas', emoji: '🌳', bg: T.greenSoft,  fg: T.greenInk,  lat: -17.7521, lng: -63.1919 },
+  { nombre: 'Urbarí',     emoji: '🖼️', bg: T.muted,      fg: T.fg2,       lat: -17.7992, lng: -63.1734 },
+]
+
+/** Categorías oficiales de la app (lib/categories.ts) + acceso a Eventos */
 const CATEGORIAS_HOME = [
-  { label: 'Eventos',       Icon: Ticket,          color: '#FF6B2C', bg: '#FFE9DD', go: () => router.push('/eventos') },
-  { label: 'Restaurantes',  Icon: UtensilsCrossed, color: '#2BB673', bg: '#DFF5EA', go: () => router.push({ pathname: '/lugares', params: { cat: 'Gastronomía' } }) },
-  { label: 'Cafés',         Icon: Coffee,          color: '#FF6B2C', bg: '#FFE9DD', go: () => router.push({ pathname: '/lugares', params: { cat: 'Gastronomía' } }) },
-  { label: 'Vida nocturna', Icon: Moon,            color: '#6C4CF1', bg: '#EBE6FD', go: () => router.push({ pathname: '/lugares', params: { cat: 'Entretenimiento' } }) },
-  { label: 'Cultura',       Icon: Palette,         color: '#2BB673', bg: '#DFF5EA', go: () => router.push({ pathname: '/lugares', params: { cat: 'Entretenimiento' } }) },
+  { label: 'Eventos',         Icon: Ticket,          color: '#FF6B2C', bg: '#FFE9DD', go: () => router.push('/eventos') },
+  { label: 'Gastronomía',     Icon: UtensilsCrossed, color: '#FF6B2C', bg: '#FFE9DD', go: () => router.push({ pathname: '/lugares', params: { cat: 'Gastronomía' } }) },
+  { label: 'Entretenimiento', Icon: Palette,         color: '#6C4CF1', bg: '#EBE6FD', go: () => router.push({ pathname: '/lugares', params: { cat: 'Entretenimiento' } }) },
+  { label: 'Parques',         Icon: Trees,           color: '#2BB673', bg: '#DFF5EA', go: () => router.push({ pathname: '/lugares', params: { cat: 'Parques' } }) },
+  { label: 'Otros',           Icon: Sparkles,        color: '#4B4754', bg: '#F1EFF3', go: () => router.push({ pathname: '/lugares', params: { cat: 'Otros' } }) },
 ]
 
 interface ActividadAmigo {
@@ -227,7 +235,6 @@ export default function Inicio() {
         {/* 1. HEADER */}
         <TrivaiHeader
           title="Explorar"
-          subtitle={<Text style={styles.headerSub}>Descubre planes cerca de ti</Text>}
           left={
             <TouchableOpacity style={styles.avatarBtn} onPress={() => router.push('/perfil')}>
               {avatarUrl
@@ -258,7 +265,26 @@ export default function Inicio() {
           </TouchableOpacity>
         </View>
 
-        {/* 3. CATEGORÍAS */}
+        {/* 3. EXPLORAR POR ZONA */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Explorar por zona</Text>
+          <TouchableOpacity onPress={() => router.push('/mapa')}>
+            <Text style={styles.sectionAction}>Ver mapa</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: S.lg, gap: S.sm }}>
+          {ZONAS.map(z => (
+            <TouchableOpacity key={z.nombre} style={[styles.zonaCard, { backgroundColor: z.bg }]}
+              onPress={() => router.push(`/mapa?lat=${z.lat}&lng=${z.lng}&zona=${encodeURIComponent(z.nombre)}`)}
+              activeOpacity={0.8}>
+              <Text style={styles.zonaEmoji}>{z.emoji}</Text>
+              <Text style={[styles.zonaNombre, { color: z.fg }]}>{z.nombre}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* 4. CATEGORÍAS */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chips}>
           {CATEGORIAS_HOME.map(c => (
@@ -274,7 +300,23 @@ export default function Inicio() {
           ))}
         </ScrollView>
 
-        {/* 4. EVENTOS DESTACADOS */}
+        {/* 5. CTA PLANIFICA */}
+        <LinearGradient
+          colors={[T.purple, '#8E6CFF']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.ctaCard}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.ctaTitle}>Planifica con amigos</Text>
+            <Text style={styles.ctaSub}>Organiza tu próxima salida y compártela.</Text>
+          </View>
+          <TouchableOpacity style={styles.ctaBtn} onPress={() => router.push('/eventos')} activeOpacity={0.85}>
+            <Text style={styles.ctaBtnText}>Crear plan</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+
+        {/* 6. EVENTOS DESTACADOS */}
         {eventos.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
@@ -294,7 +336,7 @@ export default function Inicio() {
           </>
         )}
 
-        {/* 5. CERCA DE TI */}
+        {/* 7. CERCA DE TI */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Cerca de ti</Text>
           <TouchableOpacity onPress={() => router.push('/mapa')}>
@@ -310,7 +352,7 @@ export default function Inicio() {
           }
         </View>
 
-        {/* 6. SOCIAL PROOF */}
+        {/* 8. SOCIAL PROOF */}
         {actividad.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
@@ -340,22 +382,6 @@ export default function Inicio() {
           </>
         )}
 
-        {/* 7. CTA PLANIFICA */}
-        <LinearGradient
-          colors={[T.purple, '#8E6CFF']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.ctaCard}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={styles.ctaTitle}>Planifica con amigos</Text>
-            <Text style={styles.ctaSub}>Organiza tu próxima salida y compártela.</Text>
-          </View>
-          <TouchableOpacity style={styles.ctaBtn} onPress={() => router.push('/eventos')} activeOpacity={0.85}>
-            <Text style={styles.ctaBtnText}>Crear plan</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-
       </ScrollView>
     </SafeAreaView>
   )
@@ -363,7 +389,6 @@ export default function Inicio() {
 
 const styles = StyleSheet.create({
   root:              { flex: 1, backgroundColor: '#FFFFFF' },
-  headerSub:         { fontSize: F.size.sm, color: T.fg3 },
   avatarBtn:         { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   avatarImg:         { width: 38, height: 38, borderRadius: R.full },
   avatarIni:         { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.purple },
@@ -380,6 +405,10 @@ const styles = StyleSheet.create({
   sectionHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: S.lg, marginTop: S.xxl, marginBottom: S.md },
   sectionTitle:      { fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.fg1, letterSpacing: -0.3 },
   sectionAction:     { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold },
+  // Zonas
+  zonaCard:          { width: 130, height: 90, borderRadius: R.xl, padding: S.md, justifyContent: 'flex-end' },
+  zonaEmoji:         { fontSize: 22, position: 'absolute', top: 10, right: 10 },
+  zonaNombre:        { fontSize: F.size.md, fontWeight: F.weight.bold },
   // Social proof
   socialCard:        { flexDirection: 'row', alignItems: 'center', gap: S.md, marginHorizontal: S.lg, backgroundColor: T.surface, borderRadius: R.xl, padding: S.lg, shadowColor: '#15131A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 14, elevation: 3 },
   socialAvatars:     { flexDirection: 'row', alignItems: 'center' },

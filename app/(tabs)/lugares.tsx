@@ -1,67 +1,165 @@
 ﻿import { useState, useEffect } from 'react'
 import {
   View, Text, ScrollView, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator, TextInput,
+  StyleSheet, ActivityIndicator, TextInput, Image,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
-import { Search, MapPin, ArrowLeft } from 'lucide-react-native'
+import {
+  Search, ArrowLeft, SlidersHorizontal, LayoutGrid,
+  UtensilsCrossed, Palette, Trees, Sparkles,
+} from 'lucide-react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '@/lib/supabase'
-import { T, F, S, R, PLACE_CATEGORY_FILTERS, normalizeCategory, getCatColor } from '@/lib/tokens'
+import { T, F, S, R, normalizeCategory, getCatColor, getCatLabel } from '@/lib/tokens'
 import { TrivaiHeader } from '@/components/TrivaiHeader'
 import { DiscoveryCard } from '@/components/DiscoveryCard'
 import { DiscoveryRow } from '@/components/DiscoveryRow'
-import { CategoryChip } from '@/components/CategoryChip'
 import { calcIsOpen } from '@/lib/hours'
+import { getCurrentCoords } from '@/lib/geolocation'
 
 interface Place {
   id: string; name: string; category: string
   address: string | null; rating_avg: number
   rating_count: number; is_open: boolean
   hours?: Record<string, string> | null
+  latitude?: number | null; longitude?: number | null
+  _dist?: number
 }
 
-const ZONAS = [
-  { nombre: 'Centro',     emoji: '🏛️', color: '#3a3340', lat: -17.7833, lng: -63.1821 },
-  { nombre: 'Equipetrol', emoji: '🍺', color: '#21121a', lat: -17.7697, lng: -63.2017 },
-  { nombre: 'Las Palmas', emoji: '🌳', color: '#274a30', lat: -17.7521, lng: -63.1919 },
-  { nombre: 'Urbarí',     emoji: '🖼️', color: '#3a1d4e', lat: -17.7992, lng: -63.1734 },
+interface Recomendacion {
+  id: string
+  placeId: string
+  lugar: string
+  categoria: string
+  quien: string
+  ini: string
+  color: string
+}
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const rad = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
+  return rad * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function formatDist(km: number) {
+  return km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1) + ' km'
+}
+
+/** La BD tiene lugares importados más de una vez: conservar la fila con más datos */
+function dedupePlaces(places: Place[]): Place[] {
+  const grupos = new Map<string, Place>()
+  for (const p of places) {
+    const key = `${p.name.trim().toLowerCase()}|${p.latitude?.toFixed(4) ?? ''}|${p.longitude?.toFixed(4) ?? ''}`
+    const previo = grupos.get(key)
+    if (!previo || (p.rating_count ?? 0) > (previo.rating_count ?? 0)) grupos.set(key, p)
+  }
+  return [...grupos.values()]
+}
+
+/** Píldoras de categorías oficiales — activa con color sólido de marca */
+const PILLS: {
+  id: string
+  label: string
+  Icon: typeof Search
+  color: string
+  bg: string
+}[] = [
+  { id: 'Gastronomía',     label: 'Gastronomía',     Icon: UtensilsCrossed, color: T.orange, bg: T.orangeSoft },
+  { id: 'Entretenimiento', label: 'Entretenimiento', Icon: Palette,         color: T.purple, bg: T.purpleSoft },
+  { id: 'Parques',         label: 'Parques',         Icon: Trees,           color: T.green,  bg: T.greenSoft },
+  { id: 'Otros',           label: 'Otros',           Icon: Sparkles,        color: T.fg2,    bg: T.muted },
 ]
+
+/** Mapa estático de Santa Cruz sin marcadores (sin pines) */
+const MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY
+const MAP_PREVIEW_URI = MAPS_KEY
+  ? `https://maps.googleapis.com/maps/api/staticmap?center=-17.7833,-63.1821&zoom=13&size=640x280&scale=2&style=feature:poi|visibility:off&key=${MAPS_KEY}`
+  : null
 
 export default function Lugares() {
   const { cat: catParam } = useLocalSearchParams<{ cat?: string }>()
   const [lugares,       setLugares]       = useState<Place[]>([])
   const [searchResults, setSearchResults] = useState<Place[]>([])
+  const [recos,         setRecos]         = useState<Recomendacion[]>([])
   const [loading,       setLoading]       = useState(true)
   const [searchLoading, setSearchLoading] = useState(false)
-  const [cat,           setCat]           = useState(typeof catParam === 'string' && catParam ? catParam : 'Todos')
+  const [cat,           setCat]           = useState(typeof catParam === 'string' && catParam ? catParam : '')
+  const [busqueda,      setBusqueda]      = useState('')
+  const [userCoords,    setUserCoords]    = useState<{ lat: number; lng: number } | null>(null)
 
   // Si llega un filtro por parámetro (ej. desde las categorías del Home), aplicarlo
   useEffect(() => {
     if (typeof catParam === 'string' && catParam) setCat(catParam)
   }, [catParam])
-  const [busqueda,      setBusqueda]      = useState('')
-  const [buscando,      setBuscando]      = useState(false)
+
+  // Geolocalización para distancias
+  useEffect(() => {
+    getCurrentCoords().then(coords => { if (coords) setUserCoords(coords) })
+  }, [])
 
   useEffect(() => {
     const load = async () => {
       setLoading(true)
       let q = supabase.from('places')
-        .select('id,name,category,address,rating_avg,rating_count,is_open,hours')
+        .select('id,name,category,address,rating_avg,rating_count,is_open,hours,latitude,longitude')
         .not('latitude', 'is', null)
         .order('rating_avg', { ascending: false })
         .limit(40)
 
-      if (cat !== 'Todos') {
-        q = q.eq('category', cat)
-      }
+      if (cat) q = q.eq('category', cat)
 
       const { data } = await q
-      if (data) setLugares(data)
+      if (data) setLugares(dedupePlaces(data))
       setLoading(false)
     }
     load()
   }, [cat])
+
+  // Sección social: lugares favoritos de mis amigos
+  useEffect(() => {
+    const loadRecos = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      const user = session?.user
+      if (!user) return
+
+      const [f1, f2] = await Promise.all([
+        supabase.from('friendships').select('friend_id').eq('user_id', user.id).eq('status', 'accepted'),
+        supabase.from('friendships').select('user_id').eq('friend_id', user.id).eq('status', 'accepted'),
+      ])
+      const friendIds = [...new Set([
+        ...(f1.data ?? []).map((f: any) => f.friend_id),
+        ...(f2.data ?? []).map((f: any) => f.user_id),
+      ])]
+      if (friendIds.length === 0) return
+
+      const { data: favs } = await supabase
+        .from('favorites')
+        .select('place:places(id,name,category), profile:profiles(full_name)')
+        .in('user_id', friendIds)
+        .limit(5)
+
+      if (favs) {
+        const COLORES = [T.purpleSoft, T.orangeSoft, T.greenSoft, T.muted]
+        setRecos((favs as any[])
+          .filter(f => f.place?.id && f.profile?.full_name)
+          .map((f, i) => ({
+            id:        f.place.id + i,
+            placeId:   f.place.id,
+            lugar:     f.place.name,
+            categoria: f.place.category,
+            quien:     f.profile.full_name.split(' ')[0],
+            ini:       f.profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
+            color:     COLORES[i % 4],
+          }))
+        )
+      }
+    }
+    loadRecos()
+  }, [])
 
   // Búsqueda directa en Supabase (debounced)
   useEffect(() => {
@@ -72,101 +170,144 @@ export default function Lugares() {
     const timer = setTimeout(async () => {
       const { data } = await supabase
         .from('places')
-        .select('id,name,category,address,rating_avg,rating_count,is_open')
-        .select('id,name,category,address,rating_avg,rating_count,is_open,hours')
+        .select('id,name,category,address,rating_avg,rating_count,is_open,hours,latitude,longitude')
         .ilike('name', `%${term}%`)
         .order('rating_avg', { ascending: false })
         .limit(40)
-      if (data) setSearchResults(data)
+      if (data) setSearchResults(dedupePlaces(data))
       setSearchLoading(false)
     }, 300)
 
     return () => clearTimeout(timer)
   }, [busqueda])
 
-  const filtrados = busqueda.trim().length >= 2 ? searchResults : lugares
+  const buscando = busqueda.trim().length >= 2
 
-  const destacados = filtrados.slice(0, 5)
-  const resto      = filtrados.slice(5)
+  // Distancias + orden por cercanía en la lista
+  const conDist: Place[] = (buscando ? searchResults : lugares).map(l =>
+    userCoords && l.latitude && l.longitude
+      ? { ...l, _dist: haversineKm(userCoords.lat, userCoords.lng, l.latitude, l.longitude) }
+      : l
+  )
+
+  const destacados = conDist.slice(0, 6)
+  const cercanos   = [...conDist]
+    .filter(l => !destacados.some(d => d.id === l.id))
+    .sort((a, b) => (a._dist ?? 999) - (b._dist ?? 999))
+    .slice(0, 6)
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
 
-      {/* TOPBAR */}
-      <TrivaiHeader
-        title="Lugares"
-        subtitle={<Text style={styles.sub}>Descubre los mejores lugares cerca de ti</Text>}
-        left={
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
-            <ArrowLeft size={24} color={T.fg1} strokeWidth={2} />
-          </TouchableOpacity>
-        }
-        right={
-          <TouchableOpacity style={styles.iconBtn}
-            onPress={() => { setBuscando(v => !v); setBusqueda('') }}>
-            <Search size={20} color={buscando ? T.purple : T.fg2} />
-          </TouchableOpacity>
-        }
-      />
+        {/* 1. HEADER */}
+        <TrivaiHeader
+          title="Lugares"
+          left={
+            <TouchableOpacity style={styles.roundBtn} onPress={() => router.back()} hitSlop={8}>
+              <ArrowLeft size={20} color={T.purple} strokeWidth={2.25} />
+            </TouchableOpacity>
+          }
+          right={
+            <TouchableOpacity style={styles.roundBtnSurface} onPress={() => router.push('/buscar')}>
+              <SlidersHorizontal size={18} color={T.fg2} />
+            </TouchableOpacity>
+          }
+        />
 
-      {/* BUSCADOR */}
-      {buscando && (
-        <View style={styles.searchBar}>
-          <Search size={16} color={T.fg3} />
-          <TextInput
-            style={styles.searchInput}
-            value={busqueda}
-            onChangeText={setBusqueda}
-            placeholder="Buscar lugares..."
-            placeholderTextColor={T.fg3}
-            autoFocus
-          />
-        </View>
-      )}
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
-
-        {/* CATEGORÍAS */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.cats}>
-          {PLACE_CATEGORY_FILTERS.map(c => (
-            <CategoryChip
-              key={c.id}
-              id={c.id}
-              label={c.label}
-              emoji={c.emoji}
-              active={cat === c.id}
-              onPress={() => setCat(c.id)}
+        {/* 2. BUSCADOR */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchBox}>
+            <Search size={17} color={T.fg3} />
+            <TextInput
+              style={styles.searchInput}
+              value={busqueda}
+              onChangeText={setBusqueda}
+              placeholder="Buscar restaurantes, cafés..."
+              placeholderTextColor={T.fg3}
+              returnKeyType="search"
             />
-          ))}
+            <TouchableOpacity onPress={() => router.push('/buscar')} hitSlop={8}>
+              <SlidersHorizontal size={16} color={T.purple} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 3. CATEGORÍAS */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chips}>
+          {PILLS.map(p => {
+            const activo = cat === p.id
+            return (
+              <TouchableOpacity
+                key={p.id}
+                style={[styles.chip, { backgroundColor: activo ? p.color : p.bg }]}
+                onPress={() => setCat(activo ? '' : p.id)}
+                activeOpacity={0.75}
+              >
+                <p.Icon size={14} color={activo ? '#fff' : p.color} strokeWidth={2} />
+                <Text style={[styles.chipText, { color: activo ? '#fff' : p.color }]}>{p.label}</Text>
+              </TouchableOpacity>
+            )
+          })}
         </ScrollView>
 
-        {/* UBICACIÓN */}
-        <View style={styles.ubicacion}>
-          <MapPin size={18} color={T.purple} />
+        {/* 4. CTA — gradiente naranja + verde */}
+        <LinearGradient
+          colors={[T.orange, T.green]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.ctaCard}
+        >
           <View style={{ flex: 1 }}>
-            <Text style={styles.ubicacionCity}>Santa Cruz de la Sierra</Text>
-            <Text style={styles.ubicacionSub}>Ajustar ubicación</Text>
+            <Text style={styles.ctaTitle}>Explora nuevos lugares con amigos</Text>
+            <Text style={styles.ctaSub}>Comparte tus sitios favoritos.</Text>
           </View>
-          <Text style={styles.chevron}>›</Text>
+          <TouchableOpacity style={styles.ctaBtn} onPress={() => router.push('/amigos')} activeOpacity={0.85}>
+            <Text style={styles.ctaBtnText}>Invitar</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+
+        {/* 5. VISTA PREVIA DEL MAPA (sin pines) */}
+        <View style={styles.mapCard}>
+          {MAP_PREVIEW_URI ? (
+            <Image source={{ uri: MAP_PREVIEW_URI }} style={styles.mapImg} resizeMode="cover" />
+          ) : (
+            <LinearGradient
+              colors={[T.greenSoft, T.purpleSoft]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.mapImg}
+            />
+          )}
+          <View style={styles.mapOverlay}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.mapCity}>Santa Cruz de la Sierra</Text>
+              <Text style={styles.mapHint}>Explora los alrededores</Text>
+            </View>
+            <TouchableOpacity style={styles.mapBtn} onPress={() => router.push('/mapa')} activeOpacity={0.85}>
+              <Text style={styles.mapBtnText}>Ver en mapa</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {loading || searchLoading ? (
           <ActivityIndicator color={T.purple} style={{ marginTop: 40 }} />
-        ) : filtrados.length === 0 ? (
+        ) : conDist.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>🔍</Text>
-            <Text style={styles.emptyText}>Sin resultados para "{cat}"</Text>
-            <TouchableOpacity onPress={() => setCat('Todos')}>
+            <Text style={styles.emptyText}>
+              {buscando ? `Sin resultados para "${busqueda.trim()}"` : 'Sin resultados'}
+            </Text>
+            <TouchableOpacity onPress={() => { setCat(''); setBusqueda('') }}>
               <Text style={styles.emptyAction}>Ver todos →</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <>
-            {/* DESTACADOS */}
+            {/* 6. DESTACADOS */}
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
-                {cat !== 'Todos' ? `${PLACE_CATEGORY_FILTERS.find(c => c.id === cat)?.label} (${filtrados.length})` : 'Destacados'}
+                {cat ? `${getCatLabel(cat)} (${conDist.length})` : 'Destacados'}
               </Text>
               <TouchableOpacity onPress={() => router.push('/buscar')}>
                 <Text style={styles.sectionAction}>Ver todos</Text>
@@ -182,39 +323,48 @@ export default function Lugares() {
               renderItem={({ item }) => <CardLugar item={item} />}
             />
 
-            {/* ZONAS — solo en "Todos" */}
-            {cat === 'Todos' && !buscando && (
+                {/* 7. CERCA DE TI */}
+            {cercanos.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Explorar por zona</Text>
-                  <TouchableOpacity onPress={() => router.push(`/mapa`)}>
-                    <Text style={styles.sectionAction}>Ver mapa</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.sectionTitle}>Cerca de ti</Text>
                 </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingHorizontal: S.lg, gap: 10 }}>
-                  {ZONAS.map(z => (
-                    <TouchableOpacity key={z.nombre} style={[styles.zonaCard, { backgroundColor: z.color }]}
-                      onPress={() => router.push(`/mapa?lat=${z.lat}&lng=${z.lng}&zona=${encodeURIComponent(z.nombre)}`)}>
-                      <Text style={styles.zonaEmoji}>{z.emoji}</Text>
-                      <Text style={styles.zonaNombre}>{z.nombre}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                <View style={{ paddingHorizontal: S.lg }}>
+                  {cercanos.map(l => <RowLugar key={l.id} item={l} />)}
+                </View>
               </>
             )}
 
-            {/* LISTA */}
-            {resto.length > 0 && (
+            {/* 8. TUS AMIGOS RECOMIENDAN */}
+            {recos.length > 0 && (
               <>
                 <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>{cat !== 'Todos' ? `Más ${PLACE_CATEGORY_FILTERS.find(c=>c.id===cat)?.label.toLowerCase()}` : 'Cerca de ti'}</Text>
+                  <Text style={styles.sectionTitle}>Tus amigos recomiendan</Text>
                 </View>
-                <View style={{ paddingHorizontal: S.lg }}>
-                  {resto.map(l => <RowLugar key={l.id} item={l} />)}
-                </View>
+                <TouchableOpacity
+                  style={styles.socialCard}
+                  onPress={() => router.push(`/lugares/${recos[0].placeId}`)}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.socialAvatars}>
+                    {recos.slice(0, 3).map((r, i) => (
+                      <View key={r.id} style={[styles.socialAvatar, { backgroundColor: r.color, marginLeft: i === 0 ? 0 : -12, zIndex: 3 - i }]}>
+                        <Text style={styles.socialIni}>{r.ini}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={styles.socialLugar} numberOfLines={1}>{recos[0].lugar}</Text>
+                    <Text style={styles.socialTexto} numberOfLines={1}>
+                      {recos[0].quien}
+                      {recos.length > 1 ? ` y ${recos.length - 1} más lo recomiendan` : ' lo recomienda'}
+                    </Text>
+                  </View>
+                  <Text style={{ color: T.fg4, fontSize: 18 }}>›</Text>
+                </TouchableOpacity>
               </>
             )}
+
           </>
         )}
 
@@ -223,22 +373,21 @@ export default function Lugares() {
   )
 }
 
+/** Card destacada: badge Popular/Recomendado, rating y distancia */
 function CardLugar({ item }: { item: Place }) {
-  const isOpen = calcIsOpen(item.hours, item.is_open)
+  const popular = (item.rating_avg ?? 0) >= 4.5
   return (
     <DiscoveryCard
       category={item.category}
       title={item.name}
-      subtitle={item.rating_avg ? `★ ${item.rating_avg.toFixed(1)} (${item.rating_count ?? 0})` : normalizeCategory(item.category)}
-      pillLabel={normalizeCategory(item.category)}
-      pillColor={getCatColor(item.category)}
+      subtitle={getCatLabel(item.category)}
+      pillLabel={popular ? 'Popular' : 'Recomendado'}
+      pillColor={popular ? T.orange : T.green}
+      distance={item._dist != null ? `a ${formatDist(item._dist)}` : undefined}
       badge={
-        <Text style={{ fontSize: F.size.xs }}>
-          <Text style={{ color: T.fg3 }}>{normalizeCategory(item.category)} · </Text>
-          <Text style={{ color: isOpen ? T.green : T.fg3, fontWeight: F.weight.semibold }}>
-            {isOpen ? 'Abierto' : 'Cerrado'}
-          </Text>
-        </Text>
+        item.rating_avg
+          ? <Text style={{ fontSize: F.size.xs, color: T.fg2 }}>⭐ {item.rating_avg.toFixed(1)} ({item.rating_count ?? 0})</Text>
+          : undefined
       }
       onPress={() => router.push(`/lugares/${item.id}`)}
     />
@@ -252,32 +401,49 @@ function RowLugar({ item }: { item: Place }) {
       category={item.category}
       title={item.name}
       status={{ label: isOpen ? 'Abierto' : 'Cerrado', color: isOpen ? T.green : T.fg3 }}
-      lines={[item.address ?? ''].filter(Boolean)}
+      rating={item.rating_avg || null}
+      distance={item._dist != null ? `a ${formatDist(item._dist)}` : undefined}
       onPress={() => router.push(`/lugares/${item.id}`)}
     />
   )
 }
 
 const styles = StyleSheet.create({
-  root:           { flex: 1, backgroundColor: T.bg },
-  backBtn:        { padding: 2 },
-  sub:            { fontSize: F.size.sm, color: T.fg3, marginTop: 2 },
-  iconBtn:        { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.surface, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
-  searchBar:      { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, marginHorizontal: S.lg, marginTop: S.sm, borderRadius: R.full, paddingHorizontal: S.md, height: 44, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
-  searchInput:    { flex: 1, fontSize: F.size.base, color: T.fg1, paddingVertical: 8 },
-  cats:           { paddingHorizontal: S.lg, paddingVertical: S.sm, gap: S.sm },
-  ubicacion:      { flexDirection: 'row', alignItems: 'center', gap: S.md, marginHorizontal: S.lg, marginTop: S.sm, backgroundColor: T.purpleSoft, borderRadius: R.lg, padding: S.md },
-  ubicacionCity:  { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
-  ubicacionSub:   { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold, marginTop: 2 },
-  chevron:        { fontSize: 20, color: T.fg3 },
-  empty:          { alignItems: 'center', paddingTop: 48 },
-  emptyIcon:      { fontSize: 40, marginBottom: S.md },
-  emptyText:      { fontSize: F.size.base, color: T.fg1, fontWeight: F.weight.bold, marginBottom: S.sm },
-  emptyAction:    { fontSize: F.size.base, color: T.purple, fontWeight: F.weight.semibold },
-  sectionHeader:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: S.lg, marginTop: S.lg, marginBottom: S.sm },
-  sectionTitle:   { fontSize: F.size.lg, fontWeight: F.weight.bold, color: T.fg1 },
-  sectionAction:  { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold },
-  zonaCard:       { width: 130, height: 90, borderRadius: R.lg, padding: S.md, justifyContent: 'flex-end' },
-  zonaEmoji:      { fontSize: 22, position: 'absolute', top: 10, right: 10 },
-  zonaNombre:     { fontSize: F.size.md, fontWeight: F.weight.bold, color: '#fff' },
+  root:              { flex: 1, backgroundColor: '#FFFFFF' },
+  roundBtn:          { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+  roundBtnSurface:   { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.surface, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  searchRow:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: S.lg, marginTop: S.lg },
+  searchBox:         { flex: 1, flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.bg, borderRadius: R.xl, paddingHorizontal: S.lg, height: 48 },
+  searchInput:       { flex: 1, fontSize: F.size.sm, color: T.fg1, paddingVertical: 0 },
+  chips:             { paddingHorizontal: S.lg, gap: S.sm, paddingTop: S.lg, paddingBottom: 4 },
+  chip:              { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: S.lg, paddingVertical: 10, borderRadius: R.full },
+  chipText:          { fontSize: F.size.sm, fontWeight: F.weight.semibold },
+  // Mapa
+  mapCard:           { marginHorizontal: S.lg, marginTop: S.xl, borderRadius: R.xl, overflow: 'hidden', backgroundColor: T.muted, shadowColor: '#15131A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 14, elevation: 3 },
+  mapImg:            { width: '100%', height: 120 },
+  mapOverlay:        { flexDirection: 'row', alignItems: 'center', gap: S.md, backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.md },
+  mapCity:           { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
+  mapHint:           { fontSize: F.size.xs, color: T.fg3, marginTop: 1 },
+  mapBtn:            { backgroundColor: T.purple, paddingHorizontal: S.lg, paddingVertical: 9, borderRadius: R.full },
+  mapBtnText:        { fontSize: F.size.sm, fontWeight: F.weight.bold, color: '#fff' },
+  sectionHeader:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: S.lg, marginTop: S.xxl, marginBottom: S.md },
+  sectionTitle:      { fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.fg1, letterSpacing: -0.3 },
+  sectionAction:     { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold },
+  empty:             { alignItems: 'center', paddingTop: 48 },
+  emptyIcon:         { fontSize: 40, marginBottom: S.md },
+  emptyText:         { fontSize: F.size.base, color: T.fg1, fontWeight: F.weight.bold, marginBottom: S.sm },
+  emptyAction:       { fontSize: F.size.base, color: T.purple, fontWeight: F.weight.semibold },
+  // Social
+  socialCard:        { flexDirection: 'row', alignItems: 'center', gap: S.md, marginHorizontal: S.lg, backgroundColor: T.surface, borderRadius: R.xl, padding: S.lg, shadowColor: '#15131A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 14, elevation: 3 },
+  socialAvatars:     { flexDirection: 'row', alignItems: 'center' },
+  socialAvatar:      { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' },
+  socialIni:         { fontSize: F.size.xs, fontWeight: F.weight.bold, color: T.fg1 },
+  socialLugar:       { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
+  socialTexto:       { fontSize: F.size.xs, color: T.fg3, marginTop: 2 },
+  // CTA
+  ctaCard:           { flexDirection: 'row', alignItems: 'center', gap: S.md, marginHorizontal: S.lg, marginTop: S.xxl, borderRadius: R.xl, padding: S.xl, shadowColor: T.orange, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 6 },
+  ctaTitle:          { fontSize: F.size.xl, fontWeight: F.weight.bold, color: '#fff' },
+  ctaSub:            { fontSize: F.size.sm, color: 'rgba(255,255,255,0.9)', marginTop: 3 },
+  ctaBtn:            { backgroundColor: '#fff', paddingHorizontal: S.xl, paddingVertical: 11, borderRadius: R.full, flexShrink: 0 },
+  ctaBtnText:        { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.orange },
 })
