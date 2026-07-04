@@ -7,13 +7,14 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import {
   Search, UserPlus, MessageCircle,
-  Users, ChevronRight, Plus,
+  Users, ChevronRight, Plus, Bell,
 } from 'lucide-react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
 import { T, F, S, R } from '@/lib/tokens'
-import { TrivaiHeader } from '@/components/TrivaiHeader'
+import { AppHeader, ProfileAvatar } from '@/components/ui/AppHeader'
+import { deferredPush } from '@/lib/deferredNav'
 import { CatCover } from '@/components/CatCover'
 import { grantXP, XP } from '@/lib/xp'
 import { crearNotificacion } from '@/lib/notify'
@@ -353,22 +354,24 @@ export default function Amigos() {
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
 
-        {/* 1. HEADER */}
-        <TrivaiHeader
-          title="Amigos"
-          left={
-            <TouchableOpacity style={styles.roundBtn} onPress={() => router.push('/perfil')}>
-              {avatarUrl
-                ? <Image source={{ uri: avatarUrl }} style={styles.headerAvatar} />
-                : <Text style={styles.headerIni}>{initials}</Text>}
+        <AppHeader
+          title="Actividad"
+          left={<ProfileAvatar initials={initials} avatarUrl={avatarUrl} onPress={() => deferredPush('/perfil')} />}
+          right={(
+            <TouchableOpacity style={styles.roundBtnSurface} onPress={() => deferredPush('/notificaciones')}>
+              <Bell size={20} color={T.primary} strokeWidth={2} />
             </TouchableOpacity>
-          }
-          right={
-            <TouchableOpacity style={styles.roundBtnSurface} onPress={() => router.push('/buscar')}>
-              <UserPlus size={20} color={T.purple} strokeWidth={2} />
-            </TouchableOpacity>
-          }
+          )}
         />
+
+        <TouchableOpacity style={styles.notifPreview} onPress={() => deferredPush('/notificaciones')} activeOpacity={0.9}>
+          <View style={styles.notifIcon}><Bell size={18} color={T.primary} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.notifTitle}>Notificaciones</Text>
+            <Text style={styles.notifSub}>Invitaciones, amigos y eventos</Text>
+          </View>
+          <ChevronRight size={18} color={T.fg4} />
+        </TouchableOpacity>
 
         {/* 2. BUSCADOR */}
         <View style={styles.searchRow}>
@@ -624,7 +627,20 @@ export default function Amigos() {
 }
 
 const styles = StyleSheet.create({
-  root:              { flex: 1, backgroundColor: '#FFFFFF' },
+  root:              { flex: 1, backgroundColor: T.bg },
+  notifPreview: {
+    flexDirection: 'row', alignItems: 'center', gap: S.md,
+    marginHorizontal: S.lg, marginTop: S.sm, marginBottom: S.sm,
+    backgroundColor: T.surface, borderRadius: R.xl, padding: S.lg, ...{
+      shadowColor: '#15131A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 14, elevation: 3,
+    },
+  },
+  notifIcon: {
+    width: 44, height: 44, borderRadius: R.full, backgroundColor: T.purpleSoft,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  notifTitle: { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
+  notifSub: { fontSize: F.size.xs, color: T.fg3, marginTop: 2 },
   roundBtn:          { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   roundBtnSurface:   { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.surface, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
   headerAvatar:      { width: 38, height: 38, borderRadius: 19 },

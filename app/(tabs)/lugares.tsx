@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
 import { T, F, S, R, normalizeCategory, getCatColor, getCatLabel } from '@/lib/tokens'
 import { deferredPush } from '@/lib/deferredNav'
-import { TrivaiHeader } from '@/components/TrivaiHeader'
+import { AppHeader, ProfileAvatar } from '@/components/ui/AppHeader'
 import { DiscoveryCard } from '@/components/DiscoveryCard'
 import { DiscoveryRow } from '@/components/DiscoveryRow'
 import { calcIsOpen } from '@/lib/hours'
@@ -194,15 +194,9 @@ export default function Lugares() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
 
         {/* 1. HEADER */}
-        <TrivaiHeader
+        <AppHeader
           title="Lugares"
-          left={
-            <TouchableOpacity style={styles.roundBtn} onPress={() => deferredPush('/perfil')}>
-              {avatarUrl
-                ? <Image source={{ uri: avatarUrl }} style={styles.headerAvatar} />
-                : <Text style={styles.headerIni}>{initials}</Text>}
-            </TouchableOpacity>
-          }
+          left={<ProfileAvatar initials={initials} avatarUrl={avatarUrl} onPress={() => deferredPush('/perfil')} />}
           right={
             <TouchableOpacity style={styles.roundBtnSurface} onPress={() => router.push('/buscar')}>
               <SlidersHorizontal size={18} color={T.fg2} />
@@ -404,7 +398,7 @@ function RowLugar({ item }: { item: Place }) {
 }
 
 const styles = StyleSheet.create({
-  root:              { flex: 1, backgroundColor: '#FFFFFF' },
+  root:              { flex: 1, backgroundColor: T.bg },
   roundBtn:          { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   headerAvatar:      { width: 38, height: 38, borderRadius: 19 },
   headerIni:         { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.purple },

@@ -40,7 +40,8 @@
       "expo-router",
       "expo-location",
       "expo-web-browser",
-      "expo-image-picker"
+      "expo-image-picker",
+      "expo-font"
     ]
   }
 }

@@ -14,7 +14,7 @@ import {
 import { useUser } from '@/hooks/useUser'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R } from '@/lib/tokens'
-import { TrivaiHeader } from '@/components/TrivaiHeader'
+import { AppHeader } from '@/components/ui/AppHeader'
 import { CatCover } from '@/components/CatCover'
 
 const NIVELES = [
@@ -175,7 +175,7 @@ export default function Perfil() {
     <SafeAreaView style={styles.root} edges={['top']}>
 
       {/* 1. HEADER */}
-      <TrivaiHeader
+      <AppHeader
         title="Perfil"
         left={isAuthenticated ? (
           <TouchableOpacity

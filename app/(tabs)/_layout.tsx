@@ -17,7 +17,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: T.purple,
+        tabBarActiveTintColor: T.primary,
         tabBarInactiveTintColor: T.fg3,
         tabBarStyle: {
           backgroundColor: T.surface,
@@ -31,7 +31,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: 'Inicio', tabBarIcon: ({ color, size }) => <Compass size={size} color={color}/> }}
+        options={{ title: 'Descubrir', tabBarIcon: ({ color, size }) => <Compass size={size} color={color}/> }}
       />
       <Tabs.Screen
         name="mapa"
@@ -66,7 +66,7 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="amigos"
-        options={{ title: 'Amigos', tabBarIcon: ({ color, size }) => <Users size={size} color={color}/> }}
+        options={{ title: 'Actividad', tabBarIcon: ({ color, size }) => <Users size={size} color={color}/> }}
       />
       <Tabs.Screen
         name="perfil"

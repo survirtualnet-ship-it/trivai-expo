@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { MapEmbed } from '@/components/MapEmbed'
-import { TrivaiHeader } from '@/components/TrivaiHeader'
+import { AppHeader, ProfileAvatar } from '@/components/ui/AppHeader'
 import { Navigation } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor, CATEGORY_CHIPS, normalizeCategory, type Category } from '@/lib/tokens'
@@ -193,17 +193,11 @@ export default function Mapa() {
     <SafeAreaView style={styles.root} edges={['top']}>
 
       {/* TOPBAR */}
-      <TrivaiHeader
+      <AppHeader
         title={typeof params.zona === 'string' && params.zona ? params.zona : 'Mapa'}
-        left={
-          <TouchableOpacity style={styles.avatarBtn} onPress={() => deferredPush('/perfil')}>
-            {avatarUrl
-              ? <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
-              : <Text style={styles.avatarIni}>{initials}</Text>}
-          </TouchableOpacity>
-        }
+        left={<ProfileAvatar initials={initials} avatarUrl={avatarUrl} onPress={() => deferredPush('/perfil')} />}
         right={
-          <TouchableOpacity style={[styles.locBtn, userPos && { backgroundColor: T.purple }]} onPress={async () => {
+          <TouchableOpacity style={[styles.locBtn, userPos && { backgroundColor: T.primary }]} onPress={async () => {
             const p = await getCurrentCoords()
             if (p) {
               setUserPos(p)
@@ -214,7 +208,7 @@ export default function Mapa() {
               setSeleccionado(null)
             }
           }}>
-            <Navigation size={16} color={userPos ? '#fff' : T.purple} />
+            <Navigation size={16} color={userPos ? '#fff' : T.primary} />
           </TouchableOpacity>
         }
       />
@@ -280,10 +274,7 @@ export default function Mapa() {
 
 const styles = StyleSheet.create({
   root:         { flex: 1, backgroundColor: T.bg },
-  avatarBtn:    { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  avatarImg:    { width: 38, height: 38, borderRadius: 19 },
-  avatarIni:    { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.purple },
-  locBtn:       { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+  locBtn:       { width: 44, height: 44, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center' },
   filtrosWrap:  { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, maxHeight: 52 },
   filtros:      { paddingHorizontal: S.lg, paddingVertical: S.sm, gap: S.sm, alignItems: 'center' },
   chip:         { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: S.md, paddingVertical: 6, borderRadius: R.full, backgroundColor: T.muted, borderWidth: 1, borderColor: T.border },
