@@ -37,7 +37,8 @@ import {
   matchesSearch,
 } from '@/lib/smartSearch'
 
-type QuickFilter = 'hoy' | 'cerca' | null
+type LocationFilter = 'hoy' | 'cerca' | CityZone
+type CategoryFilter = Category | 'Todos'
 
 interface FriendActivity {
   id: string
@@ -81,9 +82,8 @@ export default function Discover() {
   const [actividad, setActividad] = useState<FriendActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [sinLeer, setSinLeer] = useState(0)
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>(null)
-  const [zoneFilter, setZoneFilter] = useState<CityZone | null>(null)
-  const [categoryFilter, setCategoryFilter] = useState<Category | null>(null)
+  const [locationFilter, setLocationFilter] = useState<LocationFilter | null>(null)
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('Todos')
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -216,39 +216,38 @@ export default function Discover() {
     let places = [...lugaresConDist]
     let events = [...eventosConDist]
 
-    if (categoryFilter) {
+    if (categoryFilter !== 'Todos') {
       places = places.filter(p => normalizeCategory(p.category) === categoryFilter)
       events = events.filter(e => normalizeCategory(e.category) === categoryFilter)
     }
 
-    if (zoneFilter) {
-      places = places.filter(p => placeInZone(p, zoneFilter))
-      events = events.filter(e => eventInZone(e, zoneFilter))
-    }
-
-    if (quickFilter === 'hoy') {
+    if (locationFilter === 'hoy') {
       events = events.filter(e => esHoy(e.start_datetime))
-    }
-
-    if (quickFilter === 'cerca' && userCoords) {
+      if (categoryFilter === 'Entretenimiento') {
+        places = []
+      }
+    } else if (locationFilter === 'cerca' && userCoords) {
       places = places
         .filter(p => p._dist != null)
         .sort((a, b) => (a._dist ?? 99) - (b._dist ?? 99))
       events = events
         .filter(e => e._dist != null)
         .sort((a, b) => (a._dist ?? 99) - (b._dist ?? 99))
+    } else if (locationFilter != null && locationFilter !== 'hoy' && locationFilter !== 'cerca') {
+      places = places.filter(p => placeInZone(p, locationFilter))
+      events = events.filter(e => eventInZone(e, locationFilter))
     }
 
     return { filteredPlaces: places, filteredEvents: events }
-  }, [lugaresConDist, eventosConDist, categoryFilter, zoneFilter, quickFilter, userCoords])
+  }, [lugaresConDist, eventosConDist, categoryFilter, locationFilter, userCoords])
 
   const lugaresCerca = useMemo(() => {
     let list = [...filteredPlaces]
-    if (quickFilter !== 'cerca') {
+    if (locationFilter !== 'cerca') {
       list = list.sort((a, b) => (b.rating_avg ?? 0) - (a.rating_avg ?? 0))
     }
     return list.slice(0, 6)
-  }, [filteredPlaces, quickFilter])
+  }, [filteredPlaces, locationFilter])
 
   const destacados = useMemo(() => {
     const list = [...filteredEvents].sort((a, b) => (b.attendees_count ?? 0) - (a.attendees_count ?? 0))
@@ -257,23 +256,28 @@ export default function Discover() {
 
   const hero = destacados[0] ?? null
   const { noche, manana, finde } = groupEventsByBucket(filteredEvents)
-  const toggleQuick = (f: QuickFilter) => setQuickFilter(prev => (prev === f ? null : f))
-  const toggleZone = (z: CityZone) => setZoneFilter(prev => (prev === z ? null : z))
-  const toggleCategory = (cat: Category) => setCategoryFilter(prev => (prev === cat ? null : cat))
 
-  const isFilterMode = categoryFilter != null || zoneFilter != null || quickFilter != null
-  const showBrowseSections = !isFilterMode && !isSearchActive
-  const showEventSections = quickFilter !== 'cerca' || filteredEvents.length > 0
-  const emphasizePlaces = quickFilter === 'cerca'
+  const selectLocation = (f: LocationFilter) =>
+    setLocationFilter(prev => (prev === f ? null : f))
+
+  const isFilterMode = locationFilter != null || categoryFilter !== 'Todos' || isSearchActive
+  const showBrowseSections = !isFilterMode
+  const showEventSections = locationFilter !== 'cerca' || filteredEvents.length > 0
+  const emphasizePlaces = locationFilter === 'cerca'
+
+  const locationFilterLabel = useMemo(() => {
+    if (locationFilter == null) return null
+    if (locationFilter === 'hoy') return t.filterHoy
+    if (locationFilter === 'cerca') return t.filterCerca
+    return locationFilter
+  }, [locationFilter, t])
 
   const filterSummary = useMemo(() => {
     const parts: string[] = []
-    if (categoryFilter) parts.push(categoryFilter)
-    if (zoneFilter) parts.push(zoneFilter)
-    if (quickFilter === 'hoy') parts.push(t.filterHoy)
-    if (quickFilter === 'cerca') parts.push(t.filterCerca)
+    if (locationFilterLabel) parts.push(locationFilterLabel)
+    if (categoryFilter !== 'Todos') parts.push(categoryFilter)
     return parts.join(' · ')
-  }, [categoryFilter, zoneFilter, quickFilter, t])
+  }, [locationFilterLabel, categoryFilter])
 
   const handleSignOut = async () => {
     await signOut()
@@ -310,15 +314,20 @@ export default function Discover() {
         />
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
-          <FilterChip label={t.filterHoy} active={quickFilter === 'hoy'} onPress={() => toggleQuick('hoy')} />
-          <FilterChip label={t.filterCerca} active={quickFilter === 'cerca'} onPress={() => toggleQuick('cerca')} accent={T.secondary} />
+          <FilterChip label={t.filterHoy} active={locationFilter === 'hoy'} onPress={() => selectLocation('hoy')} />
+          <FilterChip label={t.filterCerca} active={locationFilter === 'cerca'} onPress={() => selectLocation('cerca')} accent={T.secondary} />
           {CITY_ZONES.map(z => (
-            <FilterChip key={z} label={z} active={zoneFilter === z} onPress={() => toggleZone(z)} />
+            <FilterChip key={z} label={z} active={locationFilter === z} onPress={() => selectLocation(z)} />
           ))}
         </ScrollView>
 
         <SectionHeader title="Explorar por tipo" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+          <FilterChip
+            label={t.filterTodos}
+            active={categoryFilter === 'Todos'}
+            onPress={() => setCategoryFilter('Todos')}
+          />
           {CATEGORIAS.map(c => (
             <CategoryChip
               key={c.label}
@@ -327,7 +336,7 @@ export default function Discover() {
               color={c.color}
               bg={c.bg}
               active={categoryFilter === c.label}
-              onPress={() => toggleCategory(c.label)}
+              onPress={() => setCategoryFilter(c.label)}
             />
           ))}
         </ScrollView>
@@ -513,9 +522,8 @@ export default function Discover() {
             <Text style={styles.emptyIcon}>{isSearchActive || isFilterMode ? '🔍' : '✨'}</Text>
             <Text style={styles.emptyTitle}>{t.noResults}</Text>
             <TouchableOpacity onPress={() => {
-              setQuickFilter(null)
-              setZoneFilter(null)
-              setCategoryFilter(null)
+              setLocationFilter(null)
+              setCategoryFilter('Todos')
               setSearchQuery('')
             }}>
               <Text style={styles.emptyLink}>{t.seeAllLink}</Text>
