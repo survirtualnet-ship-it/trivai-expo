@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -10,6 +10,7 @@ import { T, F, S, R, getCatEmoji, getCatColor, CATEGORY_CHIPS, normalizeCategory
 import { getCurrentCoords } from '@/lib/geolocation'
 import { ENV } from '@/lib/env'
 import { useUser } from '@/hooks/useUser'
+import { deferredPush } from '@/lib/deferredNav'
 
 interface Marcador {
   id: string; name: string; category: string
@@ -183,7 +184,10 @@ export default function Mapa() {
     } catch {}
   }, [])
 
-  const mapHTML = buildMapHTML(marcadores, centro, apiKey, seleccionado?.id, userPos)
+  const mapHTML = useMemo(
+    () => buildMapHTML(marcadores, centro, apiKey, seleccionado?.id, userPos),
+    [marcadores, centro, apiKey, seleccionado?.id, userPos],
+  )
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
@@ -192,7 +196,7 @@ export default function Mapa() {
       <TrivaiHeader
         title={typeof params.zona === 'string' && params.zona ? params.zona : 'Mapa'}
         left={
-          <TouchableOpacity style={styles.avatarBtn} onPress={() => router.push('/perfil')}>
+          <TouchableOpacity style={styles.avatarBtn} onPress={() => deferredPush('/perfil')}>
             {avatarUrl
               ? <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
               : <Text style={styles.avatarIni}>{initials}</Text>}

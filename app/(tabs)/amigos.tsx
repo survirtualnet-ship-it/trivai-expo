@@ -17,6 +17,7 @@ import { TrivaiHeader } from '@/components/TrivaiHeader'
 import { CatCover } from '@/components/CatCover'
 import { grantXP, XP } from '@/lib/xp'
 import { crearNotificacion } from '@/lib/notify'
+import { deferredPush } from '@/lib/deferredNav'
 
 const COLORS = [T.purpleSoft, T.orangeSoft, T.greenSoft, T.muted]
 const TEXTS  = [T.purple,      T.orange,      T.green,      T.fg2   ]
@@ -384,22 +385,24 @@ export default function Amigos() {
           </View>
         </View>
 
-        {isAuthenticated && (
-          <LinearGradient
-            colors={[T.orange, T.green]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.ctaCard}
+        <LinearGradient
+          colors={[T.orange, T.green]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.ctaCard}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.ctaTitle}>Crea planes con tus amigos</Text>
+            <Text style={styles.ctaSub}>Organiza salidas y comparte la experiencia.</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.ctaBtn}
+            onPress={() => deferredPush(isAuthenticated ? '/publicar' : '/auth')}
+            activeOpacity={0.85}
           >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.ctaTitle}>Crea planes con tus amigos</Text>
-              <Text style={styles.ctaSub}>Organiza salidas y comparte la experiencia.</Text>
-            </View>
-            <TouchableOpacity style={styles.ctaBtn} onPress={() => router.push('/publicar')} activeOpacity={0.85}>
-              <Text style={styles.ctaBtnText}>Crear plan</Text>
-            </TouchableOpacity>
-          </LinearGradient>
-        )}
+            <Text style={styles.ctaBtnText}>Crear plan</Text>
+          </TouchableOpacity>
+        </LinearGradient>
 
         {loading ? (
           <ActivityIndicator color={T.purple} style={{ marginTop: 40 }} />
@@ -470,29 +473,33 @@ export default function Amigos() {
               ) : (
                 <View style={styles.card}>
                   {amigosFiltrados.map((a, idx) => (
-                    <TouchableOpacity
+                    <View
                       key={a.id}
                       style={[styles.friendRow, idx < amigosFiltrados.length - 1 && styles.rowBorder]}
-                      onPress={() => router.push(`/perfil/${a.id}`)}
-                      activeOpacity={0.7}
                     >
-                      <FriendAvatar
-                        nombre={a.nombre} initials={a.initials} avatarUrl={a.avatarUrl}
-                        colorIdx={a.colorIdx} size={48} online={a.status.online}
-                      />
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={styles.friendName} numberOfLines={1}>{a.nombre}</Text>
-                        <Text style={[styles.friendStatus, { color: a.status.color }]}>{a.status.label}</Text>
-                      </View>
+                      <TouchableOpacity
+                        style={styles.friendMain}
+                        onPress={() => deferredPush(`/perfil/${a.id}`)}
+                        activeOpacity={0.7}
+                      >
+                        <FriendAvatar
+                          nombre={a.nombre} initials={a.initials} avatarUrl={a.avatarUrl}
+                          colorIdx={a.colorIdx} size={48} online={a.status.online}
+                        />
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={styles.friendName} numberOfLines={1}>{a.nombre}</Text>
+                          <Text style={[styles.friendStatus, { color: a.status.color }]}>{a.status.label}</Text>
+                        </View>
+                      </TouchableOpacity>
                       <View style={styles.friendActions}>
-                        <TouchableOpacity style={styles.iconAction} onPress={() => router.push(`/perfil/${a.id}`)} hitSlop={8}>
+                        <TouchableOpacity style={styles.iconAction} onPress={() => deferredPush(`/perfil/${a.id}`)} hitSlop={8}>
                           <MessageCircle size={18} color={T.purple} strokeWidth={2} />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.inviteBtn} onPress={() => router.push('/eventos')} hitSlop={8}>
+                        <TouchableOpacity style={styles.inviteBtn} onPress={() => deferredPush('/eventos')} hitSlop={8}>
                           <Text style={styles.inviteBtnText}>Invitar</Text>
                         </TouchableOpacity>
                       </View>
-                    </TouchableOpacity>
+                    </View>
                   ))}
                   {amigosFiltrados.length === 0 && busqueda.trim() && (
                     <Text style={styles.noResults}>Sin resultados para "{busqueda.trim()}"</Text>
@@ -642,6 +649,7 @@ const styles = StyleSheet.create({
   btnRechazarText:   { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.fg2 },
   // Amigos
   friendRow:         { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingHorizontal: S.lg, paddingVertical: S.md },
+  friendMain:        { flex: 1, flexDirection: 'row', alignItems: 'center', gap: S.md, minWidth: 0 },
   friendName:        { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.fg1 },
   friendUser:        { fontSize: F.size.xs, color: T.fg3, marginTop: 1 },
   friendStatus:      { fontSize: F.size.xs, fontWeight: F.weight.medium, marginTop: 2 },

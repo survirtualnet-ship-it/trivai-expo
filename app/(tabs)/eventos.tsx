@@ -1,13 +1,15 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, NativeSyntheticEvent, NativeScrollEvent,
+  StyleSheet, ActivityIndicator, NativeSyntheticEvent, NativeScrollEvent, Image,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { ArrowLeft, Search, SlidersHorizontal, Map } from 'lucide-react-native'
+import { Search, SlidersHorizontal, Map } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
+import { useUser } from '@/hooks/useUser'
 import { T, F, S } from '@/lib/tokens'
+import { deferredPush } from '@/lib/deferredNav'
 import { TrivaiHeader } from '@/components/TrivaiHeader'
 import { FilterPill } from '@/components/eventos/FilterPill'
 import { DateCard, DateCalendarButton } from '@/components/eventos/DateCard'
@@ -72,6 +74,7 @@ function pasaPill(ev: ListEvent, pill: FiltroPill) {
 }
 
 export default function Eventos() {
+  const { initials, avatarUrl } = useUser()
   const [eventos, setEventos]         = useState<ListEvent[]>([])
   const [loading, setLoading]           = useState(true)
   const [pill, setPill]                 = useState<FiltroPill>('Todos')
@@ -154,8 +157,10 @@ export default function Eventos() {
           light
           title="Eventos"
           left={
-            <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()} hitSlop={8}>
-              <ArrowLeft size={22} color={T.fg1} strokeWidth={2.25} />
+            <TouchableOpacity style={styles.avatarBtn} onPress={() => deferredPush('/perfil')}>
+              {avatarUrl
+                ? <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
+                : <Text style={styles.avatarIni}>{initials}</Text>}
             </TouchableOpacity>
           }
           right={
@@ -279,6 +284,25 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 40,
+  },
+  avatarBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 999,
+    backgroundColor: T.purpleSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImg: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+  },
+  avatarIni: {
+    fontSize: F.size.sm,
+    fontWeight: F.weight.bold,
+    color: T.purple,
   },
   iconBtn: {
     width: 40,

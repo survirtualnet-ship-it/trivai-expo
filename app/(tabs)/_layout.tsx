@@ -3,6 +3,7 @@ import { Tabs, router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Compass, Map, Users, User, Plus } from 'lucide-react-native'
 import { T } from '@/lib/tokens'
+import { deferredPush } from '@/lib/deferredNav'
 
 /** Altura base del contenido (iconos + etiquetas), sin barra del sistema */
 const TAB_BAR_CONTENT_HEIGHT = 52
@@ -45,7 +46,7 @@ export default function TabsLayout() {
           tabBarButton: () => (
             <TouchableOpacity
               style={styles.fabWrap}
-              onPress={() => router.push('/publicar')}
+              onPress={() => deferredPush('/publicar')}
               activeOpacity={0.85}
               accessibilityLabel="Publicar"
               accessibilityRole="button"
@@ -59,7 +60,7 @@ export default function TabsLayout() {
         listeners={{
           tabPress: (e) => {
             e.preventDefault()
-            router.push('/publicar')
+            deferredPush('/publicar')
           },
         }}
       />

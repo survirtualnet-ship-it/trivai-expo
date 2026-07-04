@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
 import { T, F, S, R, normalizeCategory, getCatColor, getCatLabel } from '@/lib/tokens'
+import { deferredPush } from '@/lib/deferredNav'
 import { TrivaiHeader } from '@/components/TrivaiHeader'
 import { DiscoveryCard } from '@/components/DiscoveryCard'
 import { DiscoveryRow } from '@/components/DiscoveryRow'
@@ -196,7 +197,7 @@ export default function Lugares() {
         <TrivaiHeader
           title="Lugares"
           left={
-            <TouchableOpacity style={styles.roundBtn} onPress={() => router.push('/perfil')}>
+            <TouchableOpacity style={styles.roundBtn} onPress={() => deferredPush('/perfil')}>
               {avatarUrl
                 ? <Image source={{ uri: avatarUrl }} style={styles.headerAvatar} />
                 : <Text style={styles.headerIni}>{initials}</Text>}
