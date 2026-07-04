@@ -10,7 +10,6 @@ import { supabase } from '@/lib/supabase'
 import type { Place } from '@/lib/supabase'
 import { T, F, S, R, getCatColor } from '@/lib/tokens'
 import { CatCover, CategoryPill } from '@/components/CatCover'
-import { CatCover } from '@/components/CatCover'
 import { grantXP, XP } from '@/lib/xp'
 import { calcIsOpen } from '@/lib/hours'
 
