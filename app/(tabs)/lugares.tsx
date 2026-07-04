@@ -6,11 +6,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import {
-  Search, ArrowLeft, SlidersHorizontal, LayoutGrid,
+  Search, SlidersHorizontal, LayoutGrid,
   UtensilsCrossed, Palette, Trees, Sparkles,
 } from 'lucide-react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '@/lib/supabase'
+import { useUser } from '@/hooks/useUser'
 import { T, F, S, R, normalizeCategory, getCatColor, getCatLabel } from '@/lib/tokens'
 import { TrivaiHeader } from '@/components/TrivaiHeader'
 import { DiscoveryCard } from '@/components/DiscoveryCard'
@@ -71,6 +72,7 @@ const MAP_PREVIEW_URI = ENV.googleMapsKey
   : null
 
 export default function Lugares() {
+  const { initials, avatarUrl } = useUser()
   const { cat: catParam } = useLocalSearchParams<{ cat?: string }>()
   const [lugares,       setLugares]       = useState<Place[]>([])
   const [searchResults, setSearchResults] = useState<Place[]>([])
@@ -194,8 +196,10 @@ export default function Lugares() {
         <TrivaiHeader
           title="Lugares"
           left={
-            <TouchableOpacity style={styles.roundBtn} onPress={() => router.back()} hitSlop={8}>
-              <ArrowLeft size={20} color={T.purple} strokeWidth={2.25} />
+            <TouchableOpacity style={styles.roundBtn} onPress={() => router.push('/perfil')}>
+              {avatarUrl
+                ? <Image source={{ uri: avatarUrl }} style={styles.headerAvatar} />
+                : <Text style={styles.headerIni}>{initials}</Text>}
             </TouchableOpacity>
           }
           right={
@@ -400,7 +404,9 @@ function RowLugar({ item }: { item: Place }) {
 
 const styles = StyleSheet.create({
   root:              { flex: 1, backgroundColor: '#FFFFFF' },
-  roundBtn:          { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center' },
+  roundBtn:          { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  headerAvatar:      { width: 38, height: 38, borderRadius: 19 },
+  headerIni:         { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.purple },
   roundBtnSurface:   { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.surface, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
   searchRow:         { flexDirection: 'row', alignItems: 'center', paddingHorizontal: S.lg, marginTop: S.lg },
   searchBox:         { flex: 1, flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.bg, borderRadius: R.xl, paddingHorizontal: S.lg, height: 48 },

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { MapEmbed } from '@/components/MapEmbed'
@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor, CATEGORY_CHIPS, normalizeCategory, type Category } from '@/lib/tokens'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { ENV } from '@/lib/env'
+import { useUser } from '@/hooks/useUser'
 
 interface Marcador {
   id: string; name: string; category: string
@@ -103,6 +104,7 @@ function initMap() {
 }
 
 export default function Mapa() {
+  const { initials, avatarUrl } = useUser()
   const params = useLocalSearchParams<{ lugar?: string; lat?: string; lng?: string; zona?: string }>()
 
   const [todos,        setTodos]        = useState<Marcador[]>([])
@@ -189,6 +191,13 @@ export default function Mapa() {
       {/* TOPBAR */}
       <TrivaiHeader
         title={typeof params.zona === 'string' && params.zona ? params.zona : 'Mapa'}
+        left={
+          <TouchableOpacity style={styles.avatarBtn} onPress={() => router.push('/perfil')}>
+            {avatarUrl
+              ? <Image source={{ uri: avatarUrl }} style={styles.avatarImg} />
+              : <Text style={styles.avatarIni}>{initials}</Text>}
+          </TouchableOpacity>
+        }
         right={
           <TouchableOpacity style={[styles.locBtn, userPos && { backgroundColor: T.purple }]} onPress={async () => {
             const p = await getCurrentCoords()
@@ -267,6 +276,9 @@ export default function Mapa() {
 
 const styles = StyleSheet.create({
   root:         { flex: 1, backgroundColor: T.bg },
+  avatarBtn:    { width: 38, height: 38, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarImg:    { width: 38, height: 38, borderRadius: 19 },
+  avatarIni:    { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.purple },
   locBtn:       { width: 36, height: 36, borderRadius: R.full, backgroundColor: T.purpleSoft, alignItems: 'center', justifyContent: 'center' },
   filtrosWrap:  { backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border, maxHeight: 52 },
   filtros:      { paddingHorizontal: S.lg, paddingVertical: S.sm, gap: S.sm, alignItems: 'center' },

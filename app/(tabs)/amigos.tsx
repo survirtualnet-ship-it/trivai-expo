@@ -384,6 +384,23 @@ export default function Amigos() {
           </View>
         </View>
 
+        {isAuthenticated && (
+          <LinearGradient
+            colors={[T.orange, T.green]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.ctaCard}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={styles.ctaTitle}>Crea planes con tus amigos</Text>
+              <Text style={styles.ctaSub}>Organiza salidas y comparte la experiencia.</Text>
+            </View>
+            <TouchableOpacity style={styles.ctaBtn} onPress={() => router.push('/publicar')} activeOpacity={0.85}>
+              <Text style={styles.ctaBtnText}>Crear plan</Text>
+            </TouchableOpacity>
+          </LinearGradient>
+        )}
+
         {loading ? (
           <ActivityIndicator color={T.purple} style={{ marginTop: 40 }} />
         ) : !isAuthenticated ? (
@@ -545,23 +562,7 @@ export default function Amigos() {
               </View>
             )}
 
-            {/* 7. CTA PLANIFICAR */}
-            <LinearGradient
-              colors={[T.orange, T.green]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaCard}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={styles.ctaTitle}>Crea planes con tus amigos</Text>
-                <Text style={styles.ctaSub}>Organiza salidas y comparte la experiencia.</Text>
-              </View>
-              <TouchableOpacity style={styles.ctaBtn} onPress={() => router.push('/publicar')} activeOpacity={0.85}>
-                <Text style={styles.ctaBtnText}>Crear plan</Text>
-              </TouchableOpacity>
-            </LinearGradient>
-
-            {/* 8. GRUPOS (derivados de eventos compartidos) */}
+            {/* 7. GRUPOS (derivados de eventos compartidos) */}
             {grupos.length > 0 && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Grupos</Text>
@@ -666,7 +667,7 @@ const styles = StyleSheet.create({
   sugBtnText:        { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.purple },
   sugBtnTextSent:    { color: T.green },
   // CTA
-  ctaCard:           { flexDirection: 'row', alignItems: 'center', gap: S.md, marginHorizontal: S.lg, marginTop: S.xxl, borderRadius: R.xl, padding: S.xl, shadowColor: T.orange, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 6 },
+  ctaCard:           { flexDirection: 'row', alignItems: 'center', gap: S.md, marginHorizontal: S.lg, marginTop: S.lg, borderRadius: R.xl, padding: S.xl, shadowColor: T.orange, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 6 },
   ctaTitle:          { fontSize: F.size.xl, fontWeight: F.weight.bold, color: '#fff' },
   ctaSub:            { fontSize: F.size.sm, color: 'rgba(255,255,255,0.9)', marginTop: 3 },
   ctaBtn:            { backgroundColor: '#fff', paddingHorizontal: S.xl, paddingVertical: 11, borderRadius: R.full, flexShrink: 0 },
