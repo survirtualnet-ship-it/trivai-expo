@@ -1,5 +1,5 @@
-import { memo, type ReactNode } from 'react'
-import { ScrollView, StyleSheet } from 'react-native'
+import { memo, useRef, useEffect, type ReactNode } from 'react'
+import { ScrollView, StyleSheet, Platform } from 'react-native'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { DiscoverCarouselSkeleton } from '@/components/discover/DiscoverCarouselCard'
 import { S } from '@/lib/tokens'
@@ -19,24 +19,43 @@ export const DiscoverCarouselSection = memo(function DiscoverCarouselSection({
   loading = false,
   children,
 }: Props) {
+  const scrollRef = useRef<ScrollView>(null)
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return
+    const node = scrollRef.current as unknown as { getScrollableNode?: () => HTMLElement }
+    const el = node?.getScrollableNode?.()
+    if (!el) return
+
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return
+      e.preventDefault()
+      el.scrollLeft += e.deltaY
+    }
+
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [loading, children])
+
+  const carouselProps = {
+    ref: scrollRef,
+    horizontal: true as const,
+    showsHorizontalScrollIndicator: Platform.OS === 'web',
+    nestedScrollEnabled: true,
+    contentContainerStyle: styles.list,
+    style: Platform.OS === 'web' ? styles.webScroll : undefined,
+  }
+
   return (
     <>
       <SectionHeader title={title} actionLabel={actionLabel} onAction={onAction} />
       {loading ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.list}
-        >
+        <ScrollView {...carouselProps}>
           <DiscoverCarouselSkeleton />
           <DiscoverCarouselSkeleton />
         </ScrollView>
       ) : (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.list}
-        >
+        <ScrollView {...carouselProps}>
           {children}
         </ScrollView>
       )}
@@ -50,4 +69,13 @@ const styles = StyleSheet.create({
     gap: S.md,
     paddingBottom: 4,
   },
+  webScroll: Platform.OS === 'web'
+    ? ({
+        width: '100%',
+        overflowX: 'auto',
+        overflowY: 'hidden',
+        flexGrow: 0,
+        cursor: 'grab',
+      } as object)
+    : {},
 })

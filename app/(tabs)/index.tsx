@@ -339,6 +339,7 @@ export default function Discover() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
         onScrollBeginDrag={() => Keyboard.dismiss()}
       >
 
@@ -399,7 +400,7 @@ export default function Discover() {
         )}
 
         {(isFilterMode || isSearchActive) && !isFilterPending && filteredPlaces.length > 0 && (
-          <DiscoverCarouselSection title="Lugares" actionLabel={t.seeAll} onAction={() => deferredPush('/lugares')}>
+          <DiscoverCarouselSection title="Lugares">
             {filteredPlaces.map(renderPlaceCarouselCard)}
           </DiscoverCarouselSection>
         )}
@@ -411,12 +412,7 @@ export default function Discover() {
         )}
 
         {showBrowseSections && !loading && cercaDeTi.length > 0 && (
-          <DiscoverCarouselSection
-            title="Cerca de ti"
-            actionLabel={t.seeAll}
-            onAction={() => deferredPush('/lugares')}
-            loading={loading}
-          >
+          <DiscoverCarouselSection title="Cerca de ti" loading={loading}>
             {cercaDeTi.map(renderSuggestionCard)}
           </DiscoverCarouselSection>
         )}
