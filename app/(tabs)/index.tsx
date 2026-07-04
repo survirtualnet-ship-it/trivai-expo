@@ -106,13 +106,13 @@ export default function Discover() {
           .select('id,name,category,address,rating_avg,is_open,hours,latitude,longitude,photos')
           .not('latitude', 'is', null)
           .order('rating_avg', { ascending: false })
-          .limit(64),
+          .limit(200),
         supabase.from('events')
           .select('id,name,category,start_datetime,is_free,price,attendees_count,photos,place:places(name,address,latitude,longitude)')
           .eq('is_active', true)
           .gte('start_datetime', new Date().toISOString())
           .order('start_datetime', { ascending: true })
-          .limit(64),
+          .limit(200),
       ]
 
       if (user) {

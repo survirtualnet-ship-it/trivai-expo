@@ -58,21 +58,27 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY)
 
 // ─── Configuración ────────────────────────────────────────────────────────────
 const SANTA_CRUZ = { lat: -17.7833, lng: -63.1821 }
-const RADIUS     = 8000  // 8 km de radio
+const RADIUS     = 12000  // 12 km de radio
 
 const SEARCHES = [
   { type: 'restaurant',         category: 'Gastronomía'     },
   { type: 'cafe',               category: 'Gastronomía'     },
   { type: 'bar',                category: 'Gastronomía'     },
+  { type: 'bakery',             category: 'Gastronomía'     },
+  { type: 'meal_takeaway',      category: 'Gastronomía'     },
   { type: 'night_club',         category: 'Entretenimiento' },
   { type: 'museum',             category: 'Entretenimiento' },
   { type: 'art_gallery',        category: 'Entretenimiento' },
   { type: 'movie_theater',      category: 'Entretenimiento' },
   { type: 'tourist_attraction', category: 'Entretenimiento' },
-  { type: 'spa',                category: 'Otros'           },
+  { type: 'amusement_park',     category: 'Entretenimiento' },
+  { type: 'stadium',            category: 'Entretenimiento' },
+  { type: 'bowling_alley',      category: 'Entretenimiento' },
   { type: 'gym',                category: 'Entretenimiento' },
+  { type: 'spa',                category: 'Otros'           },
   { type: 'shopping_mall',      category: 'Otros'           },
   { type: 'park',               category: 'Parques'         },
+  { type: 'campground',         category: 'Parques'         },
 ]
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
@@ -116,7 +122,81 @@ async function placeDetails(placeId) {
 // ─── Importar un tipo de lugar ────────────────────────────────────────────────
 const vistos = new Set()
 let totalImportados = 0
+let totalActualizados = 0
 let totalSaltados   = 0
+
+function nearMatch(a, b, eps = 0.0008) {
+  return Math.abs(a - b) <= eps
+}
+
+async function findExistingPlace(name, lat, lng) {
+  const { data } = await supabase
+    .from('places')
+    .select('id, name, latitude, longitude, photos')
+    .ilike('name', name.trim())
+
+  if (!data?.length) return null
+
+  return data.find(p =>
+    p.latitude != null &&
+    p.longitude != null &&
+    nearMatch(p.latitude, lat) &&
+    nearMatch(p.longitude, lng),
+  ) ?? data[0]
+}
+
+async function upsertPlace(row) {
+  const fotos = row.photos ?? []
+  const { error } = await supabase.from('places').insert(row)
+
+  if (!error) {
+    console.log(`   ✓  ${row.name}${fotos.length ? ' 📷' : ''}`)
+    totalImportados++
+    return
+  }
+
+  if (error.code !== '23505') {
+    console.error(`   ✗  ${row.name}: ${error.message}`)
+    return
+  }
+
+  const existing = await findExistingPlace(row.name, row.latitude, row.longitude)
+  if (!existing) {
+    process.stdout.write(' ~dup')
+    totalSaltados++
+    return
+  }
+
+  const needsPhotos = !existing.photos?.length && fotos.length > 0
+  const patch = {
+    ...(needsPhotos ? { photos: fotos } : {}),
+    rating_avg: row.rating_avg,
+    rating_count: row.rating_count,
+    hours: row.hours,
+    phone: row.phone,
+    website: row.website,
+    address: row.address,
+  }
+
+  const hasPatch = Object.values(patch).some(v => v != null && v !== '')
+  if (!hasPatch) {
+    totalSaltados++
+    return
+  }
+
+  const { error: upErr } = await supabase.from('places').update(patch).eq('id', existing.id)
+  if (upErr) {
+    console.error(`   ✗  update ${row.name}: ${upErr.message}`)
+    return
+  }
+
+  if (needsPhotos) {
+    console.log(`   ↻  ${row.name} (fotos añadidas)`)
+    totalActualizados++
+  } else {
+    totalSaltados++
+  }
+}
 
 async function importarTipo(type, category) {
   console.log(`\n🔍  ${type.padEnd(20)} → ${category}`)
@@ -168,17 +248,7 @@ async function importarTipo(type, category) {
         is_verified:  false,
       }
 
-      const { error } = await supabase.from('places').insert(row)
-      if (error) {
-        if (error.code === '23505') {
-          process.stdout.write(' ~dup')
-        } else {
-          console.error(`   ✗  ${d.name}: ${error.message}`)
-        }
-      } else {
-        console.log(`   ✓  ${d.name}`)
-        totalImportados++
-      }
+      await upsertPlace(row)
     }
 
     pageToken = data.next_page_token ?? null
@@ -199,7 +269,8 @@ async function main() {
 
   console.log('\n═══════════════════════════════════════════════════')
   console.log(`  ✅  Importados: ${totalImportados} lugares`)
-  console.log(`  ⤷   Saltados (duplicados entre tipos): ${totalSaltados}`)
+  console.log(`  📷  Actualizados con fotos: ${totalActualizados}`)
+  console.log(`  ⤷   Saltados (duplicados): ${totalSaltados}`)
   console.log('═══════════════════════════════════════════════════\n')
 }
 
