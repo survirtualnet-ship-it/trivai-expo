@@ -16,6 +16,7 @@ export type EventCardData = {
   is_free?: boolean
   place?: { name: string; address?: string | null } | null
   _dist?: number
+  photos?: string[] | null
 }
 
 type Props = {

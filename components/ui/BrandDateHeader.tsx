@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, type ReactNode } from 'react-native'
 import { HeaderLogo } from '@/components/ui/AppHeader'
 import { T, F, S } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
-import { formatCityDateLine, type AppLocale } from '@/lib/i18n/discover'
+import { formatCityDateSplit, type AppLocale } from '@/lib/i18n/discover'
 
 type Props = {
   cityName: string
@@ -12,6 +12,8 @@ type Props = {
 }
 
 export function BrandDateHeader({ cityName, locale, left, right }: Props) {
+  const { city, date } = formatCityDateSplit(cityName, locale)
+
   return (
     <View style={styles.wrap}>
       <View style={styles.topRow}>
@@ -20,9 +22,8 @@ export function BrandDateHeader({ cityName, locale, left, right }: Props) {
         </View>
 
         <View style={styles.centerCol}>
-          <Text style={styles.locationLine} numberOfLines={2}>
-            {formatCityDateLine(cityName, locale)}
-          </Text>
+          <Text style={styles.cityLine} numberOfLines={1}>{city}</Text>
+          <Text style={styles.dateLine} numberOfLines={1}>{date}</Text>
         </View>
 
         <View style={styles.sideRight}>
@@ -71,5 +72,19 @@ const styles = StyleSheet.create({
     color: T.fg2,
     lineHeight: 20,
     textAlign: 'center',
+  },
+  cityLine: {
+    fontFamily: FONT.bold,
+    fontSize: F.size.sm,
+    fontWeight: F.weight.bold,
+    color: T.fg1,
+    textAlign: 'center',
+  },
+  dateLine: {
+    fontFamily: FONT.regular,
+    fontSize: F.size.xs,
+    color: T.fg3,
+    textAlign: 'center',
+    marginTop: 2,
   },
 })

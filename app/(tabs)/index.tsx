@@ -22,16 +22,25 @@ import {
 import { DiscoverHeader } from '@/components/ui/DiscoverHeader'
 import { DiscoverSearchBar } from '@/components/ui/DiscoverSearchBar'
 import { DiscoverFilterBar } from '@/components/discover/DiscoverFilterBar'
-import { EventCard, type EventCardData } from '@/components/ui/EventCard'
+import { DiscoverCarouselCard } from '@/components/discover/DiscoverCarouselCard'
+import { DiscoverCarouselSection } from '@/components/discover/DiscoverCarouselSection'
 import { HeroCard } from '@/components/ui/HeroCard'
 import { SectionHeader } from '@/components/ui/SectionHeader'
-import { SkeletonCard } from '@/components/ui/Skeleton'
 import { AvatarGroup } from '@/components/ui/AvatarGroup'
-import { PlaceCard, type PlaceCardData } from '@/components/ui/PlaceCard'
+import type { PlaceCardData } from '@/components/ui/PlaceCard'
+import type { EventCardData } from '@/components/ui/EventCard'
+import {
+  firstPhoto,
+  placeBadge,
+  eventBadge,
+  minutesLabel,
+  zoneLabel,
+} from '@/lib/discoverCardUtils'
+import { haversineKm, groupEventsByBucket, formatEventDateShort } from '@/lib/eventUtils'
+import { calcIsOpen } from '@/lib/hours'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { loadNotifPrefs, prefAllows } from '@/lib/notifPrefs'
 import { deferredPush } from '@/lib/deferredNav'
-import { haversineKm, groupEventsByBucket } from '@/lib/eventUtils'
 import { dedupePlaces } from '@/lib/places'
 import { DISCOVER_STRINGS } from '@/lib/i18n/discover'
 import {
@@ -85,12 +94,12 @@ export default function Discover() {
 
       const queries: Promise<any>[] = [
         supabase.from('places')
-          .select('id,name,category,address,rating_avg,is_open,hours,latitude,longitude')
+          .select('id,name,category,address,rating_avg,is_open,hours,latitude,longitude,photos')
           .not('latitude', 'is', null)
           .order('rating_avg', { ascending: false })
           .limit(24),
         supabase.from('events')
-          .select('id,name,category,start_datetime,is_free,price,attendees_count,place:places(name,address,latitude,longitude)')
+          .select('id,name,category,start_datetime,is_free,price,attendees_count,photos,place:places(name,address,latitude,longitude)')
           .eq('is_active', true)
           .gte('start_datetime', new Date().toISOString())
           .order('start_datetime', { ascending: true })
@@ -270,6 +279,39 @@ export default function Discover() {
     return parts.join(' · ')
   }, [locationFilterLabel, appliedCategoryFilter])
 
+  const carouselDestacados = hero ? destacados.slice(1) : destacados
+
+  const renderPlaceCarouselCard = (lu: PlaceCardData) => (
+    <DiscoverCarouselCard
+      key={lu.id}
+      title={lu.name}
+      category={lu.category}
+      locale={locale}
+      photoUri={firstPhoto(lu.photos)}
+      rating={lu.rating_avg ?? null}
+      minutes={minutesLabel(lu, locale)}
+      zone={zoneLabel(lu._zone, locale)}
+      isOpen={calcIsOpen(lu.hours, lu.is_open ?? false)}
+      badge={placeBadge(lu)}
+      onPress={() => deferredPush(`/lugares/${lu.id}`)}
+    />
+  )
+
+  const renderEventCarouselCard = (ev: EventCardData & { _zone?: string | null }) => (
+    <DiscoverCarouselCard
+      key={ev.id}
+      title={ev.name}
+      category={ev.category}
+      locale={locale}
+      photoUri={firstPhoto(ev.photos)}
+      minutes={formatEventDateShort(ev.start_datetime)}
+      zone={zoneLabel(ev._zone, locale)}
+      isOpen={null}
+      badge={eventBadge(ev)}
+      onPress={() => deferredPush(`/eventos/${ev.id}`)}
+    />
+  )
+
   const handleSignOut = async () => {
     await signOut()
     router.replace('/auth')
@@ -341,74 +383,32 @@ export default function Discover() {
         )}
 
         {(isFilterMode || isSearchActive) && !isFilterPending && filteredPlaces.length > 0 && (
-          <>
-            <SectionHeader title="Lugares" actionLabel={t.seeAll} onAction={() => deferredPush('/lugares')} />
-            <View style={styles.list}>
-              {filteredPlaces.map(lu => (
-                <PlaceCard
-                  key={lu.id}
-                  place={lu}
-                  locale={locale}
-                  onPress={() => deferredPush(`/lugares/${lu.id}`)}
-                />
-              ))}
-            </View>
-          </>
+          <DiscoverCarouselSection title="Lugares" actionLabel={t.seeAll} onAction={() => deferredPush('/lugares')}>
+            {filteredPlaces.map(renderPlaceCarouselCard)}
+          </DiscoverCarouselSection>
         )}
 
         {(isFilterMode || isSearchActive) && !isFilterPending && filteredEvents.length > 0 && (
-          <>
-            <SectionHeader title="Eventos" />
-            <View style={styles.list}>
-              {filteredEvents.map(ev => (
-                <EventCard key={ev.id} event={ev} variant="list" onPress={() => deferredPush(`/eventos/${ev.id}`)} />
-              ))}
-            </View>
-          </>
+          <DiscoverCarouselSection title="Eventos">
+            {filteredEvents.map(renderEventCarouselCard)}
+          </DiscoverCarouselSection>
         )}
 
         {showBrowseSections && (emphasizePlaces || !loading) && lugaresCerca.length > 0 && (
-          <>
-            <SectionHeader
-              title={emphasizePlaces ? 'Lugares cerca de ti' : 'Cerca de ti'}
-              actionLabel={t.seeAll}
-              onAction={() => deferredPush('/lugares')}
-            />
-            <View style={styles.list}>
-              {loading
-                ? <ActivityIndicator color={T.primary} style={{ marginVertical: S.lg }} />
-                : lugaresCerca.slice(0, emphasizePlaces ? 6 : 4).map(lu => (
-                    <PlaceCard
-                      key={lu.id}
-                      place={lu}
-                      locale={locale}
-                      onPress={() => deferredPush(`/lugares/${lu.id}`)}
-                    />
-                  ))}
-            </View>
-          </>
+          <DiscoverCarouselSection
+            title={emphasizePlaces ? 'Lugares cerca de ti' : 'Cerca de ti'}
+            actionLabel={t.seeAll}
+            onAction={() => deferredPush('/lugares')}
+            loading={loading}
+          >
+            {lugaresCerca.slice(0, emphasizePlaces ? 6 : 8).map(renderPlaceCarouselCard)}
+          </DiscoverCarouselSection>
         )}
 
         {showBrowseSections && showEventSections && (
-          <>
-            <SectionHeader title="Más Destacados" />
-            {loading ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hList}>
-                <SkeletonCard /><SkeletonCard />
-              </ScrollView>
-            ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hList}>
-                {destacados.map(item => (
-                  <EventCard
-                    key={item.id}
-                    event={item}
-                    variant="horizontal"
-                    onPress={() => deferredPush(`/eventos/${item.id}`)}
-                  />
-                ))}
-              </ScrollView>
-            )}
-          </>
+          <DiscoverCarouselSection title="Más Destacados" loading={loading}>
+            {carouselDestacados.map(renderEventCarouselCard)}
+          </DiscoverCarouselSection>
         )}
 
         {isSearchActive && personas.length > 0 && (
@@ -460,36 +460,21 @@ export default function Discover() {
         )}
 
         {showBrowseSections && noche.length > 0 && (
-          <>
-            <SectionHeader title="Esta noche" />
-            <View style={styles.list}>
-              {noche.slice(0, 4).map(ev => (
-                <EventCard key={ev.id} event={ev} variant="list" onPress={() => deferredPush(`/eventos/${ev.id}`)} />
-              ))}
-            </View>
-          </>
+          <DiscoverCarouselSection title="Esta noche">
+            {noche.slice(0, 8).map(renderEventCarouselCard)}
+          </DiscoverCarouselSection>
         )}
 
         {showBrowseSections && manana.length > 0 && (
-          <>
-            <SectionHeader title="Mañana" />
-            <View style={styles.list}>
-              {manana.slice(0, 4).map(ev => (
-                <EventCard key={ev.id} event={ev} variant="list" onPress={() => deferredPush(`/eventos/${ev.id}`)} />
-              ))}
-            </View>
-          </>
+          <DiscoverCarouselSection title="Mañana">
+            {manana.slice(0, 8).map(renderEventCarouselCard)}
+          </DiscoverCarouselSection>
         )}
 
         {showBrowseSections && finde.length > 0 && (
-          <>
-            <SectionHeader title="Este fin de semana" />
-            <View style={styles.list}>
-              {finde.slice(0, 4).map(ev => (
-                <EventCard key={ev.id} event={ev} variant="list" onPress={() => deferredPush(`/eventos/${ev.id}`)} />
-              ))}
-            </View>
-          </>
+          <DiscoverCarouselSection title="Este fin de semana">
+            {finde.slice(0, 8).map(renderEventCarouselCard)}
+          </DiscoverCarouselSection>
         )}
 
         {!loading && !searching && !isFilterPending && (isSearchActive || isFilterMode) &&

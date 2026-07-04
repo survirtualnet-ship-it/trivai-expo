@@ -68,17 +68,23 @@ function capitalize(s: string): string {
 
 /** Ej: "Santa Cruz de la Sierra, Sábado, 04 de Julio de 2026" */
 export function formatCityDateLine(cityName: string, locale: AppLocale): string {
+  const { city, date } = formatCityDateSplit(cityName, locale)
+  return `${city}, ${date}`
+}
+
+/** Ciudad y fecha en dos líneas para el header */
+export function formatCityDateSplit(cityName: string, locale: AppLocale): { city: string; date: string } {
   const now = new Date()
   if (locale === 'es') {
     const weekday = capitalize(now.toLocaleDateString('es-BO', { weekday: 'long' }))
     const day = String(now.getDate()).padStart(2, '0')
     const month = capitalize(now.toLocaleDateString('es-BO', { month: 'long' }))
     const year = now.getFullYear()
-    return `${cityName}, ${weekday}, ${day} de ${month} de ${year}`
+    return { city: cityName, date: `${weekday}, ${day} de ${month} de ${year}` }
   }
   const weekday = now.toLocaleDateString('en-US', { weekday: 'long' })
   const datePart = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-  return `${cityName}, ${weekday}, ${datePart}`
+  return { city: cityName, date: `${weekday}, ${datePart}` }
 }
 
 export function categoryLabel(cat: string, locale: AppLocale): string {

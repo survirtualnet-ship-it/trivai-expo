@@ -22,6 +22,7 @@ export type PlaceCardData = {
   longitude?: number | null
   _dist?: number
   _zone?: CityZone | null
+  photos?: string[] | null
 }
 
 type Props = {
