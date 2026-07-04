@@ -18,7 +18,6 @@ import { deferredPush } from '@/lib/deferredNav'
 import { CatCover } from '@/components/CatCover'
 import { grantXP, XP } from '@/lib/xp'
 import { crearNotificacion } from '@/lib/notify'
-import { deferredPush } from '@/lib/deferredNav'
 
 const COLORS = [T.purpleSoft, T.orangeSoft, T.greenSoft, T.muted]
 const TEXTS  = [T.purple,      T.orange,      T.green,      T.fg2   ]

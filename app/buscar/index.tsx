@@ -6,7 +6,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { X, Search } from 'lucide-react-native'
-import ScreenHeader from '@/components/ScreenHeader'
+import { AppHeader } from '@/components/ui/AppHeader'
+import { FONT } from '@/lib/typography'
+import { deferredPush } from '@/lib/deferredNav'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor } from '@/lib/tokens'
 import { dedupePlaces } from '@/lib/places'
@@ -128,8 +130,7 @@ export default function Buscar() {
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
-      {/* HEADER */}
-      <ScreenHeader title="Buscar" fallbackHref="/" />
+      <AppHeader title="Buscar" />
 
       {/* BARRA DE BÚSQUEDA */}
       <View style={styles.header}>
@@ -181,7 +182,7 @@ export default function Buscar() {
             <Text style={styles.sectionLabel}>Explorar categorías</Text>
             <View style={styles.catGrid}>
               {CATEGORIAS.map(c => (
-                <TouchableOpacity key={c.label} style={[styles.catCard, { backgroundColor: c.color }]} onPress={() => router.push(c.href as any)}>
+                <TouchableOpacity key={c.label} style={[styles.catCard, { backgroundColor: c.color }]} onPress={() => deferredPush(c.href as any)}>
                   <Text style={{ fontSize: 24 }}>{c.emoji}</Text>
                   <Text style={styles.catLabel}>{c.label}</Text>
                 </TouchableOpacity>
@@ -288,9 +289,9 @@ export default function Buscar() {
 const styles = StyleSheet.create({
   root:              { flex: 1, backgroundColor: T.bg },
   header:            { flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingHorizontal: S.lg, paddingTop: S.sm, paddingBottom: S.md },
-  inputWrap:         { flex: 1, flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.bg, borderRadius: R.md, paddingHorizontal: S.md, height: 44, borderWidth: 1.5, borderColor: 'transparent' },
-  inputWrapActive:   { borderColor: T.purple, backgroundColor: T.surface },
-  input:             { flex: 1, fontSize: F.size.md, color: T.fg1 },
+  inputWrap:         { flex: 1, flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: T.surface, borderRadius: R.xl, paddingHorizontal: S.lg, height: 52, borderWidth: 1.5, borderColor: T.border, ...{ shadowColor: '#15131A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 } },
+  inputWrapActive:   { borderColor: T.primary },
+  input:             { flex: 1, fontSize: F.size.md, color: T.fg1, fontFamily: FONT.regular },
   tabBar:            { flexDirection: 'row', backgroundColor: T.surface, borderBottomWidth: 1, borderBottomColor: T.border },
   tabBtn:            { flex: 1, alignItems: 'center' },
   tabRow:            { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: S.md },
@@ -304,7 +305,7 @@ const styles = StyleSheet.create({
   tabLineActive:     { backgroundColor: T.purple },
   sectionLabel:      { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.fg3, marginBottom: S.md },
   catGrid:           { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
-  catCard:           { width: '48%', borderRadius: R.lg, padding: S.lg, flexDirection: 'row', alignItems: 'center', gap: S.sm },
+  catCard:           { width: '48%', borderRadius: R.xl, padding: S.lg, flexDirection: 'row', alignItems: 'center', gap: S.sm },
   catLabel:          { fontSize: F.size.md, fontWeight: F.weight.bold, color: '#fff' },
   tendenciaRow:      { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
   tendenciaIcon:     { width: 36, height: 36, borderRadius: R.sm, backgroundColor: T.muted, alignItems: 'center', justifyContent: 'center' },

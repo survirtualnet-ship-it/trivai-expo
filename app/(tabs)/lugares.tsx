@@ -15,9 +15,8 @@ import { useUser } from '@/hooks/useUser'
 import { T, F, S, R, normalizeCategory, getCatColor, getCatLabel } from '@/lib/tokens'
 import { deferredPush } from '@/lib/deferredNav'
 import { AppHeader, ProfileAvatar } from '@/components/ui/AppHeader'
+import { PlaceCard } from '@/components/ui/PlaceCard'
 import { DiscoveryCard } from '@/components/DiscoveryCard'
-import { DiscoveryRow } from '@/components/DiscoveryRow'
-import { calcIsOpen } from '@/lib/hours'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { ENV } from '@/lib/env'
 import { dedupePlaces } from '@/lib/places'
@@ -318,8 +317,10 @@ export default function Lugares() {
                 <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Cerca de ti</Text>
                 </View>
-                <View style={{ paddingHorizontal: S.lg }}>
-                  {cercanos.map(l => <RowLugar key={l.id} item={l} />)}
+                <View style={{ paddingHorizontal: S.lg, gap: S.md }}>
+                  {cercanos.map(l => (
+                    <PlaceCard key={l.id} place={l} onPress={() => deferredPush(`/lugares/${l.id}`)} />
+                  ))}
                 </View>
               </>
             )}
@@ -378,20 +379,6 @@ function CardLugar({ item }: { item: Place }) {
           ? <Text style={{ fontSize: F.size.xs, color: T.fg2 }}>⭐ {item.rating_avg.toFixed(1)} ({item.rating_count ?? 0})</Text>
           : undefined
       }
-      onPress={() => router.push(`/lugares/${item.id}`)}
-    />
-  )
-}
-
-function RowLugar({ item }: { item: Place }) {
-  const isOpen = calcIsOpen(item.hours, item.is_open)
-  return (
-    <DiscoveryRow
-      category={item.category}
-      title={item.name}
-      status={{ label: isOpen ? 'Abierto' : 'Cerrado', color: isOpen ? T.green : T.fg3 }}
-      rating={item.rating_avg || null}
-      distance={item._dist != null ? `a ${formatDist(item._dist)}` : undefined}
       onPress={() => router.push(`/lugares/${item.id}`)}
     />
   )
