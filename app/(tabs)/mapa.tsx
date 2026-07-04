@@ -3,13 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { MapEmbed } from '@/components/MapEmbed'
-import { AppHeader, ProfileAvatar } from '@/components/ui/AppHeader'
+import { AppHeader, HeaderLogo } from '@/components/ui/AppHeader'
 import { Navigation } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor, CATEGORY_CHIPS, normalizeCategory, type Category } from '@/lib/tokens'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { ENV } from '@/lib/env'
-import { useUser } from '@/hooks/useUser'
 import { deferredPush } from '@/lib/deferredNav'
 
 interface Marcador {
@@ -105,7 +104,6 @@ function initMap() {
 }
 
 export default function Mapa() {
-  const { initials, avatarUrl } = useUser()
   const params = useLocalSearchParams<{ lugar?: string; lat?: string; lng?: string; zona?: string }>()
 
   const [todos,        setTodos]        = useState<Marcador[]>([])
@@ -195,7 +193,7 @@ export default function Mapa() {
       {/* TOPBAR */}
       <AppHeader
         title={typeof params.zona === 'string' && params.zona ? params.zona : 'Mapa'}
-        left={<ProfileAvatar initials={initials} avatarUrl={avatarUrl} onPress={() => deferredPush('/perfil')} />}
+        left={<HeaderLogo onPress={() => deferredPush('/')} />}
         right={
           <TouchableOpacity style={[styles.locBtn, userPos && { backgroundColor: T.primary }]} onPress={async () => {
             const p = await getCurrentCoords()

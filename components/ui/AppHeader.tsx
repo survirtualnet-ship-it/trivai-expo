@@ -47,6 +47,27 @@ export function AppHeader({ greeting, subtitle, title, left, right, onNotifPress
   )
 }
 
+export function HeaderLogo({ onPress, height = 36 }: { onPress?: () => void; height?: number }) {
+  const width = Math.round(height * (151 / 43))
+  const image = (
+    <Image
+      source={require('../../assets/logo-trivai.png')}
+      style={{ height, width }}
+      resizeMode="contain"
+      accessibilityLabel="Trivai"
+    />
+  )
+
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
+        {image}
+      </TouchableOpacity>
+    )
+  }
+  return image
+}
+
 export function ProfileAvatar({
   initials, avatarUrl, size = 44, onPress,
 }: {

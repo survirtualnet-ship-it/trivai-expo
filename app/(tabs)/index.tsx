@@ -13,8 +13,8 @@ import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
 import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
-import { AppHeader, ProfileAvatar } from '@/components/ui/AppHeader'
-import { FilterChip, FilterChipGhost } from '@/components/ui/FilterChip'
+import { AppHeader, HeaderLogo } from '@/components/ui/AppHeader'
+import { FilterChip } from '@/components/ui/FilterChip'
 import { EventCard, type EventCardData } from '@/components/ui/EventCard'
 import { HeroCard } from '@/components/ui/HeroCard'
 import { SectionHeader } from '@/components/ui/SectionHeader'
@@ -53,7 +53,7 @@ const CATEGORIAS = [
 ]
 
 export default function Discover() {
-  const { displayName, initials, avatarUrl } = useUser()
+  const { displayName } = useUser()
   const [lugares, setLugares] = useState<PlaceCardData[]>([])
   const [eventos, setEventos] = useState<EventCardData[]>([])
   const [actividad, setActividad] = useState<FriendActivity[]>([])
@@ -174,12 +174,16 @@ export default function Discover() {
     return list.slice(0, 6)
   }, [lugaresConDist, quickFilter, userCoords])
 
-  const trending = useMemo(
-    () => [...eventosConDist].sort((a, b) => (b.attendees_count ?? 0) - (a.attendees_count ?? 0)).slice(0, 8),
-    [eventosConDist],
-  )
+  const destacados = useMemo(() => {
+    let list = [...filteredEvents]
+    // Sin filtro o "Hoy": entre los resultados, ordenar por popularidad
+    if (quickFilter === null || quickFilter === 'hoy') {
+      list.sort((a, b) => (b.attendees_count ?? 0) - (a.attendees_count ?? 0))
+    }
+    return list.slice(0, 8)
+  }, [filteredEvents, quickFilter])
 
-  const hero = trending[0] ?? filteredEvents[0] ?? null
+  const hero = destacados[0] ?? null
   const { noche, manana, finde } = groupEventsByBucket(filteredEvents)
   const toggleQuick = (f: QuickFilter) => setQuickFilter(prev => (prev === f ? null : f))
 
@@ -193,7 +197,7 @@ export default function Discover() {
         <AppHeader
           greeting={`Hola, ${displayName}`}
           subtitle="¿Qué te apetece hoy?"
-          left={<ProfileAvatar initials={initials} avatarUrl={avatarUrl} onPress={() => deferredPush('/perfil')} />}
+          left={<HeaderLogo onPress={() => deferredPush('/')} />}
           onNotifPress={() => deferredPush('/notificaciones')}
           notifCount={sinLeer}
         />
@@ -207,8 +211,7 @@ export default function Discover() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
           <FilterChip label="Hoy" active={quickFilter === 'hoy'} onPress={() => toggleQuick('hoy')} />
           <FilterChip label="Cerca" active={quickFilter === 'cerca'} onPress={() => toggleQuick('cerca')} accent={T.secondary} />
-          <FilterChip label="Trending" active={quickFilter === 'trending'} onPress={() => toggleQuick('trending')} accent={T.accent} />
-          <FilterChipGhost label="Filtros" onPress={() => deferredPush('/buscar')} />
+          <FilterChip label="Destacados" active={quickFilter === 'trending'} onPress={() => toggleQuick('trending')} accent={T.accent} />
         </ScrollView>
 
         {/* Categorías — lugares + eventos */}
@@ -270,7 +273,7 @@ export default function Discover() {
         {/* Eventos trending */}
         {showEventSections && (
           <>
-            <SectionHeader title="Trending now" actionLabel="Eventos" onAction={() => deferredPush('/eventos')} />
+            <SectionHeader title="Más Destacados" actionLabel="Eventos" onAction={() => deferredPush('/eventos')} />
             {loading ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.hList}>
                 <SkeletonCard /><SkeletonCard />
@@ -278,14 +281,14 @@ export default function Discover() {
             ) : (
               <FlatList
                 horizontal
-                data={trending}
+                data={destacados}
                 keyExtractor={e => e.id}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.hList}
                 renderItem={({ item }) => (
                   <EventCard event={item} variant="horizontal" onPress={() => deferredPush(`/eventos/${item.id}`)} />
                 )}
-                ListEmptyComponent={<Text style={styles.emptyHint}>No hay eventos trending</Text>}
+                ListEmptyComponent={<Text style={styles.emptyHint}>No hay eventos destacados</Text>}
               />
             )}
           </>

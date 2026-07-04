@@ -13,7 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
 import { T, F, S, R } from '@/lib/tokens'
-import { AppHeader, ProfileAvatar } from '@/components/ui/AppHeader'
+import { AppHeader, HeaderLogo } from '@/components/ui/AppHeader'
 import { deferredPush } from '@/lib/deferredNav'
 import { CatCover } from '@/components/CatCover'
 import { grantXP, XP } from '@/lib/xp'
@@ -112,7 +112,7 @@ function statusAmigo(id: string, enEvento: boolean): Amigo['status'] {
 }
 
 export default function Amigos() {
-  const { initials, avatarUrl, isAuthenticated } = useUser()
+  const { isAuthenticated } = useUser()
   const [miId,        setMiId]        = useState<string | null>(null)
   const [amigos,      setAmigos]      = useState<Amigo[]>([])
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
@@ -355,7 +355,7 @@ export default function Amigos() {
 
         <AppHeader
           title="Actividad"
-          left={<ProfileAvatar initials={initials} avatarUrl={avatarUrl} onPress={() => deferredPush('/perfil')} />}
+          left={<HeaderLogo onPress={() => deferredPush('/')} />}
           right={(
             <TouchableOpacity style={styles.roundBtnSurface} onPress={() => deferredPush('/notificaciones')}>
               <Bell size={20} color={T.primary} strokeWidth={2} />

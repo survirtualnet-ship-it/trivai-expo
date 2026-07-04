@@ -11,10 +11,9 @@ import {
 } from 'lucide-react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '@/lib/supabase'
-import { useUser } from '@/hooks/useUser'
 import { T, F, S, R, normalizeCategory, getCatColor, getCatLabel } from '@/lib/tokens'
 import { deferredPush } from '@/lib/deferredNav'
-import { AppHeader, ProfileAvatar } from '@/components/ui/AppHeader'
+import { AppHeader, HeaderLogo } from '@/components/ui/AppHeader'
 import { PlaceCard } from '@/components/ui/PlaceCard'
 import { DiscoveryCard } from '@/components/DiscoveryCard'
 import { getCurrentCoords } from '@/lib/geolocation'
@@ -72,7 +71,6 @@ const MAP_PREVIEW_URI = ENV.googleMapsKey
   : null
 
 export default function Lugares() {
-  const { initials, avatarUrl } = useUser()
   const { cat: catParam } = useLocalSearchParams<{ cat?: string }>()
   const [lugares,       setLugares]       = useState<Place[]>([])
   const [searchResults, setSearchResults] = useState<Place[]>([])
@@ -195,7 +193,7 @@ export default function Lugares() {
         {/* 1. HEADER */}
         <AppHeader
           title="Lugares"
-          left={<ProfileAvatar initials={initials} avatarUrl={avatarUrl} onPress={() => deferredPush('/perfil')} />}
+          left={<HeaderLogo onPress={() => deferredPush('/')} />}
           right={
             <TouchableOpacity style={styles.roundBtnSurface} onPress={() => router.push('/buscar')}>
               <SlidersHorizontal size={18} color={T.fg2} />

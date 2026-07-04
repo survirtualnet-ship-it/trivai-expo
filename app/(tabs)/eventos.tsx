@@ -5,9 +5,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Search, SlidersHorizontal } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
-import { useUser } from '@/hooks/useUser'
 import { T, F, S, R } from '@/lib/tokens'
-import { AppHeader, ProfileAvatar } from '@/components/ui/AppHeader'
+import { AppHeader, HeaderLogo } from '@/components/ui/AppHeader'
 import { FilterChip, FilterChipGhost } from '@/components/ui/FilterChip'
 import { HeroCard, HERO_H } from '@/components/ui/HeroCard'
 import { EventCard, type EventCardData } from '@/components/ui/EventCard'
@@ -32,7 +31,6 @@ function pasaFilter(ev: EventCardData, f: SmartFilter) {
 }
 
 export default function Eventos() {
-  const { initials, avatarUrl } = useUser()
   const [eventos, setEventos] = useState<EventCardData[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<SmartFilter>('Todos')
@@ -91,7 +89,7 @@ export default function Eventos() {
 
         <AppHeader
           title="Eventos"
-          left={<ProfileAvatar initials={initials} avatarUrl={avatarUrl} onPress={() => deferredPush('/perfil')} />}
+          left={<HeaderLogo onPress={() => deferredPush('/')} />}
           right={(
             <View style={styles.headerRight}>
               <TouchableOpacity style={styles.iconBtn} onPress={() => deferredPush('/buscar')}>
