@@ -1,6 +1,7 @@
 import { View, Text, Image, StyleSheet, type ViewStyle } from 'react-native'
 import { getCatEmoji, getCatColor, normalizeCategory } from '@/lib/categories'
 import { getCatImage } from '@/lib/catImages'
+import { R } from '@/lib/tokens'
 
 type Variant = 'thumb' | 'banner' | 'hero'
 
