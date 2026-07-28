@@ -12,6 +12,8 @@ export const PLACE_MAP_SELECT = 'id,name,category,latitude,longitude'
 export interface PlacesListFilters {
   category?: string
   limit?: number
+  from?: number
+  to?: number
   search?: string
   withCoords?: boolean
 }
@@ -25,7 +27,7 @@ export interface PlaceMapMarker {
 }
 
 export async function fetchPlacesList(filters: PlacesListFilters = {}): Promise<PlaceCardData[]> {
-  const { category, limit = 200, search, withCoords = true } = filters
+  const { category, limit = 200, from, to, search, withCoords = true } = filters
 
   let q = supabase
     .from('places')
@@ -35,9 +37,12 @@ export async function fetchPlacesList(filters: PlacesListFilters = {}): Promise<
   if (category) q = q.eq('category', category)
   if (search) q = q.ilike('name', `%${search}%`)
 
-  const { data, error } = await q
-    .order('rating_avg', { ascending: false })
-    .limit(limit)
+  q = q.order('rating_avg', { ascending: false })
+
+  const { data, error } =
+    typeof from === 'number' && typeof to === 'number'
+      ? await q.range(from, to)
+      : await q.limit(limit)
 
   if (error) throw error
   return dedupePlaces((data ?? []) as PlaceCardData[])

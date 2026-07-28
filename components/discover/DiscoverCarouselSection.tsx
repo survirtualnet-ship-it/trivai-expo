@@ -1,8 +1,11 @@
 import { memo, useRef, useEffect, type ReactNode } from 'react'
 import { ScrollView, StyleSheet, Platform } from 'react-native'
 import { SectionHeader } from '@/components/ui/SectionHeader'
+import { FadeInView } from '@/components/ui/FadeInView'
 import { DiscoverCarouselSkeleton } from '@/components/discover/DiscoverCarouselCard'
 import { S } from '@/lib/tokens'
+
+export const DISCOVER_CAROUSEL_SKELETON_COUNT = 3
 
 type Props = {
   title: string
@@ -20,6 +23,16 @@ export const DiscoverCarouselSection = memo(function DiscoverCarouselSection({
   children,
 }: Props) {
   const scrollRef = useRef<ScrollView>(null)
+  const shouldAnimateSection = useRef(true)
+
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => {
+        shouldAnimateSection.current = false
+      }, 320)
+      return () => clearTimeout(timer)
+    }
+  }, [loading])
 
   useEffect(() => {
     if (Platform.OS !== 'web') return
@@ -46,23 +59,28 @@ export const DiscoverCarouselSection = memo(function DiscoverCarouselSection({
     horizontal: true as const,
     showsHorizontalScrollIndicator: false,
     nestedScrollEnabled: true,
+    decelerationRate: 'fast' as const,
+    scrollEventThrottle: 16,
     contentContainerStyle: styles.list,
     style: Platform.OS === 'web' ? styles.webScroll : undefined,
   }
 
+  const carousel = (
+    <ScrollView {...carouselProps}>
+      {loading
+        ? Array.from({ length: DISCOVER_CAROUSEL_SKELETON_COUNT }, (_, i) => (
+            <DiscoverCarouselSkeleton key={`discover-skeleton-${i}`} />
+          ))
+        : children}
+    </ScrollView>
+  )
+
   return (
     <>
       <SectionHeader title={title} actionLabel={actionLabel} onAction={onAction} />
-      {loading ? (
-        <ScrollView {...carouselProps}>
-          <DiscoverCarouselSkeleton />
-          <DiscoverCarouselSkeleton />
-        </ScrollView>
-      ) : (
-        <ScrollView {...carouselProps}>
-          {children}
-        </ScrollView>
-      )}
+      <FadeInView animate={!loading && shouldAnimateSection.current} duration={280}>
+        {carousel}
+      </FadeInView>
     </>
   )
 })

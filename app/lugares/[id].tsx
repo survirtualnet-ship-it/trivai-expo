@@ -8,6 +8,7 @@ import { useLocalSearchParams, router } from 'expo-router'
 import { MapPin, Phone, Globe, Clock, Star, Navigation, Heart, MessageSquare, Share2 } from 'lucide-react-native'
 import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
+import { togglePlaceFavorite } from '@/lib/favorites'
 import { usePlace } from '@/hooks/usePlaces'
 import { useUser } from '@/hooks/useUser'
 import { T, F, S, R, getCatColor } from '@/lib/tokens'
@@ -121,14 +122,10 @@ export default function LugarDetalle() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.user) { router.push('/auth'); return }
     setTogFav(true)
-    if (favorito) {
-      await supabase.from('favorites').delete().eq('user_id', session.user.id).eq('place_id', id)
-      setFavorito(false)
-    } else {
-      await supabase.from('favorites').upsert({ user_id: session.user.id, place_id: id })
-      setFavorito(true)
-      grantXP(session.user.id, XP.favorito)
-    }
+    const next = !favorito
+    await togglePlaceFavorite(session.user.id, id, next)
+    setFavorito(next)
+    if (next) grantXP(session.user.id, XP.favorito)
     setTogFav(false)
   }
 

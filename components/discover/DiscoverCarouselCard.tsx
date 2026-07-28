@@ -2,6 +2,7 @@ import { memo } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { Star, Clock, MapPin } from 'lucide-react-native'
 import { CatCover } from '@/components/CatCover'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import type { AppLocale } from '@/lib/i18n/discover'
@@ -13,8 +14,9 @@ import {
 } from '@/lib/discoverCardUtils'
 
 export const DISCOVER_CAROUSEL_W = 200
+export const DISCOVER_CAROUSEL_H = 248
 const IMAGE_H = 168
-const CARD_H = 248
+const CARD_H = DISCOVER_CAROUSEL_H
 
 type Props = {
   title: string
@@ -103,7 +105,25 @@ export const DiscoverCarouselCard = memo(function DiscoverCarouselCard({
 })
 
 export const DiscoverCarouselSkeleton = memo(function DiscoverCarouselSkeleton() {
-  return <View style={styles.skeleton} />
+  return (
+    <View style={styles.card} accessibilityLabel="Cargando lugar">
+      <Skeleton height={IMAGE_H} width="100%" style={styles.imageSkeleton} />
+      <View style={styles.body}>
+        <View style={styles.titleRow}>
+          <Skeleton height={14} width="68%" style={styles.line} />
+          <Skeleton height={14} width={28} style={styles.line} />
+        </View>
+        <View style={styles.metaRow}>
+          <Skeleton height={11} width={52} style={styles.line} />
+          <Skeleton height={11} width={72} style={styles.line} />
+        </View>
+        <View style={styles.footer}>
+          <Skeleton height={11} width={38} style={styles.line} />
+          <Skeleton height={11} width={84} style={styles.line} />
+        </View>
+      </View>
+    </View>
+  )
 })
 
 const styles = StyleSheet.create({
@@ -204,10 +224,10 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
-  skeleton: {
-    width: DISCOVER_CAROUSEL_W,
-    height: CARD_H,
-    borderRadius: R.xl,
-    backgroundColor: T.muted,
+  imageSkeleton: {
+    borderRadius: 0,
+  },
+  line: {
+    borderRadius: R.sm,
   },
 })

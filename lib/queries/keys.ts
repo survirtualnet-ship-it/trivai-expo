@@ -28,7 +28,14 @@ export const userKeys = {
 
 export interface DiscoverFeedFilters {
   userId: string | null
-  limit?: number
+  pageSize?: number
+  rankingMode?: 'default' | 'trending'
+  feedType?: 'discover' | 'for_you' | 'trending' | 'nearby'
+}
+
+export interface DiscoverRankedPoolFilters {
+  rankingMode?: 'default' | 'trending'
+  userId?: string | null
 }
 
 export interface DiscoverSearchFilters {
@@ -37,8 +44,18 @@ export interface DiscoverSearchFilters {
 
 export const discoverKeys = {
   all: ['discover'] as const,
+  rankedPool: (filters: DiscoverRankedPoolFilters = {}) =>
+    [...discoverKeys.all, 'ranked-pool', {
+      rankingMode: filters.rankingMode ?? 'default',
+      userId: filters.userId ?? 'anon',
+    }] as const,
   feed: (filters: DiscoverFeedFilters) =>
-    [...discoverKeys.all, { userId: filters.userId ?? 'anon', limit: filters.limit ?? 200 }] as const,
+    [...discoverKeys.all, 'feed', {
+      userId: filters.userId ?? 'anon',
+      pageSize: filters.pageSize ?? 20,
+      rankingMode: filters.rankingMode ?? 'default',
+      feedType: filters.feedType ?? 'discover',
+    }] as const,
   search: (filters: DiscoverSearchFilters) =>
     [...discoverKeys.all, 'search', filters] as const,
   coords: () => [...discoverKeys.all, 'coords'] as const,

@@ -9,6 +9,8 @@ export const EVENT_MAP_SELECT =
 
 export interface EventsListFilters {
   limit?: number
+  from?: number
+  to?: number
 }
 
 export interface EventMapMarker {
@@ -20,15 +22,19 @@ export interface EventMapMarker {
 }
 
 export async function fetchUpcomingEvents(filters: EventsListFilters = {}): Promise<EventCardData[]> {
-  const { limit = 200 } = filters
+  const { limit = 200, from, to } = filters
 
-  const { data, error } = await supabase
+  let q = supabase
     .from('events')
     .select(EVENT_CARD_SELECT)
     .eq('is_active', true)
     .gte('start_datetime', new Date().toISOString())
     .order('start_datetime', { ascending: true })
-    .limit(limit)
+
+  const { data, error } =
+    typeof from === 'number' && typeof to === 'number'
+      ? await q.range(from, to)
+      : await q.limit(limit)
 
   if (error) throw error
   return ((data ?? []) as EventCardData[]).map(e => ({

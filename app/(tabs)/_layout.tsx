@@ -1,7 +1,7 @@
 import { TouchableOpacity, View, StyleSheet } from 'react-native'
 import { Tabs, router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Compass, Map, Users, User, Plus } from 'lucide-react-native'
+import { Map, Users, User, Plus, Home } from 'lucide-react-native'
 import { T } from '@/lib/tokens'
 import { deferredPush } from '@/lib/deferredNav'
 
@@ -31,7 +31,11 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: 'Descubrir', tabBarIcon: ({ color, size }) => <Compass size={size} color={color}/> }}
+        options={{ title: 'Inicio', tabBarIcon: ({ color, size }) => <Home size={size} color={color}/> }}
+      />
+      <Tabs.Screen
+        name="discover"
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="mapa"

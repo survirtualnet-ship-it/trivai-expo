@@ -1,5 +1,6 @@
 import { router } from 'expo-router'
 import { supabase } from '@/lib/supabase'
+import { logPlaceSave } from '@/lib/userActivity'
 
 export async function isPlaceFavorite(userId: string, placeId: string): Promise<boolean> {
   const { data } = await supabase.from('favorites')
@@ -23,6 +24,7 @@ export async function isEventSaved(userId: string, eventId: string): Promise<boo
 export async function togglePlaceFavorite(userId: string, placeId: string, active: boolean): Promise<void> {
   if (active) {
     await supabase.from('favorites').upsert({ user_id: userId, place_id: placeId })
+    logPlaceSave(userId, placeId)
   } else {
     await supabase.from('favorites').delete().eq('user_id', userId).eq('place_id', placeId)
   }
