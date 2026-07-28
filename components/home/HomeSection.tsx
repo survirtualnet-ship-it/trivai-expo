@@ -68,7 +68,7 @@ export const HomeSection = memo(function HomeSection({ title, type }: Props) {
           place={item.data}
           variant="vertical"
           width={PLACE_CARD_W}
-          showHeart
+          showHeart={false}
           showShare={false}
           locale={locale}
           onPress={() => openPlace(item.data.id)}
@@ -130,6 +130,7 @@ export const HomeSection = memo(function HomeSection({ title, type }: Props) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
           style={styles.list}
+          decelerationRate="fast"
           getItemLayout={getItemLayout}
         />
       ) : (
@@ -141,6 +142,7 @@ export const HomeSection = memo(function HomeSection({ title, type }: Props) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.listContent}
           style={styles.list}
+          decelerationRate="fast"
           initialNumToRender={4}
           maxToRenderPerBatch={3}
           windowSize={5}
@@ -174,7 +176,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: S.lg,
-    paddingBottom: 4,
+    paddingBottom: 2,
   },
   itemWrap: {
     width: PLACE_CARD_W,
@@ -184,7 +186,7 @@ const styles = StyleSheet.create({
     marginHorizontal: S.lg,
     padding: S.lg,
     borderRadius: 16,
-    backgroundColor: T.surface,
+    backgroundColor: T.muted,
     alignItems: 'center',
     gap: S.sm,
   },

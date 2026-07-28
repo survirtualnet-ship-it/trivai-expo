@@ -1,8 +1,9 @@
 import { memo } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native'
-import { Clock, UtensilsCrossed, Sparkles } from 'lucide-react-native'
+import { View, Text, Pressable, StyleSheet, Linking } from 'react-native'
+import { MapPin } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
-import { T, F, S, R } from '@/lib/tokens'
+import { Tag } from '@/components/ui/Tag'
+import { T, F, S } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import type { PlaceDetail } from '@/lib/placeDetail'
 
@@ -13,8 +14,9 @@ type Props = {
 export const PlaceExtraInfo = memo(function PlaceExtraInfo({ place }: Props) {
   const hasHours = place.openingHours.length > 0
   const hasServices = !!place.servicesLabel
+  const hasAddress = !!place.address?.trim()
 
-  if (!hasHours && !hasServices) return null
+  if (!hasHours && !hasServices && !hasAddress) return null
 
   const openServices = () => {
     if (!place.servicesUrl) return
@@ -26,39 +28,41 @@ export const PlaceExtraInfo = memo(function PlaceExtraInfo({ place }: Props) {
     <View style={styles.wrap}>
       <Text style={styles.title}>Información</Text>
 
+      {hasAddress && (
+        <View style={styles.row}>
+          <MapPin size={18} color={T.fg3} strokeWidth={2} />
+          <Text style={styles.value}>{place.address}</Text>
+        </View>
+      )}
+
       {hasHours && (
         <View style={styles.block}>
           <View style={styles.blockHead}>
-            <Clock size={18} color={T.primary} />
             <Text style={styles.blockTitle}>Horarios</Text>
-            <View style={[styles.badge, place.isOpen ? styles.open : styles.closed]}>
-              <Text style={[styles.badgeText, place.isOpen ? styles.openText : styles.closedText]}>
-                {place.isOpen ? 'Abierto' : 'Cerrado'}
-              </Text>
-            </View>
+            <Tag
+              label={place.isOpen ? 'Abierto' : 'Cerrado'}
+              variant={place.isOpen ? 'primary' : 'secondary'}
+              size="sm"
+            />
           </View>
-          {place.openingHours.map(line => (
+          {place.openingHours.slice(0, 4).map(line => (
             <Text key={line} style={styles.line}>{line}</Text>
           ))}
+          {place.openingHours.length > 4 && (
+            <Text style={styles.moreHours}>+{place.openingHours.length - 4} días más</Text>
+          )}
         </View>
       )}
 
       {hasServices && (
-        <View style={[styles.block, hasHours && styles.blockSpaced]}>
-          <View style={styles.blockHead}>
-            {place.servicesUrl ? (
-              <UtensilsCrossed size={18} color={T.primary} />
-            ) : (
-              <Sparkles size={18} color={T.primary} />
-            )}
-            <Text style={styles.blockTitle}>
-              {place.servicesUrl ? 'Menú y servicios' : 'Servicios'}
-            </Text>
-          </View>
+        <View style={styles.block}>
+          <Text style={styles.blockTitle}>
+            {place.servicesUrl ? 'Menú y servicios' : 'Servicios'}
+          </Text>
           {place.servicesUrl ? (
-            <TouchableOpacity style={styles.linkBtn} onPress={openServices} activeOpacity={0.88}>
-              <Text style={styles.linkText}>{place.servicesLabel}</Text>
-            </TouchableOpacity>
+            <Pressable onPress={openServices} hitSlop={6}>
+              <Text style={styles.link}>{place.servicesLabel}</Text>
+            </Pressable>
           ) : (
             <Text style={styles.line}>{place.servicesLabel}</Text>
           )}
@@ -71,69 +75,61 @@ export const PlaceExtraInfo = memo(function PlaceExtraInfo({ place }: Props) {
 const styles = StyleSheet.create({
   wrap: {
     paddingHorizontal: S.lg,
-    paddingVertical: S.xl,
+    paddingTop: S.sm,
+    paddingBottom: S.xxl,
     backgroundColor: T.surface,
-    marginTop: S.sm,
   },
   title: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.lg,
+    fontFamily: FONT.semibold,
+    fontSize: F.size.xl,
+    fontWeight: F.weight.semibold,
     color: T.fg1,
-    marginBottom: S.md,
+    letterSpacing: -0.3,
+    marginBottom: S.xl,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: S.sm,
+    marginBottom: S.xl,
+  },
+  value: {
+    flex: 1,
+    fontFamily: FONT.regular,
+    fontSize: F.size.md,
+    color: T.fg2,
+    lineHeight: 22,
   },
   block: {
-    backgroundColor: T.bg,
-    borderRadius: R.xl,
-    padding: S.lg,
-    borderWidth: 1,
-    borderColor: T.border,
-  },
-  blockSpaced: {
-    marginTop: S.md,
+    marginBottom: S.xl,
+    gap: S.sm,
   },
   blockHead: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: S.sm,
-    marginBottom: S.sm,
+    justifyContent: 'space-between',
+    gap: S.md,
   },
   blockTitle: {
-    flex: 1,
-    fontFamily: FONT.semibold,
+    fontFamily: FONT.medium,
     fontSize: F.size.md,
+    fontWeight: F.weight.medium,
     color: T.fg1,
   },
-  badge: {
-    paddingHorizontal: S.sm,
-    paddingVertical: 4,
-    borderRadius: R.full,
-  },
-  open: { backgroundColor: T.greenSoft },
-  closed: { backgroundColor: T.muted },
-  badgeText: {
-    fontFamily: FONT.semibold,
-    fontSize: F.size.xs,
-  },
-  openText: { color: T.greenInk },
-  closedText: { color: T.fg3 },
   line: {
     fontFamily: FONT.regular,
-    fontSize: F.size.sm,
-    color: T.fg2,
+    fontSize: F.size.md,
+    color: T.fg3,
     lineHeight: 22,
-    paddingVertical: 2,
   },
-  linkBtn: {
-    marginTop: S.xs,
-    paddingVertical: S.sm,
-    paddingHorizontal: S.md,
-    backgroundColor: T.purpleSoft,
-    borderRadius: R.lg,
-    alignSelf: 'flex-start',
-  },
-  linkText: {
-    fontFamily: FONT.semibold,
+  moreHours: {
+    fontFamily: FONT.regular,
     fontSize: F.size.sm,
+    color: T.fg4,
+  },
+  link: {
+    fontFamily: FONT.medium,
+    fontSize: F.size.md,
     color: T.primary,
   },
 })

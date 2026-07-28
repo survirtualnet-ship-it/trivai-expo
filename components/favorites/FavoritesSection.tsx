@@ -1,46 +1,97 @@
-import { memo } from 'react'
-import { View, StyleSheet, Dimensions } from 'react-native'
-import { Section } from '@/components/ui/Section'
-import { PlaceCard } from '@/components/ui/PlaceCard'
+import { memo, useCallback } from 'react'
+import { View, Text, StyleSheet, Dimensions } from 'react-native'
+import {
+  FavoritePlaceRow,
+  FavoritePlaceTile,
+} from '@/components/favorites/FavoritePlaceRow'
 import { deferredPush } from '@/lib/deferredNav'
-import { S } from '@/lib/tokens'
+import { T, F, S } from '@/lib/tokens'
+import { FONT } from '@/lib/typography'
 import type { FavoriteGroup } from '@/lib/favoritesGrouping'
 
-const CARD_W = Dimensions.get('window').width - S.lg * 2
+const SCREEN_W = Dimensions.get('window').width
+const GRID_GAP = S.md
+const GRID_PAD = S.lg
+const TILE_W = (SCREEN_W - GRID_PAD * 2 - GRID_GAP) / 2
 
 type Props = {
   group: FavoriteGroup
+  layout: 'list' | 'grid'
 }
 
-export const FavoritesSection = memo(function FavoritesSection({ group }: Props) {
+export const FavoritesSection = memo(function FavoritesSection({
+  group,
+  layout,
+}: Props) {
+  const openPlace = useCallback((id: string) => {
+    deferredPush(`/lugares/${id}`)
+  }, [])
+
   return (
-    <Section
-      title={`${group.emoji} ${group.title}`}
-      subtitle={`${group.places.length} guardados`}
-      size="md"
-      style={styles.wrap}
-      contentStyle={styles.list}
-    >
-      {group.places.map(place => (
-        <PlaceCard
-          key={place.id}
-          place={place}
-          variant="vertical"
-          width={CARD_W}
-          showShare={false}
-          onPress={() => deferredPush(`/lugares/${place.id}`)}
-        />
-      ))}
-    </Section>
+    <View style={styles.wrap}>
+      <View style={styles.header}>
+        <Text style={styles.title}>{group.title}</Text>
+        <Text style={styles.count}>{group.places.length}</Text>
+      </View>
+
+      {layout === 'grid' ? (
+        <View style={styles.grid}>
+          {group.places.map(place => (
+            <FavoritePlaceTile
+              key={place.id}
+              place={place}
+              width={TILE_W}
+              onPress={() => openPlace(place.id)}
+            />
+          ))}
+        </View>
+      ) : (
+        group.places.map((place, index) => (
+          <View key={place.id}>
+            {index > 0 ? <View style={styles.sep} /> : null}
+            <FavoritePlaceRow
+              place={place}
+              onPress={() => openPlace(place.id)}
+            />
+          </View>
+        ))
+      )}
+    </View>
   )
 })
 
 const styles = StyleSheet.create({
   wrap: {
-    marginBottom: S.xl,
+    marginBottom: S.xxl,
   },
-  list: {
-    gap: S.md,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
     paddingHorizontal: S.lg,
+    marginBottom: S.sm,
+  },
+  title: {
+    fontFamily: FONT.semibold,
+    fontSize: F.size.xl,
+    fontWeight: F.weight.semibold,
+    color: T.fg1,
+    letterSpacing: -0.3,
+  },
+  count: {
+    fontFamily: FONT.regular,
+    fontSize: F.size.sm,
+    color: T.fg3,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: GRID_GAP,
+    paddingHorizontal: GRID_PAD,
+  },
+  sep: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: T.border,
+    marginLeft: S.lg + 56 + S.md,
   },
 })

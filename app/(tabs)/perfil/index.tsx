@@ -1,19 +1,26 @@
-﻿import { useCallback } from 'react'
+﻿import { useCallback, useMemo } from 'react'
 import {
   View,
   ScrollView,
   StyleSheet,
   ActivityIndicator,
   Text,
+  Alert,
+  Pressable,
+  Linking,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect, router } from 'expo-router'
+import {
+  UserRound,
+  Heart,
+  Settings,
+  HelpCircle,
+} from 'lucide-react-native'
 import { useUser } from '@/hooks/useUser'
 import { useProfileStats } from '@/hooks/useProfileStats'
 import { ProfileHeader } from '@/components/profile/ProfileHeader'
-import { ProfileStats } from '@/components/profile/ProfileStats'
-import { ProfileOptions } from '@/components/profile/ProfileOptions'
-import { Button } from '@/components/ui/Button'
+import { SettingsGroup, type SettingsRow } from '@/components/profile/ProfileOptions'
 import { T, F, S } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 
@@ -27,7 +34,7 @@ function resolveFullName(
     (meta.full_name as string | undefined) ??
     (meta.name as string | undefined) ??
     user?.email?.split('@')[0] ??
-    'Guest'
+    'Invitado'
   )
 }
 
@@ -40,9 +47,10 @@ export default function ProfileScreen() {
     initials,
     avatarUrl,
     refreshProfile,
+    signOut,
   } = useUser()
 
-  const { savedPlaces, visits, isLoading: statsLoading } = useProfileStats()
+  const { savedPlaces } = useProfileStats()
 
   useFocusEffect(
     useCallback(() => {
@@ -50,67 +58,123 @@ export default function ProfileScreen() {
     }, [refreshProfile]),
   )
 
+  const handleSignOut = useCallback(() => {
+    Alert.alert('Cerrar sesión', '¿Seguro que quieres salir?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Salir',
+        style: 'destructive',
+        onPress: async () => {
+          await signOut()
+          router.replace('/auth')
+        },
+      },
+    ])
+  }, [signOut])
+
+  const accountRows = useMemo((): SettingsRow[] => {
+    if (!isAuthenticated) return []
+    return [
+      {
+        key: 'edit',
+        label: 'Editar perfil',
+        iconBg: '#8E8E93',
+        icon: <UserRound size={16} color="#fff" strokeWidth={2.2} />,
+        onPress: () => router.push('/perfil/editar'),
+      },
+      {
+        key: 'saved',
+        label: 'Guardados',
+        iconBg: T.danger,
+        icon: <Heart size={16} color="#fff" strokeWidth={2.2} fill="#fff" />,
+        value: savedPlaces > 0 ? String(savedPlaces) : undefined,
+        onPress: () => router.push('/perfil/favoritos'),
+      },
+    ]
+  }, [isAuthenticated, savedPlaces])
+
+  const prefsRows = useMemo((): SettingsRow[] => ([
+    {
+      key: 'settings',
+      label: 'Configuración',
+      iconBg: T.fg3,
+      icon: <Settings size={16} color="#fff" strokeWidth={2.2} />,
+      onPress: () => router.push(
+        isAuthenticated ? '/perfil/configuracion' : '/auth',
+      ),
+    },
+    {
+      key: 'help',
+      label: 'Ayuda',
+      iconBg: T.primary,
+      icon: <HelpCircle size={16} color="#fff" strokeWidth={2.2} />,
+      onPress: () => {
+        Linking.openURL('mailto:survirtualnet@gmail.com?subject=Soporte%20Trivai')
+      },
+    },
+  ]), [isAuthenticated])
+
+  const authRows = useMemo((): SettingsRow[] => {
+    if (isAuthenticated) {
+      return [{
+        key: 'signout',
+        label: 'Cerrar sesión',
+        destructive: true,
+        onPress: handleSignOut,
+      }]
+    }
+    return [{
+      key: 'signin',
+      label: 'Iniciar sesión',
+      iconBg: T.primary,
+      icon: <UserRound size={16} color="#fff" strokeWidth={2.2} />,
+      onPress: () => router.push('/auth'),
+    }]
+  }, [isAuthenticated, handleSignOut])
+
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={T.primary} />
+        <ActivityIndicator color={T.fg3} />
       </View>
     )
   }
 
-  const name = resolveFullName(profile, user)
-  const city = profile?.city?.trim() || 'Santa Cruz de la Sierra'
+  const name = isAuthenticated ? resolveFullName(profile, user) : 'Invitado'
+  const subtitle = isAuthenticated
+    ? (profile?.city?.trim() || user?.email || undefined)
+    : 'Inicia sesión para sincronizar'
 
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
+        decelerationRate="fast"
       >
         <Text style={styles.screenTitle}>Perfil</Text>
 
-        {!isAuthenticated ? (
-          <View style={styles.guest}>
-            <ProfileHeader
-              name="Invitado"
-              city="Santa Cruz de la Sierra"
-              initials="?"
-            />
-            <Text style={styles.guestText}>
-              Inicia sesión para guardar lugares y sincronizar tu perfil.
-            </Text>
-            <Button
-              label="Iniciar sesión"
-              variant="primary"
-              onPress={() => router.push('/auth')}
-              style={styles.guestBtn}
-            />
-          </View>
-        ) : (
-          <>
-            <ProfileHeader
-              name={name}
-              city={city}
-              initials={initials}
-              avatarUrl={avatarUrl}
-            />
+        <ProfileHeader
+          name={name}
+          subtitle={subtitle}
+          initials={isAuthenticated ? initials : '?'}
+          avatarUrl={isAuthenticated ? avatarUrl : null}
+        />
 
-            {statsLoading ? (
-              <ActivityIndicator color={T.primary} style={styles.statsLoader} />
-            ) : (
-              <ProfileStats
-                savedPlaces={savedPlaces}
-                visits={visits}
-                onSavedPress={() => router.push('/perfil/favoritos')}
-              />
-            )}
-
-            <ProfileOptions
-              onEditProfile={() => router.push('/perfil/editar')}
-              onSettings={() => router.push('/perfil/configuracion')}
-            />
-          </>
+        {!isAuthenticated && (
+          <Pressable
+            onPress={() => router.push('/auth')}
+            style={({ pressed }) => [styles.signInHint, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={styles.signInHintText}>Iniciar sesión</Text>
+          </Pressable>
         )}
+
+        {accountRows.length > 0 && <SettingsGroup rows={accountRows} />}
+        <SettingsGroup rows={prefsRows} />
+        <SettingsGroup rows={authRows} />
+
+        <Text style={styles.version}>Trivai</Text>
       </ScrollView>
     </SafeAreaView>
   )
@@ -119,42 +183,40 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: T.bg,
+    backgroundColor: T.muted,
   },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: T.bg,
+    backgroundColor: T.muted,
   },
   scroll: {
-    paddingBottom: 48,
+    paddingBottom: 56,
   },
   screenTitle: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.xxl,
-    fontWeight: F.weight.bold,
+    fontFamily: FONT.semibold,
+    fontSize: 34,
+    fontWeight: F.weight.semibold,
     color: T.fg1,
     paddingHorizontal: S.lg,
-    paddingTop: S.md,
-    letterSpacing: -0.3,
+    paddingTop: S.sm,
+    letterSpacing: -0.8,
   },
-  guest: {
-    alignItems: 'center',
-    paddingHorizontal: S.xl,
+  signInHint: {
+    alignSelf: 'center',
+    marginBottom: S.xl,
   },
-  guestText: {
+  signInHintText: {
     fontFamily: FONT.regular,
-    fontSize: F.size.md,
-    color: T.fg3,
+    fontSize: F.size.lg,
+    color: T.primary,
+  },
+  version: {
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: S.lg,
-  },
-  guestBtn: {
-    minWidth: 180,
-  },
-  statsLoader: {
-    marginVertical: S.xl,
+    fontFamily: FONT.regular,
+    fontSize: F.size.xs,
+    color: T.fg4,
+    marginTop: S.md,
   },
 })

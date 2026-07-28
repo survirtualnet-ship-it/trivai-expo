@@ -22,7 +22,7 @@ import type { PlaceCardData } from '@/components/ui/PlaceCard'
 import type { ExplorerPlace } from '@/lib/explorerRanking'
 import { getAllMockPlaceCards, USE_MOCK_API } from '@/services/mockApi'
 
-const DEBOUNCE_MS = 280
+const DEBOUNCE_MS = 160
 
 async function fetchSearchPlaces(query: string): Promise<PlaceCardData[]> {
   const q = query.trim()
@@ -42,7 +42,7 @@ async function fetchSearchPlaces(query: string): Promise<PlaceCardData[]> {
 
   return filterPlacesByQuery(merged, q)
     .sort((a, b) => (b.rating_avg ?? 0) - (a.rating_avg ?? 0))
-    .slice(0, 20)
+    .slice(0, 24)
 }
 
 export function useSearchScreen() {
@@ -77,9 +77,11 @@ export function useSearchScreen() {
     staleTime: STALE.places,
   })
 
+  const liveQuery = query.trim()
+
   const categories = useMemo(
-    (): SearchCategory[] => filterSearchCategories(debounced),
-    [debounced],
+    (): SearchCategory[] => filterSearchCategories(liveQuery || debounced),
+    [liveQuery, debounced],
   )
 
   const places = useMemo((): ExplorerPlace[] => {
@@ -87,8 +89,8 @@ export function useSearchScreen() {
     return toExplorerPlaces(resultsQuery.data, origin)
   }, [debounced, resultsQuery.data, origin])
 
-  const isSearching = debounced.length > 0
-  const isLoading = isSearching && resultsQuery.isFetching
+  const isSearching = liveQuery.length > 0
+  const isLoading = isSearching && resultsQuery.isFetching && !(resultsQuery.data?.length)
 
   const recordSearch = useCallback(async (term: string) => {
     const next = await addRecentSearch(term)

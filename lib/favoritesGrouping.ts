@@ -1,19 +1,19 @@
 import type { PlaceCardData } from '@/components/ui/PlaceCard'
 import { normalizeCategory } from '@/lib/categories'
 
-export type FavoriteGroupId = 'restaurants' | 'cafes' | 'hotels'
+export type FavoriteGroupId = 'restaurants' | 'cafes' | 'hotels' | 'other'
 
 export interface FavoriteGroup {
   id: FavoriteGroupId
   title: string
-  emoji: string
   places: PlaceCardData[]
 }
 
-const GROUP_META: Record<FavoriteGroupId, { title: string; emoji: string }> = {
-  restaurants: { title: 'Restaurants', emoji: '🍽️' },
-  cafes: { title: 'Cafes', emoji: '☕' },
-  hotels: { title: 'Hotels', emoji: '🏨' },
+const GROUP_META: Record<FavoriteGroupId, { title: string }> = {
+  restaurants: { title: 'Restaurantes' },
+  cafes: { title: 'Cafés' },
+  hotels: { title: 'Hoteles' },
+  other: { title: 'Otros' },
 }
 
 const CAFE_PATTERN = /caf[eé]|coffee|kaffe|espresso|matcha|panader[ií]a|bakery|latte/i
@@ -38,23 +38,15 @@ export function classifyFavoritePlace(place: PlaceCardData): FavoriteGroupId {
   }
 
   if (
-    cat === 'Gastronomía'
-    || RESTAURANT_PATTERN.test(name)
+    RESTAURANT_PATTERN.test(name)
     || legacy.includes('restaur')
     || legacy.includes('bar')
+    || cat === 'Gastronomía'
   ) {
     return 'restaurants'
   }
 
-  if (cat === 'Otros' && HOTEL_PATTERN.test(name)) {
-    return 'hotels'
-  }
-
-  // Default food-related Supabase category → restaurants
-  if (cat === 'Gastronomía') return 'restaurants'
-
-  // Other saved places (parks, entertainment) → restaurants bucket as general "places"
-  return 'restaurants'
+  return 'other'
 }
 
 export function groupFavoritePlaces(places: PlaceCardData[]): FavoriteGroup[] {
@@ -62,6 +54,7 @@ export function groupFavoritePlaces(places: PlaceCardData[]): FavoriteGroup[] {
     restaurants: [],
     cafes: [],
     hotels: [],
+    other: [],
   }
 
   for (const place of places) {

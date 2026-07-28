@@ -1,8 +1,8 @@
-import { memo } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
-import { Navigation, Bookmark } from 'lucide-react-native'
-import { ActionButton } from '@/components/ui/ActionButton'
-import { T, F, S } from '@/lib/tokens'
+import { memo, type ReactNode } from 'react'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { Navigation, Bookmark, MessageCircle } from 'lucide-react-native'
+import * as Haptics from 'expo-haptics'
+import { T, F, S, R } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 
 type Props = {
@@ -15,11 +15,31 @@ type Props = {
   onSave: () => void
 }
 
-function WhatsAppIcon() {
+function ActionItem({
+  label,
+  icon,
+  onPress,
+  disabled,
+}: {
+  label: string
+  icon: ReactNode
+  onPress: () => void
+  disabled?: boolean
+}) {
   return (
-    <View style={styles.waIcon}>
-      <Text style={styles.waText}>W</Text>
-    </View>
+    <Pressable
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {})
+        onPress()
+      }}
+      disabled={disabled}
+      style={({ pressed }) => [styles.item, pressed && styles.pressed, disabled && styles.disabled]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <View style={styles.iconCircle}>{icon}</View>
+      <Text style={styles.label}>{label}</Text>
+    </Pressable>
   )
 }
 
@@ -34,68 +54,72 @@ export const ActionBar = memo(function ActionBar({
 }: Props) {
   return (
     <View style={styles.wrap} accessibilityRole="toolbar">
-      {showDirections && onDirections && (
-        <ActionButton
+      {showDirections && onDirections ? (
+        <ActionItem
           label="Cómo llegar"
-          icon={<Navigation size={20} color="#fff" />}
-          variant="primary"
+          icon={<Navigation size={20} color={T.fg1} strokeWidth={2.2} />}
           onPress={onDirections}
-          accessibilityLabel="Cómo llegar"
         />
-      )}
-      {showWhatsApp && onWhatsApp && (
-        <ActionButton
+      ) : null}
+
+      {showWhatsApp && onWhatsApp ? (
+        <ActionItem
           label="WhatsApp"
-          icon={<WhatsAppIcon />}
-          variant="secondary"
+          icon={<MessageCircle size={20} color={T.fg1} strokeWidth={2.2} />}
           onPress={onWhatsApp}
-          style={styles.waBtn}
-          accessibilityLabel="Contactar por WhatsApp"
         />
-      )}
-      <ActionButton
+      ) : null}
+
+      <ActionItem
         label={isFavorite ? 'Guardado' : 'Guardar'}
-        icon={
+        icon={(
           <Bookmark
             size={20}
             color={isFavorite ? T.primary : T.fg1}
             fill={isFavorite ? T.primary : 'transparent'}
+            strokeWidth={2.2}
           />
-        }
-        variant="secondary"
+        )}
         onPress={onSave}
-        loading={favoritePending}
-        accessibilityLabel={isFavorite ? 'Quitar de guardados' : 'Guardar lugar'}
+        disabled={favoritePending}
       />
     </View>
   )
 })
 
-const WA_GREEN = '#25D366'
-
 const styles = StyleSheet.create({
   wrap: {
     flexDirection: 'row',
-    gap: S.md,
+    justifyContent: 'space-evenly',
     paddingHorizontal: S.lg,
-    paddingVertical: S.lg,
+    paddingTop: S.sm,
+    paddingBottom: S.xxl,
     backgroundColor: T.surface,
   },
-  waBtn: {
-    backgroundColor: '#E8FBF0',
-    borderColor: WA_GREEN,
+  item: {
+    alignItems: 'center',
+    gap: S.sm,
+    minWidth: 88,
   },
-  waIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: WA_GREEN,
+  pressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.96 }],
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  iconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: T.muted,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  waText: {
-    fontFamily: FONT.bold,
-    fontSize: 11,
-    color: '#fff',
+  label: {
+    fontFamily: FONT.medium,
+    fontSize: F.size.sm,
+    fontWeight: F.weight.medium,
+    color: T.fg2,
   },
 })

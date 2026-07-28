@@ -5,41 +5,62 @@ import { T, S, R } from '@/lib/tokens'
 export function PlaceDetailSkeleton() {
   return (
     <View style={styles.root}>
-      <Skeleton height={400} width="100%" style={styles.hero} />
+      <Skeleton height={420} width="100%" style={styles.hero} />
       <View style={styles.block}>
-        <Skeleton height={28} width="75%" style={styles.line} />
-        <Skeleton height={16} width="40%" style={styles.line} />
-        <Skeleton height={16} width="55%" style={styles.line} />
+        <Skeleton height={34} width="78%" style={styles.line} />
+        <Skeleton height={18} width="36%" style={styles.line} />
+        <Skeleton height={16} width="58%" style={styles.line} />
+      </View>
+      <View style={styles.chips}>
+        <Skeleton height={32} width={88} style={styles.chip} />
+        <Skeleton height={32} width={72} style={styles.chip} />
+        <Skeleton height={32} width={96} style={styles.chip} />
+      </View>
+      <View style={styles.block}>
+        <Skeleton height={22} width="28%" style={styles.line} />
+        <Skeleton height={16} width="100%" style={styles.line} />
+        <Skeleton height={16} width="90%" style={styles.line} />
       </View>
       <View style={styles.actions}>
-        <Skeleton height={72} style={styles.pill} />
-        <Skeleton height={72} style={styles.pill} />
-        <Skeleton height={72} style={styles.pill} />
-      </View>
-      <View style={styles.block}>
-        <Skeleton height={18} width="30%" style={styles.line} />
-        <Skeleton height={14} width="100%" style={styles.line} />
-        <Skeleton height={14} width="92%" style={styles.line} />
+        <Skeleton height={52} width={52} style={styles.circle} />
+        <Skeleton height={52} width={52} style={styles.circle} />
+        <Skeleton height={52} width={52} style={styles.circle} />
       </View>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: T.bg },
-  hero: { borderRadius: 0 },
-  block: {
-    padding: S.lg,
-    gap: S.sm,
+  root: {
+    flex: 1,
     backgroundColor: T.surface,
-    marginTop: S.sm,
   },
-  line: { borderRadius: R.sm },
+  hero: {
+    borderRadius: 0,
+  },
+  block: {
+    paddingHorizontal: S.lg,
+    paddingTop: S.xxl,
+    gap: S.md,
+  },
+  line: {
+    borderRadius: R.sm,
+  },
+  chips: {
+    flexDirection: 'row',
+    gap: S.sm,
+    paddingHorizontal: S.lg,
+    paddingTop: S.lg,
+  },
+  chip: {
+    borderRadius: R.full,
+  },
   actions: {
     flexDirection: 'row',
-    gap: S.md,
-    padding: S.lg,
-    backgroundColor: T.surface,
+    justifyContent: 'space-evenly',
+    paddingTop: S.xxl,
   },
-  pill: { borderRadius: R.xl, flex: 1 },
+  circle: {
+    borderRadius: 26,
+  },
 })

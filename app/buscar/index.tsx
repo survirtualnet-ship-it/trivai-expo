@@ -2,14 +2,14 @@ import { useCallback, useEffect, useRef } from 'react'
 import {
   View,
   ScrollView,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Keyboard,
+  Text,
   TextInput,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
-import { ChevronLeft } from 'lucide-react-native'
 import { useQueryClient } from '@tanstack/react-query'
 import { SearchInput } from '@/components/search/SearchInput'
 import { SearchSuggestions } from '@/components/search/SearchSuggestions'
@@ -21,7 +21,8 @@ import { removeRecentSearch } from '@/lib/search'
 import { searchKeys } from '@/lib/queries/keys'
 import type { ExplorerPlace } from '@/lib/explorerRanking'
 import type { SearchCategory } from '@/lib/search'
-import { T, S, R, SHADOW } from '@/lib/tokens'
+import { T, F, S } from '@/lib/tokens'
+import { FONT } from '@/lib/typography'
 
 export default function SearchScreen() {
   const inputRef = useRef<TextInput>(null)
@@ -44,16 +45,22 @@ export default function SearchScreen() {
   } = useSearchScreen()
 
   useEffect(() => {
-    const t = setTimeout(() => inputRef.current?.focus(), 120)
+    const t = setTimeout(() => inputRef.current?.focus(), 80)
     return () => clearTimeout(t)
   }, [])
 
+  const dismiss = useCallback(() => {
+    Keyboard.dismiss()
+    router.back()
+  }, [])
+
   const openPlace = useCallback((place: ExplorerPlace) => {
-    if (debounced) recordSearch(debounced)
+    const term = debounced || query.trim()
+    if (term) recordSearch(term)
     if (userId) logPlaceView(userId, place.id)
     Keyboard.dismiss()
     deferredPush(`/lugares/${place.id}`)
-  }, [debounced, recordSearch, userId])
+  }, [debounced, query, recordSearch, userId])
 
   const openCategory = useCallback((category: SearchCategory) => {
     recordSearch(category.label)
@@ -75,31 +82,40 @@ export default function SearchScreen() {
     queryClient.setQueryData(searchKeys.recent(), next)
   }, [queryClient])
 
+  const handleSubmit = useCallback(() => {
+    const term = query.trim()
+    if (term) recordSearch(term)
+    Keyboard.dismiss()
+  }, [query, recordSearch])
+
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.topBar}>
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Volver"
-          hitSlop={8}
-        >
-          <ChevronLeft size={24} color={T.fg1} />
-        </TouchableOpacity>
         <View style={styles.inputCol}>
           <SearchInput
             ref={inputRef}
             value={query}
             onChangeText={setQuery}
+            autoFocus
+            onSubmit={handleSubmit}
           />
         </View>
+        <Pressable
+          onPress={dismiss}
+          hitSlop={8}
+          style={({ pressed }) => pressed && styles.cancelPressed}
+          accessibilityRole="button"
+          accessibilityLabel="Cancelar"
+        >
+          <Text style={styles.cancel}>Cancelar</Text>
+        </Pressable>
       </View>
 
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
         {!isSearching ? (
@@ -111,7 +127,7 @@ export default function SearchScreen() {
           />
         ) : (
           <SearchResults
-            query={debounced}
+            query={query.trim() || debounced}
             places={places}
             categories={categories}
             loading={isLoading}
@@ -129,33 +145,31 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: T.bg,
+    backgroundColor: T.surface,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: S.sm,
+    gap: S.md,
     paddingHorizontal: S.lg,
     paddingTop: S.sm,
     paddingBottom: S.md,
   },
-  backBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: R.full,
-    backgroundColor: T.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOW.sm,
-  },
   inputCol: {
     flex: 1,
+  },
+  cancel: {
+    fontFamily: FONT.regular,
+    fontSize: F.size.lg,
+    color: T.primary,
+  },
+  cancelPressed: {
+    opacity: 0.55,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: S.lg,
     paddingBottom: 48,
   },
 })

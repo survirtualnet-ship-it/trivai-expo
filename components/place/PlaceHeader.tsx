@@ -1,14 +1,14 @@
-import { memo, useCallback, useRef, useState } from 'react'
+import { memo, useCallback, useState } from 'react'
 import {
   View,
   Text,
   Image,
   FlatList,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Dimensions,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
@@ -18,10 +18,9 @@ import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 
 const { width: SCREEN_W } = Dimensions.get('window')
-const HERO_H = 400
+const HERO_H = 420
 
 type Props = {
-  name: string
   category: string
   images: string[]
   isFavorite: boolean
@@ -33,7 +32,6 @@ type Props = {
 }
 
 export const PlaceHeader = memo(function PlaceHeader({
-  name,
   category,
   images,
   isFavorite,
@@ -45,12 +43,10 @@ export const PlaceHeader = memo(function PlaceHeader({
 }: Props) {
   const insets = useSafeAreaInsets()
   const [activeIndex, setActiveIndex] = useState(0)
-  const hasPhotos = images.length > 0
-  const slides = hasPhotos ? images : [null]
+  const slides = images.length > 0 ? images : [null]
 
   const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const x = e.nativeEvent.contentOffset.x
-    setActiveIndex(Math.round(x / SCREEN_W))
+    setActiveIndex(Math.round(e.nativeEvent.contentOffset.x / SCREEN_W))
   }, [])
 
   return (
@@ -62,6 +58,7 @@ export const PlaceHeader = memo(function PlaceHeader({
         showsHorizontalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
+        decelerationRate="fast"
         keyExtractor={(_, i) => `hero-${i}`}
         renderItem={({ item }) => (
           item ? (
@@ -73,15 +70,28 @@ export const PlaceHeader = memo(function PlaceHeader({
       />
 
       <View style={[styles.overlayTop, { paddingTop: insets.top + S.sm }]}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Volver" hitSlop={8}>
-          <ChevronLeft size={22} color={T.fg1} />
-        </TouchableOpacity>
+        <Pressable
+          style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
+          hitSlop={8}
+        >
+          <ChevronLeft size={22} color={T.fg1} strokeWidth={2.2} />
+        </Pressable>
+
         <View style={styles.overlayRight}>
-          <TouchableOpacity style={styles.iconBtn} onPress={onShare} accessibilityRole="button" accessibilityLabel="Compartir" hitSlop={8}>
-            <Share2 size={20} color={T.fg1} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.iconBtn}
+          <Pressable
+            style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+            onPress={onShare}
+            accessibilityRole="button"
+            accessibilityLabel="Compartir"
+            hitSlop={8}
+          >
+            <Share2 size={18} color={T.fg1} strokeWidth={2.2} />
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
             onPress={onToggleFavorite}
             disabled={favoritePending}
             accessibilityRole="button"
@@ -89,16 +99,17 @@ export const PlaceHeader = memo(function PlaceHeader({
             hitSlop={8}
           >
             <Heart
-              size={22}
+              size={20}
               color={isFavorite ? T.danger : T.fg1}
               fill={isFavorite ? T.danger : 'transparent'}
+              strokeWidth={2.2}
             />
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
 
       {(isFeatured || isSponsored) && (
-        <View style={[styles.promoBadge, { top: insets.top + 56 }]}>
+        <View style={[styles.promoBadge, { top: insets.top + 58 }]}>
           <Text style={styles.promoText}>{isSponsored ? 'Patrocinado' : 'Destacado'}</Text>
         </View>
       )}
@@ -110,8 +121,6 @@ export const PlaceHeader = memo(function PlaceHeader({
           ))}
         </View>
       )}
-
-      <View style={styles.gradientFade} pointerEvents="none" />
     </View>
   )
 })
@@ -134,34 +143,37 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: S.md,
+    paddingHorizontal: S.lg,
   },
   overlayRight: {
     flexDirection: 'row',
     gap: S.sm,
   },
   iconBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.94)',
     alignItems: 'center',
     justifyContent: 'center',
     ...SHADOW.sm,
   },
+  pressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.96 }],
+  },
   promoBadge: {
     position: 'absolute',
     left: S.lg,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(21,19,26,0.55)',
     paddingHorizontal: S.md,
     paddingVertical: 5,
     borderRadius: R.full,
   },
   promoText: {
-    fontFamily: FONT.bold,
+    fontFamily: FONT.medium,
     fontSize: F.size.xs,
     color: '#fff',
-    letterSpacing: 0.3,
   },
   dots: {
     position: 'absolute',
@@ -174,19 +186,10 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.45)',
+    backgroundColor: 'rgba(255,255,255,0.4)',
   },
   dotActive: {
-    width: 18,
+    width: 16,
     backgroundColor: '#fff',
-  },
-  gradientFade: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 48,
-    backgroundColor: 'transparent',
-    // subtle bottom fade via overlay on content instead
   },
 })

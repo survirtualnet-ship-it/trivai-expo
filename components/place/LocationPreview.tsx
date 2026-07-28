@@ -1,11 +1,10 @@
 import { memo, useMemo } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { MapPin, Navigation } from 'lucide-react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { MapEmbed } from '@/components/MapEmbed'
 import { buildExplorerMapHtml } from '@/lib/explorerMapHtml'
 import type { ExplorerMapMarker } from '@/lib/explorerMapHtml'
 import type { PlaceDetail } from '@/lib/placeDetail'
-import { T, F, S, R, SHADOW } from '@/lib/tokens'
+import { T, F, S, R } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 
 type Props = {
@@ -39,63 +38,45 @@ export const LocationPreview = memo(function LocationPreview({ place, onOpenMaps
       <View style={styles.mapWrap}>
         <MapEmbed html={html} />
       </View>
-      <View style={styles.addressRow}>
-        <MapPin size={16} color={T.primary} />
-        <Text style={styles.address} numberOfLines={2}>{place.address}</Text>
-      </View>
-      <TouchableOpacity style={styles.btn} onPress={onOpenMaps} activeOpacity={0.9}>
-        <Navigation size={16} color="#fff" />
-        <Text style={styles.btnText}>Abrir en mapas</Text>
-      </TouchableOpacity>
+      <Pressable
+        style={({ pressed }) => [styles.linkRow, pressed && { opacity: 0.7 }]}
+        onPress={onOpenMaps}
+        accessibilityRole="button"
+        accessibilityLabel="Abrir en mapas"
+      >
+        <Text style={styles.link}>Abrir en Mapas</Text>
+      </Pressable>
     </View>
   )
 })
 
 const styles = StyleSheet.create({
   wrap: {
-    marginTop: S.sm,
-    padding: S.lg,
+    paddingHorizontal: S.lg,
+    paddingBottom: S.xxl,
     backgroundColor: T.surface,
   },
   title: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.lg,
+    fontFamily: FONT.semibold,
+    fontSize: F.size.xl,
+    fontWeight: F.weight.semibold,
     color: T.fg1,
-    marginBottom: S.md,
+    letterSpacing: -0.3,
+    marginBottom: S.lg,
   },
   mapWrap: {
-    height: 160,
+    height: 180,
     borderRadius: R.xl,
     overflow: 'hidden',
-    ...SHADOW.sm,
+    backgroundColor: T.muted,
   },
-  addressRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: S.sm,
+  linkRow: {
     marginTop: S.md,
+    alignSelf: 'flex-start',
   },
-  address: {
-    flex: 1,
-    fontFamily: FONT.regular,
+  link: {
+    fontFamily: FONT.medium,
     fontSize: F.size.md,
-    color: T.fg2,
-    lineHeight: 20,
-  },
-  btn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: S.sm,
-    marginTop: S.md,
-    backgroundColor: T.primary,
-    paddingVertical: S.md,
-    borderRadius: R.lg,
-    ...SHADOW.sm,
-  },
-  btnText: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.md,
-    color: '#fff',
+    color: T.primary,
   },
 })

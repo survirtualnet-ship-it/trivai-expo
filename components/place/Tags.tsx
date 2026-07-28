@@ -1,23 +1,32 @@
-import { memo } from 'react'
-import { View, Text, ScrollView, StyleSheet } from 'react-native'
-import { T, F, S, R } from '@/lib/tokens'
-import { FONT } from '@/lib/typography'
+import { memo, useMemo } from 'react'
+import { View, ScrollView, StyleSheet } from 'react-native'
+import { Tag } from '@/components/ui/Tag'
+import { S } from '@/lib/tokens'
+import type { IdealForTag } from '@/lib/placeDetail'
 
 type Props = {
-  tags: string[]
+  tags?: string[]
+  idealFor?: IdealForTag[]
 }
 
-export const PlaceTags = memo(function PlaceTags({ tags }: Props) {
-  if (!tags.length) return null
+export const PlaceTags = memo(function PlaceTags({ tags = [], idealFor = [] }: Props) {
+  const chips = useMemo(() => {
+    const merged = [...idealFor, ...tags]
+    return [...new Set(merged)].slice(0, 8)
+  }, [tags, idealFor])
+
+  if (!chips.length) return null
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>Highlights</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-        {tags.map(tag => (
-          <View key={tag} style={styles.chip}>
-            <Text style={styles.chipText}>{tag}</Text>
-          </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.row}
+        decelerationRate="fast"
+      >
+        {chips.map(tag => (
+          <Tag key={tag} label={tag} variant="secondary" size="md" />
         ))}
       </ScrollView>
     </View>
@@ -26,32 +35,12 @@ export const PlaceTags = memo(function PlaceTags({ tags }: Props) {
 
 const styles = StyleSheet.create({
   wrap: {
-    paddingVertical: S.lg,
-    paddingLeft: S.lg,
-    backgroundColor: T.surface,
-    marginTop: S.sm,
-  },
-  title: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.lg,
-    color: T.fg1,
-    marginBottom: S.sm,
+    backgroundColor: '#fff',
+    paddingTop: S.sm,
+    paddingBottom: S.lg,
   },
   row: {
+    paddingHorizontal: S.lg,
     gap: S.sm,
-    paddingRight: S.lg,
-  },
-  chip: {
-    paddingHorizontal: S.md,
-    paddingVertical: 8,
-    borderRadius: R.full,
-    backgroundColor: T.purpleSoft,
-    borderWidth: 1,
-    borderColor: 'rgba(108, 76, 241, 0.15)',
-  },
-  chipText: {
-    fontFamily: FONT.semibold,
-    fontSize: F.size.sm,
-    color: T.purpleInk,
   },
 })

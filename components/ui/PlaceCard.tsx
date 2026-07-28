@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, TouchableOpacity, Pressable, StyleSheet } from 'react-native'
 import { Clock, MapPin } from 'lucide-react-native'
 import { CatCover } from '@/components/CatCover'
 import { HeartButton } from '@/components/HeartButton'
@@ -106,10 +106,15 @@ const PlaceCardVertical = memo(function PlaceCardVertical({
     : categoryLabel(place.category, locale ?? 'es')
 
   return (
-    <TouchableOpacity
-      style={[styles.verticalCard, width != null && { width }]}
+    <Pressable
+      style={({ pressed }) => [
+        styles.verticalCard,
+        width != null && { width },
+        pressed && styles.pressed,
+      ]}
       onPress={onPress}
-      activeOpacity={0.92}
+      accessibilityRole="button"
+      accessibilityLabel={place.name}
     >
       <PlaceCardImage
         category={place.category}
@@ -139,9 +144,9 @@ const PlaceCardVertical = memo(function PlaceCardVertical({
           </View>
         )}
 
-        <TagRow tags={cardTags} variant="primary" max={3} />
+        <TagRow tags={cardTags} variant="secondary" max={2} />
       </View>
-    </TouchableOpacity>
+    </Pressable>
   )
 })
 
@@ -293,6 +298,10 @@ const styles = StyleSheet.create({
   verticalCard: {
     ...UI.card,
   },
+  pressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.98 }],
+  },
   imageWrap: {
     position: 'relative',
   },
@@ -305,7 +314,6 @@ const styles = StyleSheet.create({
   },
   verticalBody: {
     ...UI.cardBody,
-    gap: S.sm,
   },
   metaRow: {
     flexDirection: 'row',
@@ -314,11 +322,10 @@ const styles = StyleSheet.create({
     gap: S.sm,
   },
   category: {
-    fontFamily: FONT.semibold,
+    fontFamily: FONT.medium,
     fontSize: F.size.xs,
-    color: T.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    color: T.fg3,
+    letterSpacing: -0.1,
   },
   dist: {
     flexDirection: 'row',

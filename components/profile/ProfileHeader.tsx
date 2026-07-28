@@ -1,19 +1,18 @@
 import { memo } from 'react'
 import { View, Text, Image, StyleSheet } from 'react-native'
-import { MapPin } from 'lucide-react-native'
-import { T, F, S, R } from '@/lib/tokens'
+import { T, F, S } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 
 type Props = {
   name: string
-  city: string
+  subtitle?: string
   initials: string
   avatarUrl?: string | null
 }
 
 export const ProfileHeader = memo(function ProfileHeader({
   name,
-  city,
+  subtitle,
   initials,
   avatarUrl,
 }: Props) {
@@ -23,16 +22,11 @@ export const ProfileHeader = memo(function ProfileHeader({
         <Image source={{ uri: avatarUrl }} style={styles.avatar} />
       ) : (
         <View style={styles.avatarFallback}>
-          <Text style={styles.initials}>{initials}</Text>
+          <Text style={styles.initials}>{initials.slice(0, 2).toUpperCase()}</Text>
         </View>
       )}
-
-      <Text style={styles.name}>{name}</Text>
-
-      <View style={styles.cityRow}>
-        <MapPin size={14} color={T.fg3} />
-        <Text style={styles.city}>{city}</Text>
-      </View>
+      <Text style={styles.name} numberOfLines={2}>{name}</Text>
+      {subtitle ? <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text> : null}
     </View>
   )
 })
@@ -40,46 +34,43 @@ export const ProfileHeader = memo(function ProfileHeader({
 const styles = StyleSheet.create({
   wrap: {
     alignItems: 'center',
-    paddingVertical: S.xxl,
-    paddingHorizontal: S.lg,
+    paddingTop: S.xl,
+    paddingBottom: S.xxl,
+    paddingHorizontal: S.xl,
   },
   avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
   },
   avatarFallback: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: T.purpleSoft,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: T.muted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   initials: {
-    fontFamily: FONT.bold,
-    fontSize: 28,
-    fontWeight: F.weight.bold,
-    color: T.primary,
+    fontFamily: FONT.semibold,
+    fontSize: 26,
+    fontWeight: F.weight.semibold,
+    color: T.fg2,
   },
   name: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.h1,
-    fontWeight: F.weight.bold,
+    fontFamily: FONT.semibold,
+    fontSize: F.size.xxl,
+    fontWeight: F.weight.semibold,
     color: T.fg1,
-    marginTop: S.lg,
+    marginTop: S.md,
     letterSpacing: -0.4,
     textAlign: 'center',
   },
-  cityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: S.sm,
-  },
-  city: {
+  subtitle: {
     fontFamily: FONT.regular,
     fontSize: F.size.md,
     color: T.fg3,
+    marginTop: 4,
+    textAlign: 'center',
   },
 })

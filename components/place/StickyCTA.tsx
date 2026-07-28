@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Navigation, MessageCircle } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
@@ -17,26 +17,25 @@ export const StickyCTA = memo(function StickyCTA({ mode, onPress }: Props) {
   const label = isGo ? 'Ir ahora' : 'Contactar'
 
   const handlePress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {})
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {})
     onPress()
   }
 
   return (
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, S.md) }]}>
-      <TouchableOpacity
-        style={styles.btn}
+      <Pressable
+        style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
         onPress={handlePress}
-        activeOpacity={0.92}
         accessibilityRole="button"
         accessibilityLabel={label}
       >
         {isGo ? (
-          <Navigation size={22} color="#fff" />
+          <Navigation size={20} color="#fff" strokeWidth={2.4} />
         ) : (
-          <MessageCircle size={22} color="#fff" />
+          <MessageCircle size={20} color="#fff" strokeWidth={2.4} />
         )}
         <Text style={styles.label}>{label}</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   )
 })
@@ -49,25 +48,27 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: S.lg,
     paddingTop: S.md,
-    backgroundColor: 'rgba(255,255,255,0.96)',
-    borderTopWidth: 1,
-    borderTopColor: T.border,
-    ...SHADOW.lg,
+    backgroundColor: 'rgba(255,255,255,0.94)',
   },
   btn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: S.sm,
-    backgroundColor: T.primary,
-    paddingVertical: 18,
-    borderRadius: R.xl,
+    backgroundColor: T.fg1,
+    paddingVertical: 17,
+    borderRadius: R.full,
     ...SHADOW.md,
   },
+  pressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.985 }],
+  },
   label: {
-    fontFamily: FONT.bold,
+    fontFamily: FONT.semibold,
     fontSize: F.size.lg,
+    fontWeight: F.weight.semibold,
     color: '#fff',
-    letterSpacing: 0.2,
+    letterSpacing: -0.2,
   },
 })

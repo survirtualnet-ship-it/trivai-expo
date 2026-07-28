@@ -3,22 +3,19 @@ import {
   View,
   Text,
   FlatList,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Image,
 } from 'react-native'
-import { Star } from 'lucide-react-native'
 import { CatCover } from '@/components/CatCover'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { FadeInView } from '@/components/ui/FadeInView'
 import { firstPhoto } from '@/lib/discoverCardUtils'
 import type { PlaceCardData } from '@/components/ui/PlaceCard'
 import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
-import { getCatLabel } from '@/lib/tokens'
 import { deferredPush } from '@/lib/deferredNav'
 
-const CARD_W = 168
+const CARD_W = 156
 
 type Props = {
   places: PlaceCardData[]
@@ -26,44 +23,40 @@ type Props = {
 }
 
 export const SimilarPlaces = memo(function SimilarPlaces({ places, loading }: Props) {
-  const renderItem = useCallback(({ item, index }: { item: PlaceCardData; index: number }) => {
+  const renderItem = useCallback(({ item }: { item: PlaceCardData }) => {
     const photo = firstPhoto(item.photos)
     return (
-      <FadeInView delay={index * 40}>
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => deferredPush(`/lugares/${item.id}`)}
-          activeOpacity={0.92}
-          accessibilityRole="button"
-          accessibilityLabel={`Ver ${item.name}`}
-        >
-          {photo ? (
-            <Image source={{ uri: photo }} style={styles.image} />
-          ) : (
-            <CatCover category={item.category} variant="banner" style={styles.image} />
-          )}
-          <View style={styles.body}>
-            <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
-            <Text style={styles.cat}>{getCatLabel(item.category)}</Text>
-            {(item.rating_avg ?? 0) > 0 && (
-              <View style={styles.rating}>
-                <Star size={11} color={T.accent} fill={T.accent} />
-                <Text style={styles.ratingText}>{item.rating_avg?.toFixed(1)}</Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-      </FadeInView>
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+        onPress={() => deferredPush(`/lugares/${item.id}`)}
+        accessibilityRole="button"
+        accessibilityLabel={`Ver ${item.name}`}
+      >
+        {photo ? (
+          <Image source={{ uri: photo }} style={styles.image} />
+        ) : (
+          <CatCover
+            category={item.category}
+            variant="banner"
+            photoUri={photo}
+            style={styles.image}
+          />
+        )}
+        <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
+        {(item.rating_avg ?? 0) > 0 && (
+          <Text style={styles.rating}>{item.rating_avg?.toFixed(1)}</Text>
+        )}
+      </Pressable>
     )
   }, [])
 
   if (loading) {
     return (
       <View style={styles.wrap}>
-        <Text style={styles.title}>También te puede gustar</Text>
+        <Text style={styles.title}>Similares</Text>
         <View style={styles.skeletonRow}>
-          <Skeleton height={200} width={CARD_W} style={styles.sk} />
-          <Skeleton height={200} width={CARD_W} style={styles.sk} />
+          <Skeleton height={180} width={CARD_W} style={styles.sk} />
+          <Skeleton height={180} width={CARD_W} style={styles.sk} />
         </View>
       </View>
     )
@@ -73,7 +66,7 @@ export const SimilarPlaces = memo(function SimilarPlaces({ places, loading }: Pr
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.title}>También te puede gustar</Text>
+      <Text style={styles.title}>Similares</Text>
       <FlatList
         horizontal
         data={places}
@@ -81,6 +74,7 @@ export const SimilarPlaces = memo(function SimilarPlaces({ places, loading }: Pr
         renderItem={renderItem}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.list}
+        decelerationRate="fast"
       />
     </View>
   )
@@ -88,17 +82,18 @@ export const SimilarPlaces = memo(function SimilarPlaces({ places, loading }: Pr
 
 const styles = StyleSheet.create({
   wrap: {
-    marginTop: S.sm,
-    paddingTop: S.lg,
+    paddingTop: S.sm,
     paddingBottom: S.xxxl,
     backgroundColor: T.surface,
   },
   title: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.lg,
+    fontFamily: FONT.semibold,
+    fontSize: F.size.xl,
+    fontWeight: F.weight.semibold,
     color: T.fg1,
+    letterSpacing: -0.3,
     paddingHorizontal: S.lg,
-    marginBottom: S.md,
+    marginBottom: S.lg,
   },
   list: {
     paddingHorizontal: S.lg,
@@ -106,39 +101,32 @@ const styles = StyleSheet.create({
   },
   card: {
     width: CARD_W,
-    borderRadius: R.xl,
-    overflow: 'hidden',
-    backgroundColor: T.bg,
-    ...SHADOW.sm,
+  },
+  pressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.98 }],
   },
   image: {
     width: CARD_W,
-    height: 112,
-  },
-  body: {
-    padding: S.sm,
-    gap: 2,
+    height: 120,
+    borderRadius: R.xl,
+    overflow: 'hidden',
+    backgroundColor: T.muted,
+    ...SHADOW.sm,
   },
   name: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.sm,
-    color: T.fg1,
-  },
-  cat: {
+    marginTop: S.sm,
     fontFamily: FONT.semibold,
-    fontSize: F.size.xs,
-    color: T.primary,
+    fontSize: F.size.md,
+    fontWeight: F.weight.semibold,
+    color: T.fg1,
+    letterSpacing: -0.2,
   },
   rating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
     marginTop: 2,
-  },
-  ratingText: {
     fontFamily: FONT.regular,
-    fontSize: F.size.xs,
-    color: T.fg2,
+    fontSize: F.size.sm,
+    color: T.fg3,
   },
   skeletonRow: {
     flexDirection: 'row',

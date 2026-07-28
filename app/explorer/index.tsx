@@ -3,16 +3,12 @@ import {
   View,
   StyleSheet,
   Alert,
-  TouchableOpacity,
+  Pressable,
   Text,
-  ScrollView,
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
 import { ExplorerSearchBar } from '@/components/explorer/SearchBar'
-import { ExplorerCategoryChips } from '@/components/explorer/CategoryChips'
 import { ExplorerBottomSheetList } from '@/components/explorer/BottomSheetList'
-import { ExplorerPlaceCard } from '@/components/explorer/ExplorerPlaceCard'
 import { MapViewExplorer } from '@/components/map/MapView'
 import type { MapRegion } from '@/components/map/MapView.native'
 import { toExplorerMarkers } from '@/lib/explorerMapHtml'
@@ -95,7 +91,7 @@ export default function ExplorerScreen() {
   const cycleLocation = useCallback(() => {
     Alert.alert('Ubicación', undefined, [
       ...EXPLORER_LOCATIONS.map(loc => ({
-        text: loc.id === 'near_me' ? '📍 Cerca de mí' : loc.label,
+        text: loc.id === 'near_me' ? 'Cerca de mí' : loc.label,
         onPress: () => {
           setLocationId(loc.id)
           setSearchAreaVisible(false)
@@ -104,8 +100,6 @@ export default function ExplorerScreen() {
       { text: 'Cancelar', style: 'cancel' },
     ])
   }, [])
-
-  const previewPlaces = visiblePlaces.slice(0, 6)
 
   return (
     <View style={styles.root}>
@@ -118,56 +112,38 @@ export default function ExplorerScreen() {
         onRegionChange={handleRegionChange}
       />
 
-      <View style={[styles.topOverlay, { paddingTop: insets.top + S.sm }]}>
+      <View
+        style={[styles.topOverlay, { paddingTop: insets.top + S.sm }]}
+        pointerEvents="box-none"
+      >
         <ExplorerSearchBar
           value={search}
           onChangeText={setSearch}
           locationLabel={locationLabel}
           onLocationPress={cycleLocation}
-          onFilterPress={() => router.push('/discover')}
         />
-        <ExplorerCategoryChips selected={chipId} onSelect={setChipId} />
       </View>
 
       {isError && (
-        <View style={[styles.errorBanner, { top: insets.top + 118 }]} accessibilityRole="alert">
+        <View style={[styles.errorBanner, { top: insets.top + 108 }]} accessibilityRole="alert">
           <Text style={styles.errorText}>No pudimos cargar lugares</Text>
-          <TouchableOpacity onPress={() => refetch()} accessibilityRole="button" accessibilityLabel="Reintentar">
+          <Pressable onPress={() => refetch()} accessibilityRole="button" accessibilityLabel="Reintentar">
             <Text style={styles.errorRetry}>Reintentar</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       )}
 
       {searchAreaVisible && (
-        <TouchableOpacity
-          style={[styles.searchAreaBtn, { top: insets.top + 120 }]}
+        <Pressable
+          style={({ pressed }) => [
+            styles.searchAreaBtn,
+            { top: insets.top + 108 },
+            pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
+          ]}
           onPress={() => setSearchAreaVisible(false)}
-          activeOpacity={0.9}
         >
           <Text style={styles.searchAreaText}>Buscar en esta zona</Text>
-        </TouchableOpacity>
-      )}
-
-      {previewPlaces.length > 0 && (
-        <View style={styles.previewStrip} pointerEvents="box-none">
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.previewContent}
-          >
-            {previewPlaces.map(p => (
-              <ExplorerPlaceCard
-                key={p.id}
-                place={p}
-                focused={p.id === selectedId}
-                onPress={() => {
-                  handleSelect(p.id)
-                  handleOpenDetail(p.id)
-                }}
-              />
-            ))}
-          </ScrollView>
-        </View>
+        </Pressable>
       )}
 
       <ExplorerBottomSheetList
@@ -176,6 +152,8 @@ export default function ExplorerScreen() {
         loading={loading}
         hasNextPage={hasNextPage}
         isFetchingNextPage={isFetchingNextPage}
+        chipId={chipId}
+        onChipSelect={setChipId}
         onSelect={handleSelect}
         onOpenDetail={handleOpenDetail}
         onEndReached={() => fetchNextPage()}
@@ -187,14 +165,13 @@ export default function ExplorerScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: T.bg,
+    backgroundColor: T.muted,
   },
   topOverlay: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    gap: S.sm,
     zIndex: 10,
   },
   searchAreaBtn: {
@@ -205,23 +182,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: R.full,
     zIndex: 11,
-    ...SHADOW.md,
+    ...SHADOW.sm,
   },
   searchAreaText: {
-    fontFamily: FONT.semibold,
+    fontFamily: FONT.medium,
     fontSize: F.size.sm,
-    color: T.primary,
-  },
-  previewStrip: {
-    position: 'absolute',
-    bottom: '52%',
-    left: 0,
-    right: 0,
-    zIndex: 5,
-  },
-  previewContent: {
-    paddingHorizontal: S.lg,
-    gap: S.md,
+    fontWeight: F.weight.medium,
+    color: T.fg1,
   },
   errorBanner: {
     position: 'absolute',
@@ -234,7 +201,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: R.full,
     zIndex: 12,
-    ...SHADOW.md,
+    ...SHADOW.sm,
   },
   errorText: {
     fontFamily: FONT.regular,

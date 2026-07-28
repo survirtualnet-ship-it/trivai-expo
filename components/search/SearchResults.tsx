@@ -1,7 +1,7 @@
 import { memo } from 'react'
-import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native'
-import { ExplorerPlaceCard } from '@/components/explorer/ExplorerPlaceCard'
+import { View, Text, ActivityIndicator, Pressable, StyleSheet } from 'react-native'
 import { SearchCategoryRow } from '@/components/search/SearchCategoryRow'
+import { SearchPlaceRow } from '@/components/search/SearchPlaceRow'
 import { T, F, S } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import type { ExplorerPlace } from '@/lib/explorerRanking'
@@ -33,11 +33,11 @@ export const SearchResults = memo(function SearchResults({
       <View style={styles.center} accessibilityRole="alert">
         <Text style={styles.emptyTitle}>No pudimos buscar</Text>
         <Text style={styles.emptySub}>Revisa tu conexión e intenta de nuevo</Text>
-        {onRetry && (
-          <TouchableOpacity onPress={onRetry} accessibilityRole="button" accessibilityLabel="Reintentar">
+        {onRetry ? (
+          <Pressable onPress={onRetry} accessibilityRole="button" accessibilityLabel="Reintentar">
             <Text style={styles.retry}>Reintentar</Text>
-          </TouchableOpacity>
-        )}
+          </Pressable>
+        ) : null}
       </View>
     )
   }
@@ -47,7 +47,7 @@ export const SearchResults = memo(function SearchResults({
   if (loading && places.length === 0 && categories.length === 0) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color={T.primary} />
+        <ActivityIndicator color={T.fg3} />
       </View>
     )
   }
@@ -55,11 +55,8 @@ export const SearchResults = memo(function SearchResults({
   if (empty) {
     return (
       <View style={styles.center}>
-        <Text style={styles.emptyIcon}>🔍</Text>
         <Text style={styles.emptyTitle}>Sin resultados</Text>
-        <Text style={styles.emptySub}>
-          Prueba otra búsqueda de lugares o categorías en Santa Cruz
-        </Text>
+        <Text style={styles.emptySub}>Prueba con otro término</Text>
       </View>
     )
   }
@@ -83,21 +80,22 @@ export const SearchResults = memo(function SearchResults({
       {places.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            Lugares · {places.length}
+            Lugares
+            {loading ? '' : ` · ${places.length}`}
           </Text>
           {places.map(place => (
-            <ExplorerPlaceCard
+            <SearchPlaceRow
               key={place.id}
               place={place}
-              fullWidth
+              query={query}
               onPress={() => onPlacePress(place)}
             />
           ))}
         </View>
       )}
 
-      {loading && (
-        <ActivityIndicator color={T.primary} style={styles.loader} />
+      {loading && places.length > 0 && (
+        <ActivityIndicator color={T.fg3} style={styles.loader} />
       )}
     </View>
   )
@@ -105,46 +103,44 @@ export const SearchResults = memo(function SearchResults({
 
 const styles = StyleSheet.create({
   wrap: {
-    paddingTop: S.md,
+    paddingTop: S.xs,
   },
   section: {
     marginBottom: S.xl,
   },
   sectionTitle: {
-    fontFamily: FONT.bold,
+    fontFamily: FONT.semibold,
     fontSize: F.size.sm,
-    fontWeight: F.weight.bold,
+    fontWeight: F.weight.semibold,
     color: T.fg3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: S.sm,
+    marginBottom: 4,
+    paddingHorizontal: S.lg,
   },
   center: {
     alignItems: 'center',
     paddingVertical: S.xxxl,
-    gap: S.md,
-  },
-  emptyIcon: {
-    fontSize: 40,
+    gap: S.sm,
+    paddingHorizontal: S.xl,
   },
   emptyTitle: {
-    fontFamily: FONT.bold,
+    fontFamily: FONT.semibold,
     fontSize: F.size.lg,
     color: T.fg1,
   },
   emptySub: {
     fontFamily: FONT.regular,
-    fontSize: F.size.sm,
+    fontSize: F.size.md,
     color: T.fg3,
     textAlign: 'center',
-    paddingHorizontal: S.xl,
   },
   retry: {
-    fontFamily: FONT.semibold,
+    fontFamily: FONT.medium,
     fontSize: F.size.md,
     color: T.primary,
+    marginTop: S.sm,
   },
   loader: {
     marginTop: S.md,
+    marginBottom: S.lg,
   },
 })

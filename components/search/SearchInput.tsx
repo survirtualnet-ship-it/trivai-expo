@@ -2,12 +2,12 @@ import { memo, forwardRef } from 'react'
 import {
   View,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   type TextInput as TextInputType,
 } from 'react-native'
 import { Search, X } from 'lucide-react-native'
-import { T, F, S, R, SHADOW } from '@/lib/tokens'
+import { T, F, S, R } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 
 type Props = {
@@ -15,43 +15,48 @@ type Props = {
   onChangeText: (text: string) => void
   placeholder?: string
   autoFocus?: boolean
+  onSubmit?: () => void
 }
 
 export const SearchInput = memo(forwardRef<TextInputType, Props>(function SearchInput(
   {
     value,
     onChangeText,
-    placeholder = 'What are you looking for?',
+    placeholder = 'Buscar',
     autoFocus = true,
+    onSubmit,
   },
   ref,
 ) {
-  const active = value.trim().length > 0
-
   return (
-    <View style={[styles.wrap, active && styles.wrapActive]}>
-      <Search size={22} color={active ? T.primary : T.fg3} strokeWidth={2} />
+    <View style={styles.wrap}>
+      <Search size={17} color={T.fg3} strokeWidth={2.2} />
       <TextInput
         ref={ref}
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={T.fg4}
+        placeholderTextColor={T.fg3}
         returnKeyType="search"
         autoCorrect={false}
         autoCapitalize="none"
         autoFocus={autoFocus}
         clearButtonMode="never"
+        onSubmitEditing={onSubmit}
+        enablesReturnKeyAutomatically
       />
       {value.length > 0 && (
-        <TouchableOpacity
+        <Pressable
           onPress={() => onChangeText('')}
-          hitSlop={8}
-          accessibilityLabel="Clear search"
+          hitSlop={10}
+          accessibilityLabel="Limpiar"
+          style={({ pressed }) => pressed && styles.pressed}
         >
-          <X size={20} color={T.fg3} />
-        </TouchableOpacity>
+          <View style={styles.clear}>
+            <X size={12} color="#fff" strokeWidth={3} />
+          </View>
+        </Pressable>
       )}
     </View>
   )
@@ -61,24 +66,28 @@ const styles = StyleSheet.create({
   wrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: S.md,
-    backgroundColor: T.surface,
-    borderRadius: R.xl,
-    paddingHorizontal: S.lg,
-    minHeight: 56,
-    borderWidth: 1.5,
-    borderColor: T.border,
-    ...SHADOW.sm,
-  },
-  wrapActive: {
-    borderColor: T.primary,
-    ...SHADOW.md,
+    gap: S.sm,
+    backgroundColor: T.muted,
+    borderRadius: 12,
+    paddingHorizontal: S.md,
+    minHeight: 40,
   },
   input: {
     flex: 1,
     fontFamily: FONT.regular,
     fontSize: F.size.lg,
     color: T.fg1,
-    paddingVertical: S.md,
+    paddingVertical: 8,
+  },
+  clear: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: T.fg4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pressed: {
+    opacity: 0.7,
   },
 })

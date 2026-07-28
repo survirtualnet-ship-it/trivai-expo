@@ -1,6 +1,6 @@
 import { memo } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { ChevronRight } from 'lucide-react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { HighlightedText } from '@/components/search/HighlightedText'
 import { T, F, S, R } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import type { SearchCategory } from '@/lib/search'
@@ -11,40 +11,31 @@ type Props = {
   onPress: (category: SearchCategory) => void
 }
 
-function highlight(label: string, query: string) {
-  if (!query.trim()) return <Text style={styles.label}>{label}</Text>
-  const q = query.trim().toLowerCase()
-  const idx = label.toLowerCase().indexOf(q)
-  if (idx === -1) return <Text style={styles.label}>{label}</Text>
-  return (
-    <Text style={styles.label}>
-      {label.slice(0, idx)}
-      <Text style={styles.highlight}>{label.slice(idx, idx + q.length)}</Text>
-      {label.slice(idx + q.length)}
-    </Text>
-  )
-}
-
 export const SearchCategoryRow = memo(function SearchCategoryRow({
   category,
   query,
   onPress,
 }: Props) {
   return (
-    <TouchableOpacity
-      style={styles.row}
+    <Pressable
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
       onPress={() => onPress(category)}
-      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel={category.label}
     >
-      <View style={[styles.icon, { backgroundColor: `${category.color}22` }]}>
+      <View style={[styles.icon, { backgroundColor: `${category.color}18` }]}>
         <Text style={styles.emoji}>{category.emoji}</Text>
       </View>
       <View style={styles.body}>
-        <Text style={styles.type}>Category</Text>
-        {highlight(category.label, query)}
+        <Text style={styles.type}>Categoría</Text>
+        <HighlightedText
+          text={category.label}
+          query={query}
+          style={styles.label}
+          numberOfLines={1}
+        />
       </View>
-      <ChevronRight size={18} color={T.fg4} />
-    </TouchableOpacity>
+    </Pressable>
   )
 })
 
@@ -53,39 +44,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: S.md,
-    paddingVertical: S.md,
-    borderBottomWidth: 1,
-    borderBottomColor: T.border,
+    paddingVertical: 10,
+    paddingHorizontal: S.lg,
+  },
+  pressed: {
+    backgroundColor: T.muted,
   },
   icon: {
     width: 44,
     height: 44,
-    borderRadius: R.lg,
+    borderRadius: R.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emoji: {
-    fontSize: 22,
+    fontSize: 20,
   },
   body: {
     flex: 1,
-    gap: 2,
+    gap: 1,
   },
   type: {
-    fontFamily: FONT.semibold,
+    fontFamily: FONT.regular,
     fontSize: F.size.xs,
     color: T.fg3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
   },
   label: {
-    fontFamily: FONT.semibold,
-    fontSize: F.size.md,
+    fontFamily: FONT.regular,
+    fontSize: F.size.lg,
     color: T.fg1,
-  },
-  highlight: {
-    backgroundColor: T.purpleSoft,
-    color: T.primary,
-    fontFamily: FONT.bold,
   },
 })

@@ -8,11 +8,13 @@ export const UI = {
     backgroundColor: T.surface,
     borderRadius: R.xl,
     overflow: 'hidden' as const,
-    ...SHADOW.md,
+    ...SHADOW.sm,
   },
   cardBody: {
-    padding: S.md,
-    gap: S.sm,
+    paddingHorizontal: S.md,
+    paddingTop: S.md,
+    paddingBottom: S.md,
+    gap: 6,
   },
   row: {
     flexDirection: 'row' as const,
@@ -24,16 +26,18 @@ export const UI = {
 
 export const uiText = StyleSheet.create({
   title: {
-    fontFamily: FONT.bold,
+    fontFamily: FONT.semibold,
     fontSize: F.size.md,
-    fontWeight: F.weight.bold,
+    fontWeight: F.weight.semibold,
     color: T.fg1,
+    letterSpacing: -0.2,
   },
   titleLg: {
-    fontFamily: FONT.bold,
+    fontFamily: FONT.semibold,
     fontSize: F.size.lg,
-    fontWeight: F.weight.bold,
+    fontWeight: F.weight.semibold,
     color: T.fg1,
+    letterSpacing: -0.2,
   },
   meta: {
     fontFamily: FONT.regular,
@@ -41,14 +45,14 @@ export const uiText = StyleSheet.create({
     color: T.fg3,
   },
   label: {
-    fontFamily: FONT.semibold,
+    fontFamily: FONT.medium,
     fontSize: F.size.xs,
-    fontWeight: F.weight.semibold,
+    fontWeight: F.weight.medium,
     color: T.fg2,
   },
 })
 
-export const PLACE_CARD_W = 200
-export const PLACE_CARD_IMAGE_H = 128
+export const PLACE_CARD_W = 188
+export const PLACE_CARD_IMAGE_H = 140
 export const CATEGORY_CARD_W = 140
 export const CATEGORY_CARD_H = 112

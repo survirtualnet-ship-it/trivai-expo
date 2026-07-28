@@ -1,6 +1,6 @@
 import { memo } from 'react'
-import { ScrollView, TouchableOpacity, Text, StyleSheet, View } from 'react-native'
-import { T, F, S, R, SHADOW } from '@/lib/tokens'
+import { ScrollView, Pressable, Text, StyleSheet } from 'react-native'
+import { T, F, S, R } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import { EXPLORER_CHIPS, type ExplorerChipId } from '@/lib/explorerCategories'
 
@@ -18,22 +18,28 @@ export const ExplorerCategoryChips = memo(function ExplorerCategoryChips({
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.row}
+      decelerationRate="fast"
     >
       {EXPLORER_CHIPS.map(chip => {
         const active = chip.id === selected
         return (
-          <TouchableOpacity
+          <Pressable
             key={chip.id}
-            style={[styles.chip, active && styles.chipActive]}
             onPress={() => onSelect(chip.id)}
-            activeOpacity={0.88}
+            style={({ pressed }) => [
+              styles.chip,
+              active && styles.chipActive,
+              pressed && styles.pressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={chip.label}
           >
             <Text style={styles.emoji}>{chip.emoji}</Text>
             <Text style={[styles.label, active && styles.labelActive]}>{chip.label}</Text>
-          </TouchableOpacity>
+          </Pressable>
         )
       })}
-      <View style={styles.spacer} />
     </ScrollView>
   )
 })
@@ -43,29 +49,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: S.lg,
     gap: S.sm,
     alignItems: 'center',
+    paddingBottom: 2,
   },
-  spacer: { width: S.sm },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     paddingHorizontal: S.md,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: R.full,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderWidth: 1,
-    borderColor: T.border,
-    ...SHADOW.sm,
+    backgroundColor: T.muted,
   },
   chipActive: {
-    backgroundColor: T.primary,
-    borderColor: T.primary,
+    backgroundColor: T.fg1,
   },
-  emoji: { fontSize: 15 },
+  pressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.98 }],
+  },
+  emoji: {
+    fontSize: 13,
+  },
   label: {
-    fontFamily: FONT.semibold,
+    fontFamily: FONT.medium,
     fontSize: F.size.sm,
-    fontWeight: F.weight.semibold,
+    fontWeight: F.weight.medium,
     color: T.fg2,
   },
   labelActive: {

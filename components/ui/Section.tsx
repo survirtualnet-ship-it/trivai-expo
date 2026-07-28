@@ -68,11 +68,11 @@ export const Section = memo(function Section({
 
 const styles = StyleSheet.create({
   wrap: {
-    marginBottom: S.lg,
+    marginBottom: S.xxxl,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: S.lg,
     marginBottom: S.md,
@@ -87,11 +87,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontFamily: FONT.bold,
+    fontFamily: FONT.semibold,
     fontSize: F.size.xl,
-    fontWeight: F.weight.bold,
+    fontWeight: F.weight.semibold,
     color: T.fg1,
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
   titleMd: {
     fontSize: F.size.lg,
@@ -103,9 +103,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   action: {
-    fontFamily: FONT.semibold,
+    fontFamily: FONT.medium,
     fontSize: F.size.sm,
-    fontWeight: F.weight.semibold,
-    color: T.primary,
+    fontWeight: F.weight.medium,
+    color: T.fg3,
   },
 })

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native'
 import { Heart } from 'lucide-react-native'
 import { router } from 'expo-router'
 import { Button } from '@/components/ui/Button'
-import { T, F, S, R } from '@/lib/tokens'
+import { T, F, S } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 
 type Props = {
@@ -16,17 +16,18 @@ export const FavoritesEmptyState = memo(function FavoritesEmptyState({
   return (
     <View style={styles.wrap}>
       <View style={styles.iconCircle}>
-        <Heart size={32} color={T.primary} />
+        <Heart size={28} color={T.fg3} strokeWidth={1.8} />
       </View>
       <Text style={styles.title}>Guarda lugares para verlos aquí</Text>
       <Text style={styles.sub}>
         {isAuthenticated
-          ? 'Toca el corazón en cualquier lugar para armar tu colección.'
+          ? 'Toca el corazón en cualquier lugar y arma tu lista.'
           : 'Inicia sesión para guardar y sincronizar tus favoritos.'}
       </Text>
       <Button
-        label={isAuthenticated ? 'Explorar lugares' : 'Iniciar sesión'}
+        label={isAuthenticated ? 'Explorar' : 'Iniciar sesión'}
         variant="primary"
+        size="lg"
         onPress={() => router.push(isAuthenticated ? '/lugares' : '/auth')}
         style={styles.btn}
       />
@@ -39,25 +40,25 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: S.xxl,
-    paddingVertical: S.xxxl,
+    paddingHorizontal: S.xxxl,
     gap: S.md,
   },
   iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: T.purpleSoft,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: T.muted,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: S.sm,
   },
   title: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.xl,
-    fontWeight: F.weight.bold,
+    fontFamily: FONT.semibold,
+    fontSize: F.size.xxl,
+    fontWeight: F.weight.semibold,
     color: T.fg1,
     textAlign: 'center',
+    letterSpacing: -0.4,
   },
   sub: {
     fontFamily: FONT.regular,
@@ -67,7 +68,8 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   btn: {
-    marginTop: S.md,
-    minWidth: 200,
+    marginTop: S.lg,
+    minWidth: 180,
+    borderRadius: 999,
   },
 })

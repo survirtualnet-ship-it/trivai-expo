@@ -1,7 +1,7 @@
 import { memo, type ReactNode } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { Clock, TrendingUp, X } from 'lucide-react-native'
-import { T, F, S, R } from '@/lib/tokens'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { Clock, Search } from 'lucide-react-native'
+import { T, F, S } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
   onRemoveRecent?: (term: string) => void
 }
 
-function SuggestionRow({
+function Row({
   icon,
   label,
   onPress,
@@ -23,17 +23,24 @@ function SuggestionRow({
   onRemove?: () => void
 }) {
   return (
-    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.75}>
-      <View style={styles.iconWrap}>{icon}</View>
-      <Text style={styles.rowText} numberOfLines={1}>{label}</Text>
+    <Pressable
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <View style={styles.icon}>{icon}</View>
+      <Text style={styles.label} numberOfLines={1}>{label}</Text>
       {onRemove ? (
-        <TouchableOpacity onPress={onRemove} hitSlop={10}>
-          <X size={16} color={T.fg4} />
-        </TouchableOpacity>
-      ) : (
-        <Text style={styles.chevron}>›</Text>
-      )}
-    </TouchableOpacity>
+        <Pressable
+          onPress={onRemove}
+          hitSlop={12}
+          accessibilityLabel={`Eliminar ${label}`}
+        >
+          <Text style={styles.remove}>Eliminar</Text>
+        </Pressable>
+      ) : null}
+    </Pressable>
   )
 }
 
@@ -47,11 +54,11 @@ export const SearchSuggestions = memo(function SearchSuggestions({
     <View style={styles.wrap}>
       {recent.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent searches</Text>
+          <Text style={styles.sectionTitle}>Recientes</Text>
           {recent.map(term => (
-            <SuggestionRow
+            <Row
               key={`recent-${term}`}
-              icon={<Clock size={18} color={T.fg3} />}
+              icon={<Clock size={16} color={T.fg3} strokeWidth={2} />}
               label={term}
               onPress={() => onSelect(term)}
               onRemove={onRemoveRecent ? () => onRemoveRecent(term) : undefined}
@@ -61,11 +68,11 @@ export const SearchSuggestions = memo(function SearchSuggestions({
       )}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Popular searches</Text>
+        <Text style={styles.sectionTitle}>Sugerencias</Text>
         {popular.map(term => (
-          <SuggestionRow
+          <Row
             key={`popular-${term}`}
-            icon={<TrendingUp size={18} color={T.accent} />}
+            icon={<Search size={16} color={T.fg3} strokeWidth={2} />}
             label={term}
             onPress={() => onSelect(term)}
           />
@@ -80,44 +87,39 @@ const styles = StyleSheet.create({
     paddingTop: S.sm,
   },
   section: {
-    marginBottom: S.xl,
+    marginBottom: S.xxl,
   },
   sectionTitle: {
-    fontFamily: FONT.bold,
+    fontFamily: FONT.semibold,
     fontSize: F.size.sm,
-    fontWeight: F.weight.bold,
+    fontWeight: F.weight.semibold,
     color: T.fg3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
     marginBottom: S.sm,
-    paddingHorizontal: S.xs,
+    paddingHorizontal: S.lg,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: S.md,
-    paddingVertical: S.md,
-    paddingHorizontal: S.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: T.border,
+    paddingVertical: 12,
+    paddingHorizontal: S.lg,
   },
-  iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: R.md,
+  pressed: {
     backgroundColor: T.muted,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  rowText: {
+  icon: {
+    width: 28,
+    alignItems: 'center',
+  },
+  label: {
     flex: 1,
     fontFamily: FONT.regular,
-    fontSize: F.size.md,
+    fontSize: F.size.lg,
     color: T.fg1,
   },
-  chevron: {
-    fontSize: 20,
-    color: T.fg4,
-    lineHeight: 22,
+  remove: {
+    fontFamily: FONT.regular,
+    fontSize: F.size.sm,
+    color: T.fg3,
   },
 })
