@@ -27,7 +27,7 @@ import { DiscoverCarouselSection } from '@/components/discover/DiscoverCarouselS
 import { DiscoverCarouselSkeleton } from '@/components/discover/DiscoverCarouselCard'
 import { DiscoverHeroSkeleton } from '@/components/discover/DiscoverHeroSkeleton'
 import { HeroCard } from '@/components/ui/HeroCard'
-import { SectionHeader } from '@/components/ui/SectionHeader'
+import { SectionHeader } from '@/components/ui/Section'
 import { AvatarGroup } from '@/components/ui/AvatarGroup'
 import type { PlaceCardData } from '@/components/ui/PlaceCard'
 import type { EventCardData } from '@/components/ui/EventCard'

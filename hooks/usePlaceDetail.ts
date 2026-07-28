@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchPlaceById } from '@/lib/queries/places'
 import { fetchPlaceReviews, fetchSimilarPlaces } from '@/lib/queries/placeDetail'
-import { placeKeys, discoverKeys, STALE } from '@/lib/queries/keys'
+import { placeKeys, discoverKeys, favoriteKeys, STALE } from '@/lib/queries/keys'
 import { mapPlaceToDetail, type PlaceDetail } from '@/lib/placeDetail'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { isPlaceFavorite, togglePlaceFavorite } from '@/lib/favorites'
@@ -30,7 +30,8 @@ export function usePlaceDetail(id: string | undefined) {
   return {
     place: detail,
     raw: placeQuery.data,
-    isLoading: placeQuery.isLoading || coordsQuery.isLoading,
+    /** Don't block the whole screen on slow/denied GPS */
+    isLoading: placeQuery.isLoading,
     isError: placeQuery.isError,
     error: placeQuery.error,
     refetch: placeQuery.refetch,
@@ -92,6 +93,10 @@ export function usePlaceFavorite(placeId: string | undefined) {
       queryClient.invalidateQueries({
         queryKey: placeKeys.favorite(userId ?? 'anon', placeId ?? ''),
       })
+      queryClient.invalidateQueries({ queryKey: favoriteKeys.all })
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: favoriteKeys.count(userId) })
+      }
     },
   })
 

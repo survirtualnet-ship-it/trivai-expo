@@ -17,7 +17,7 @@ import { deferredPush } from '@/lib/deferredNav'
 import { AppHeader, HeaderLogo } from '@/components/ui/AppHeader'
 import { PlaceCard } from '@/components/ui/PlaceCard'
 import { DiscoveryCard } from '@/components/DiscoveryCard'
-import { SectionHeader } from '@/components/ui/SectionHeader'
+import { SectionHeader } from '@/components/ui/Section'
 import { BARRIO_ZONES, getZoneEmoji } from '@/lib/barrioZones'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { ENV } from '@/lib/env'
@@ -332,7 +332,7 @@ export default function Lugares() {
                 </View>
                 <View style={{ paddingHorizontal: S.lg, gap: S.md }}>
                   {cercanos.map(l => (
-                    <PlaceCard key={l.id} place={l} onPress={() => deferredPush(`/lugares/${l.id}`)} />
+                    <PlaceCard key={l.id} place={l} variant="compact" onPress={() => deferredPush(`/lugares/${l.id}`)} />
                   ))}
                 </View>
               </>

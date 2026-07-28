@@ -6,8 +6,9 @@ import {
   StyleSheet,
   Image,
 } from 'react-native'
-import { Star, MapPin, Sparkles } from 'lucide-react-native'
+import { MapPin, Sparkles } from 'lucide-react-native'
 import { CatCover } from '@/components/CatCover'
+import { RatingCompact } from '@/components/ui/Rating'
 import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import { getCatLabel } from '@/lib/tokens'
@@ -18,12 +19,14 @@ import type { ExplorerPlace } from '@/lib/explorerRanking'
 type Props = {
   place: ExplorerPlace
   focused?: boolean
+  fullWidth?: boolean
   onPress: () => void
 }
 
 export const ExplorerPlaceCard = memo(function ExplorerPlaceCard({
   place,
   focused,
+  fullWidth = false,
   onPress,
 }: Props) {
   const photo = firstPhoto(place.photos)
@@ -31,7 +34,7 @@ export const ExplorerPlaceCard = memo(function ExplorerPlaceCard({
 
   return (
     <TouchableOpacity
-      style={[styles.card, focused && styles.cardFocused]}
+      style={[styles.card, fullWidth && styles.cardFull, focused && styles.cardFocused]}
       onPress={onPress}
       activeOpacity={0.92}
     >
@@ -49,12 +52,7 @@ export const ExplorerPlaceCard = memo(function ExplorerPlaceCard({
       <View style={styles.body}>
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1}>{place.name}</Text>
-          {(place.rating_avg ?? 0) > 0 && (
-            <View style={styles.rating}>
-              <Star size={12} color={T.accent} fill={T.accent} />
-              <Text style={styles.ratingText}>{place.rating_avg?.toFixed(1)}</Text>
-            </View>
-          )}
+          <RatingCompact value={place.rating_avg ?? 0} size="sm" />
         </View>
 
         <View style={styles.metaRow}>
@@ -86,6 +84,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginRight: S.md,
     ...SHADOW.md,
+  },
+  cardFull: {
+    width: '100%',
+    marginRight: 0,
+    marginBottom: S.md,
   },
   cardFocused: {
     borderWidth: 2,
@@ -129,16 +132,6 @@ const styles = StyleSheet.create({
     fontSize: F.size.md,
     fontWeight: F.weight.bold,
     color: T.fg1,
-  },
-  rating: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  ratingText: {
-    fontFamily: FONT.semibold,
-    fontSize: F.size.sm,
-    color: T.fg2,
   },
   metaRow: {
     flexDirection: 'row',

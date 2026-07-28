@@ -1,51 +1,193 @@
+import { memo } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import type { ComponentType } from 'react'
 import { Clock, MapPin } from 'lucide-react-native'
 import { CatCover } from '@/components/CatCover'
 import { HeartButton } from '@/components/HeartButton'
 import { SharePlaceButton } from '@/components/SharePlaceButton'
+import { RatingCompact } from '@/components/ui/Rating'
+import { TagRow } from '@/components/ui/Tag'
+import { CategoryCardFromMeta } from '@/components/ui/CategoryCard'
 import { T, F, S, R, SHADOW, getCatLabel } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
+import { UI, PLACE_CARD_W, PLACE_CARD_IMAGE_H, uiText } from '@/lib/ui/styles'
 import { calcIsOpen } from '@/lib/hours'
-import { getCityZone, distToMinutes, type CityZone } from '@/lib/zones'
+import { getCityZone, distToMinutes } from '@/lib/zones'
 import type { AppLocale } from '@/lib/i18n/discover'
 import { DISCOVER_STRINGS, categoryLabel } from '@/lib/i18n/discover'
+import { firstPhoto } from '@/lib/discoverCardUtils'
 
-export type PlaceCardData = {
-  id: string
-  name: string
-  category: string
-  address?: string | null
-  rating_avg?: number
-  rating_count?: number
-  is_open?: boolean
-  hours?: Record<string, string> | null
-  latitude?: number | null
-  longitude?: number | null
-  _dist?: number
-  _zone?: CityZone | null
-  photos?: string[] | null
-  is_featured?: boolean
-  is_sponsored?: boolean
-  description?: string | null
-}
+export type { PlaceCardData } from './PlaceCard.types'
+export { derivePlaceCardTags } from './PlaceCard.types'
 
-type Props = {
+import type { PlaceCardData } from './PlaceCard.types'
+import { derivePlaceCardTags } from './PlaceCard.types'
+
+export { CategoryChip } from '@/components/ui/CategoryChip'
+
+export type PlaceCardVariant = 'vertical' | 'horizontal' | 'compact'
+
+export type PlaceCardProps = {
   place: PlaceCardData
   onPress: () => void
+  variant?: PlaceCardVariant
+  tags?: string[]
   showHeart?: boolean
   showShare?: boolean
   locale?: AppLocale
+  width?: number
 }
 
-export function PlaceCard({
+export const PlaceCard = memo(function PlaceCard({
   place,
   onPress,
+  variant = 'vertical',
+  tags,
   showHeart = true,
-  showShare = true,
+  showShare = false,
   locale = 'es',
-}: Props) {
-  const t = DISCOVER_STRINGS[locale]
+  width = PLACE_CARD_W,
+}: PlaceCardProps) {
+  switch (variant) {
+    case 'horizontal':
+      return (
+        <PlaceCardHorizontal
+          place={place}
+          onPress={onPress}
+          showHeart={showHeart}
+          showShare={showShare}
+          locale={locale}
+        />
+      )
+    case 'compact':
+      return (
+        <PlaceCardCompact
+          place={place}
+          onPress={onPress}
+          showHeart={showHeart}
+          showShare={showShare}
+          locale={locale}
+        />
+      )
+    default:
+      return (
+        <PlaceCardVertical
+          place={place}
+          onPress={onPress}
+          tags={tags}
+          showHeart={showHeart}
+          showShare={showShare}
+          locale={locale}
+          width={width}
+        />
+      )
+  }
+})
+
+type SharedProps = Pick<
+  PlaceCardProps,
+  'place' | 'onPress' | 'showHeart' | 'showShare' | 'locale'
+>
+
+const PlaceCardVertical = memo(function PlaceCardVertical({
+  place,
+  onPress,
+  tags,
+  showHeart,
+  showShare,
+  locale,
+  width,
+}: SharedProps & { tags?: string[]; width?: number }) {
+  const t = DISCOVER_STRINGS[locale ?? 'es']
+  const minutes = place._dist != null ? distToMinutes(place._dist) : null
+  const photo = firstPhoto(place.photos)
+  const cardTags = tags ?? derivePlaceCardTags(place, locale ?? 'es')
+  const catLabel = locale === 'es'
+    ? getCatLabel(place.category)
+    : categoryLabel(place.category, locale ?? 'es')
+
+  return (
+    <TouchableOpacity
+      style={[styles.verticalCard, width != null && { width }]}
+      onPress={onPress}
+      activeOpacity={0.92}
+    >
+      <PlaceCardImage
+        category={place.category}
+        photo={photo}
+        height={PLACE_CARD_IMAGE_H}
+        showHeart={showHeart}
+        showShare={showShare}
+        place={place}
+      />
+
+      <View style={styles.verticalBody}>
+        <Text style={uiText.title} numberOfLines={2}>{place.name}</Text>
+
+        <View style={styles.metaRow}>
+          <RatingCompact
+            value={place.rating_avg ?? 0}
+            count={place.rating_count}
+            size="sm"
+          />
+          <Text style={styles.category}>{catLabel}</Text>
+        </View>
+
+        {minutes != null && (
+          <View style={styles.dist}>
+            <Clock size={11} color={T.fg3} />
+            <Text style={uiText.meta}>{minutes} {t.min}</Text>
+          </View>
+        )}
+
+        <TagRow tags={cardTags} variant="primary" max={3} />
+      </View>
+    </TouchableOpacity>
+  )
+})
+
+const PlaceCardHorizontal = memo(function PlaceCardHorizontal({
+  place,
+  onPress,
+  showHeart,
+  showShare,
+  locale,
+}: SharedProps) {
+  const t = DISCOVER_STRINGS[locale ?? 'es']
+  const minutes = place._dist != null ? distToMinutes(place._dist) : null
+  const photo = firstPhoto(place.photos)
+  const catLabel = locale === 'es'
+    ? getCatLabel(place.category)
+    : categoryLabel(place.category, locale ?? 'es')
+
+  return (
+    <TouchableOpacity style={styles.horizontalCard} onPress={onPress} activeOpacity={0.92}>
+      <CatCover category={place.category} variant="thumb" photoUri={photo} style={styles.horizontalCover} />
+
+      <View style={styles.horizontalBody}>
+        <Text style={uiText.title} numberOfLines={2}>{place.name}</Text>
+        <RatingCompact value={place.rating_avg ?? 0} count={place.rating_count} size="sm" />
+        <Text style={styles.category}>{catLabel}</Text>
+        {minutes != null && (
+          <View style={styles.dist}>
+            <Clock size={11} color={T.fg3} />
+            <Text style={uiText.meta}>{minutes} {t.min}</Text>
+          </View>
+        )}
+      </View>
+
+      <PlaceCardActions place={place} showHeart={showHeart} showShare={showShare} />
+    </TouchableOpacity>
+  )
+})
+
+const PlaceCardCompact = memo(function PlaceCardCompact({
+  place,
+  onPress,
+  showHeart,
+  showShare,
+  locale,
+}: SharedProps) {
+  const t = DISCOVER_STRINGS[locale ?? 'es']
   const isOpen = calcIsOpen(place.hours, place.is_open ?? false)
   const minutes = place._dist != null ? distToMinutes(place._dist) : null
   const zone =
@@ -53,85 +195,157 @@ export function PlaceCard({
     (place.latitude != null && place.longitude != null
       ? getCityZone(place.latitude, place.longitude)
       : null)
-  const catLabel = locale === 'es' ? getCatLabel(place.category) : categoryLabel(place.category, locale)
+  const catLabel = locale === 'es'
+    ? getCatLabel(place.category)
+    : categoryLabel(place.category, locale ?? 'es')
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.92}>
-      <CatCover category={place.category} variant="thumb" style={styles.cover} />
-      <View style={styles.body}>
-        <Text style={styles.title} numberOfLines={2}>{place.name}</Text>
-
+    <TouchableOpacity style={styles.compactCard} onPress={onPress} activeOpacity={0.92}>
+      <CatCover category={place.category} variant="thumb" style={styles.compactCover} />
+      <View style={styles.compactBody}>
+        <Text style={uiText.title} numberOfLines={2}>{place.name}</Text>
+        <RatingCompact value={place.rating_avg ?? 0} size="sm" />
+        <Text style={styles.category}>{catLabel}</Text>
         {minutes != null && (
-          <View style={styles.row}>
-            <Clock size={12} color={T.fg3} />
-            <Text style={styles.meta}>{minutes} {t.min}</Text>
+          <View style={styles.dist}>
+            <Clock size={11} color={T.fg3} />
+            <Text style={uiText.meta}>{minutes} {t.min}</Text>
           </View>
         )}
-
-        <Text style={styles.cat}>{catLabel}</Text>
-
         <Text style={[styles.status, { color: isOpen ? T.secondary : T.fg3 }]}>
           {isOpen ? t.open : t.closed}
         </Text>
-
         {zone && (
-          <View style={styles.row}>
-            <MapPin size={12} color={T.fg3} />
-            <Text style={styles.meta}>{t.zone} {zone}</Text>
+          <View style={styles.dist}>
+            <MapPin size={11} color={T.fg3} />
+            <Text style={uiText.meta}>{t.zone} {zone}</Text>
           </View>
         )}
       </View>
+      <PlaceCardActions place={place} showHeart={showHeart} showShare={showShare} />
+    </TouchableOpacity>
+  )
+})
+
+function PlaceCardImage({
+  category,
+  photo,
+  height,
+  showHeart,
+  showShare,
+  place,
+}: {
+  category: string
+  photo: string | null
+  height: number
+  showHeart?: boolean
+  showShare?: boolean
+  place: PlaceCardData
+}) {
+  return (
+    <View style={[styles.imageWrap, { height }]}>
+      <CatCover
+        category={category}
+        variant="banner"
+        photoUri={photo}
+        style={{ height, width: '100%' }}
+      />
       {(showShare || showHeart) && (
-        <View style={styles.actions}>
+        <View style={styles.imageActions}>
           {showShare && <SharePlaceButton place={place} />}
           {showHeart && <HeartButton size={18} placeId={place.id} />}
         </View>
       )}
-    </TouchableOpacity>
+    </View>
   )
 }
 
-/** Card compacta horizontal para carruseles de zonas/categorías */
+function PlaceCardActions({
+  place,
+  showHeart,
+  showShare,
+}: {
+  place: PlaceCardData
+  showHeart?: boolean
+  showShare?: boolean
+}) {
+  if (!showShare && !showHeart) return null
+  return (
+    <View style={styles.compactActions}>
+      {showShare && <SharePlaceButton place={place} />}
+      {showHeart && <HeartButton size={18} placeId={place.id} />}
+    </View>
+  )
+}
+
+/** @deprecated Use PlaceCard variant="compact" */
+export const PlaceCardRow = PlaceCardCompact
+
 export function ZoneCard({
-  nombre, emoji, bg, fg, onPress,
+  nombre, emoji, bg, onPress,
 }: { nombre: string; emoji: string; bg: string; fg: string; onPress: () => void }) {
   return (
-    <TouchableOpacity style={[styles.zone, { backgroundColor: bg }]} onPress={onPress} activeOpacity={0.85}>
-      <Text style={styles.zoneEmoji}>{emoji}</Text>
-      <Text style={[styles.zoneName, { color: fg }]}>{nombre}</Text>
-    </TouchableOpacity>
-  )
-}
-
-/** Chip de categoría con icono */
-export function CategoryChip({
-  label, Icon, color, bg, onPress, active = false,
-}: {
-  label: string
-  Icon: ComponentType<{ size: number; color: string; strokeWidth?: number }>
-  color: string
-  bg: string
-  onPress: () => void
-  active?: boolean
-}) {
-  return (
-    <TouchableOpacity
-      style={[
-        styles.chip,
-        { backgroundColor: active ? color : bg },
-        active && styles.chipActive,
-      ]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <Icon size={14} color={active ? '#fff' : color} strokeWidth={2} />
-      <Text style={[styles.chipText, { color: active ? '#fff' : color }]}>{label}</Text>
-    </TouchableOpacity>
+    <CategoryCardFromMeta title={nombre} emoji={emoji} color={bg} onPress={onPress} />
   )
 }
 
 const styles = StyleSheet.create({
-  card: {
+  verticalCard: {
+    ...UI.card,
+  },
+  imageWrap: {
+    position: 'relative',
+  },
+  imageActions: {
+    position: 'absolute',
+    top: S.sm,
+    right: S.sm,
+    alignItems: 'center',
+    gap: 2,
+  },
+  verticalBody: {
+    ...UI.cardBody,
+    gap: S.sm,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: S.sm,
+  },
+  category: {
+    fontFamily: FONT.semibold,
+    fontSize: F.size.xs,
+    color: T.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  dist: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: UI.metaGap,
+  },
+  horizontalCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: S.md,
+    backgroundColor: T.surface,
+    borderRadius: R.xl,
+    padding: S.md,
+    ...SHADOW.md,
+  },
+  horizontalCover: {
+    width: 96,
+    height: 96,
+    borderRadius: R.lg,
+    overflow: 'hidden',
+  },
+  horizontalBody: {
+    flex: 1,
+    minWidth: 0,
+    gap: 4,
+  },
+  compactCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: S.md,
@@ -140,52 +354,28 @@ const styles = StyleSheet.create({
     padding: S.md,
     ...SHADOW.sm,
   },
-  cover: { width: 72, height: 72, borderRadius: R.lg, overflow: 'hidden' },
-  body: { flex: 1, minWidth: 0, gap: 3 },
-  title: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.md,
-    fontWeight: F.weight.bold,
-    color: T.fg1,
+  compactCover: {
+    width: 72,
+    height: 72,
+    borderRadius: R.lg,
+    overflow: 'hidden',
   },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  meta: { fontFamily: FONT.regular, fontSize: F.size.xs, color: T.fg3 },
-  cat: {
+  compactBody: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  status: {
     fontFamily: FONT.semibold,
     fontSize: F.size.xs,
-    color: T.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    fontWeight: F.weight.semibold,
   },
-  status: { fontFamily: FONT.semibold, fontSize: F.size.xs, fontWeight: F.weight.semibold },
-  actions: {
+  compactActions: {
     alignSelf: 'flex-start',
     alignItems: 'center',
     gap: 2,
     paddingTop: 2,
   },
-  zone: {
-    width: 128,
-    height: 96,
-    borderRadius: R.xl,
-    padding: S.md,
-    justifyContent: 'flex-end',
-    ...SHADOW.sm,
-  },
-  zoneEmoji: { fontSize: 22, position: 'absolute', top: 10, right: 10 },
-  zoneName: { fontFamily: FONT.bold, fontSize: F.size.md, fontWeight: F.weight.bold },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: S.lg,
-    paddingVertical: 10,
-    borderRadius: R.full,
-  },
-  chipActive: {
-    ...SHADOW.sm,
-  },
-  chipText: { fontFamily: FONT.semibold, fontSize: F.size.sm, fontWeight: F.weight.semibold },
 })
 
 export const ZONE_CARD_W = 128

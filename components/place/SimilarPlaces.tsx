@@ -32,8 +32,10 @@ export const SimilarPlaces = memo(function SimilarPlaces({ places, loading }: Pr
       <FadeInView delay={index * 40}>
         <TouchableOpacity
           style={styles.card}
-          onPress={() => deferredPush(`/place/${item.id}`)}
+          onPress={() => deferredPush(`/lugares/${item.id}`)}
           activeOpacity={0.92}
+          accessibilityRole="button"
+          accessibilityLabel={`Ver ${item.name}`}
         >
           {photo ? (
             <Image source={{ uri: photo }} style={styles.image} />

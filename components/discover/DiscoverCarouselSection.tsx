@@ -1,6 +1,6 @@
 import { memo, useRef, useEffect, type ReactNode } from 'react'
 import { ScrollView, StyleSheet, Platform } from 'react-native'
-import { SectionHeader } from '@/components/ui/SectionHeader'
+import { SectionHeader } from '@/components/ui/Section'
 import { FadeInView } from '@/components/ui/FadeInView'
 import { DiscoverCarouselSkeleton } from '@/components/discover/DiscoverCarouselCard'
 import { S } from '@/lib/tokens'

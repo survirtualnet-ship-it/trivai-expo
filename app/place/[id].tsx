@@ -14,12 +14,17 @@ import { ActionBar } from '@/components/place/ActionBar'
 import { PlaceDescription } from '@/components/place/PlaceDescription'
 import { IdealFor } from '@/components/place/IdealFor'
 import { PlaceExtraInfo } from '@/components/place/PlaceExtraInfo'
+import { LocationPreview } from '@/components/place/LocationPreview'
+import { ReviewsPreview } from '@/components/place/ReviewsPreview'
+import { SimilarPlaces } from '@/components/place/SimilarPlaces'
 import { StickyCTA } from '@/components/place/StickyCTA'
 import { PlaceDetailSkeleton } from '@/components/place/PlaceDetailSkeleton'
 import { FadeInView } from '@/components/ui/FadeInView'
 import {
   usePlaceDetail,
   usePlaceFavorite,
+  usePlaceReviews,
+  useSimilarPlaces,
 } from '@/hooks/usePlaceDetail'
 import { useUser } from '@/hooks/useUser'
 import {
@@ -38,9 +43,11 @@ export default function PlaceDetailScreen() {
 
   const { place, isLoading, isError, refetch } = usePlaceDetail(id)
   const { isFavorite, toggle, isPending: favPending } = usePlaceFavorite(id)
+  const reviewsQuery = usePlaceReviews(id)
+  const similarQuery = useSimilarPlaces(id, place?.category)
 
   const openMaps = useCallback(() => {
-    if (!place) return
+    if (!place || !hasDirections(place)) return
     Linking.openURL(mapsDirectionsUrl(place.coordinates.lat, place.coordinates.lng))
   }, [place])
 
@@ -82,25 +89,36 @@ export default function PlaceDetailScreen() {
 
   if (isError || !place) {
     return (
-      <View style={styles.error}>
+      <View style={styles.error} accessibilityRole="alert">
         <Text style={styles.errorTitle}>No pudimos cargar este lugar</Text>
-        <TouchableOpacity onPress={() => refetch()}>
+        <TouchableOpacity
+          onPress={() => refetch()}
+          accessibilityRole="button"
+          accessibilityLabel="Reintentar"
+        >
           <Text style={styles.retry}>Reintentar</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
+        >
           <Text style={styles.back}>← Volver</Text>
         </TouchableOpacity>
       </View>
     )
   }
 
-  const stickyMode = hasDirections(place) ? 'go' as const : 'contact' as const
+  const canGo = hasDirections(place)
+  const canContact = hasContact(place)
+  const showSticky = canGo || canContact
+  const stickyMode = canGo ? 'go' as const : 'contact' as const
 
   return (
     <View style={styles.root}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, !showSticky && styles.scrollNoSticky]}
       >
         <PlaceHeader
           name={place.name}
@@ -121,9 +139,10 @@ export default function PlaceDetailScreen() {
         <ActionBar
           isFavorite={isFavorite}
           favoritePending={favPending}
-          showWhatsApp={!!place.phone}
-          onDirections={openMaps}
-          onWhatsApp={place.phone ? openWhatsApp : undefined}
+          showWhatsApp={canContact}
+          showDirections={canGo}
+          onDirections={canGo ? openMaps : undefined}
+          onWhatsApp={canContact ? openWhatsApp : undefined}
           onSave={handleSave}
         />
 
@@ -140,9 +159,31 @@ export default function PlaceDetailScreen() {
         <FadeInView delay={80}>
           <PlaceExtraInfo place={place} />
         </FadeInView>
+
+        {canGo && (
+          <FadeInView delay={100}>
+            <LocationPreview place={place} onOpenMaps={openMaps} />
+          </FadeInView>
+        )}
+
+        <FadeInView delay={120}>
+          <ReviewsPreview
+            reviews={reviewsQuery.data ?? []}
+            onWriteReview={() => router.push(user ? '/perfil' : '/auth')}
+          />
+        </FadeInView>
+
+        <FadeInView delay={140}>
+          <SimilarPlaces
+            places={similarQuery.data ?? []}
+            loading={similarQuery.isLoading}
+          />
+        </FadeInView>
       </ScrollView>
 
-      <StickyCTA mode={stickyMode} onPress={handleStickyPress} />
+      {showSticky && (
+        <StickyCTA mode={stickyMode} onPress={handleStickyPress} />
+      )}
     </View>
   )
 }
@@ -150,6 +191,7 @@ export default function PlaceDetailScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
   scroll: { paddingBottom: 120 },
+  scrollNoSticky: { paddingBottom: 40 },
   error: {
     flex: 1,
     alignItems: 'center',

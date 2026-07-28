@@ -73,18 +73,20 @@ export const PlaceHeader = memo(function PlaceHeader({
       />
 
       <View style={[styles.overlayTop, { paddingTop: insets.top + S.sm }]}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()} accessibilityLabel="Volver">
+        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Volver" hitSlop={8}>
           <ChevronLeft size={22} color={T.fg1} />
         </TouchableOpacity>
         <View style={styles.overlayRight}>
-          <TouchableOpacity style={styles.iconBtn} onPress={onShare} accessibilityLabel="Compartir">
+          <TouchableOpacity style={styles.iconBtn} onPress={onShare} accessibilityRole="button" accessibilityLabel="Compartir" hitSlop={8}>
             <Share2 size={20} color={T.fg1} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.iconBtn}
             onPress={onToggleFavorite}
             disabled={favoritePending}
-            accessibilityLabel="Guardar"
+            accessibilityRole="button"
+            accessibilityLabel={isFavorite ? 'Quitar de guardados' : 'Guardar'}
+            hitSlop={8}
           >
             <Heart
               size={22}

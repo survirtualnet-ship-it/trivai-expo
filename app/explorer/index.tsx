@@ -47,6 +47,8 @@ export default function ExplorerScreen() {
     places,
     origin,
     loading,
+    isError,
+    refetch,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
@@ -126,6 +128,15 @@ export default function ExplorerScreen() {
         />
         <ExplorerCategoryChips selected={chipId} onSelect={setChipId} />
       </View>
+
+      {isError && (
+        <View style={[styles.errorBanner, { top: insets.top + 118 }]} accessibilityRole="alert">
+          <Text style={styles.errorText}>No pudimos cargar lugares</Text>
+          <TouchableOpacity onPress={() => refetch()} accessibilityRole="button" accessibilityLabel="Reintentar">
+            <Text style={styles.errorRetry}>Reintentar</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {searchAreaVisible && (
         <TouchableOpacity
@@ -211,5 +222,28 @@ const styles = StyleSheet.create({
   previewContent: {
     paddingHorizontal: S.lg,
     gap: S.md,
+  },
+  errorBanner: {
+    position: 'absolute',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: S.md,
+    backgroundColor: T.surface,
+    paddingHorizontal: S.lg,
+    paddingVertical: 10,
+    borderRadius: R.full,
+    zIndex: 12,
+    ...SHADOW.md,
+  },
+  errorText: {
+    fontFamily: FONT.regular,
+    fontSize: F.size.sm,
+    color: T.fg2,
+  },
+  errorRetry: {
+    fontFamily: FONT.semibold,
+    fontSize: F.size.sm,
+    color: T.primary,
   },
 })

@@ -14,6 +14,7 @@ type Props = {
 export const StickyCTA = memo(function StickyCTA({ mode, onPress }: Props) {
   const insets = useSafeAreaInsets()
   const isGo = mode === 'go'
+  const label = isGo ? 'Ir ahora' : 'Contactar'
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {})
@@ -22,13 +23,19 @@ export const StickyCTA = memo(function StickyCTA({ mode, onPress }: Props) {
 
   return (
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, S.md) }]}>
-      <TouchableOpacity style={styles.btn} onPress={handlePress} activeOpacity={0.92}>
+      <TouchableOpacity
+        style={styles.btn}
+        onPress={handlePress}
+        activeOpacity={0.92}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+      >
         {isGo ? (
           <Navigation size={22} color="#fff" />
         ) : (
           <MessageCircle size={22} color="#fff" />
         )}
-        <Text style={styles.label}>{isGo ? 'Ir ahora' : 'Contactar'}</Text>
+        <Text style={styles.label}>{label}</Text>
       </TouchableOpacity>
     </View>
   )

@@ -12,6 +12,10 @@ import {
 import type { Coords } from '@/lib/geolocation'
 import type { PlaceCardData } from '@/components/ui/PlaceCard'
 import type { EventCardData } from '@/components/ui/EventCard'
+import {
+  getRecommendedPlaceList,
+  type UserProfile,
+} from '@/services/recommendation'
 
 export type DiscoverFeedType = 'discover' | 'for_you' | 'trending' | 'nearby'
 
@@ -46,7 +50,6 @@ export function parseDiscoverRouteType(raw: string | string[] | undefined): Disc
   return 'discover'
 }
 
-/** Interleave pool-ordered places and events for personalized / trending previews. */
 function buildPoolOrderPreview(
   places: EnrichedPlace[],
   events: EnrichedEvent[],
@@ -64,12 +67,51 @@ function buildPoolOrderPreview(
   return out
 }
 
+/** "Para ti" — recommendation engine ranks places, events lightly interleaved. */
+function buildForYouPreview(
+  lugares: PlaceCardData[],
+  eventos: EventCardData[],
+  userCoords: Coords | null,
+  profile: UserProfile | null,
+  limit: number,
+): DiscoverSuggestion[] {
+  const origin = userCoords ?? SC_CENTER
+  const rankedPlaces = profile
+    ? getRecommendedPlaceList(profile, lugares, {
+      limit: Math.max(limit, 12),
+      coords: origin,
+      excludeSeen: true,
+    })
+    : lugares
+
+  const places = enrichAllPlaces(rankedPlaces, origin)
+  const events = enrichAllEvents(eventos, origin)
+
+  const out: DiscoverSuggestion[] = []
+  let pi = 0
+  let ei = 0
+  while (out.length < limit && (pi < places.length || ei < events.length)) {
+    const preferEvent = out.length > 0 && out.length % 3 === 2 && ei < events.length
+    if (preferEvent) {
+      out.push({ kind: 'event', data: events[ei++] })
+    } else if (pi < places.length) {
+      out.push({ kind: 'place', data: places[pi++] })
+    } else if (ei < events.length) {
+      out.push({ kind: 'event', data: events[ei++] })
+    } else {
+      break
+    }
+  }
+  return out
+}
+
 export function buildHomePreviewSuggestions(
   type: DiscoverFeedType,
   lugares: PlaceCardData[],
   eventos: EventCardData[],
   userCoords: Coords | null,
   limit = HOME_PREVIEW_LIMIT,
+  recommendationProfile: UserProfile | null = null,
 ): DiscoverSuggestion[] {
   const origin = userCoords ?? SC_CENTER
   const places = enrichAllPlaces(lugares, origin)
@@ -78,8 +120,9 @@ export function buildHomePreviewSuggestions(
   switch (type) {
     case 'nearby':
       return buildCercaDeTi(places, events, limit)
-    case 'trending':
     case 'for_you':
+      return buildForYouPreview(lugares, eventos, userCoords, recommendationProfile, limit)
+    case 'trending':
       return buildPoolOrderPreview(places, events, limit)
     default:
       return buildPoolOrderPreview(places, events, limit)

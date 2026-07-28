@@ -65,6 +65,27 @@ export const discoverKeys = {
   coords: () => [...discoverKeys.all, 'coords'] as const,
 }
 
+export const searchKeys = {
+  all: ['search'] as const,
+  results: (query: string) => [...searchKeys.all, 'results', query] as const,
+  recent: () => [...searchKeys.all, 'recent'] as const,
+}
+
+export const favoriteKeys = {
+  all: ['favorites'] as const,
+  places: (userId: string) => [...favoriteKeys.all, 'places', userId] as const,
+  /** Count-only queries — never share cache with `places` (array vs number). */
+  count: (userId: string) => [...favoriteKeys.all, 'count', userId] as const,
+}
+
+export const recommendationKeys = {
+  all: ['recommendation'] as const,
+  profile: (userId: string | null) =>
+    [...recommendationKeys.all, 'profile', userId ?? 'anon'] as const,
+  places: (userId: string | null, limit: number) =>
+    [...recommendationKeys.all, 'places', userId ?? 'anon', limit] as const,
+}
+
 export const STALE = {
   places: 60_000,
   events: 60_000,
