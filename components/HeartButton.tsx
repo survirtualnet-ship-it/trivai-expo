@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native'
+import { useQueryClient } from '@tanstack/react-query'
 import { Heart } from 'lucide-react-native'
 import { T } from '@/lib/tokens'
+import { favoriteKeys, placeKeys } from '@/lib/queries/keys'
 import {
   isPlaceFavorite,
   isEventSaved,
@@ -32,6 +34,7 @@ export function HeartButton({
   managed = false,
   onToggle,
 }: Props) {
+  const queryClient = useQueryClient()
   const [active, setActive] = useState(initialActive)
   const [loading, setLoading] = useState(false)
 
@@ -75,8 +78,12 @@ export function HeartButton({
     if (ok) {
       setActive(next)
       onToggle?.(next)
+      if (placeId) {
+        queryClient.invalidateQueries({ queryKey: favoriteKeys.all })
+        queryClient.invalidateQueries({ queryKey: [...placeKeys.all, 'favorite'] })
+      }
     }
-  }, [active, eventId, loading, onToggle, placeId])
+  }, [active, eventId, loading, onToggle, placeId, queryClient])
 
   return (
     <TouchableOpacity

@@ -8,6 +8,10 @@ export const placeKeys = {
   map: () => [...placeKeys.all, 'map'] as const,
   details: () => [...placeKeys.all, 'detail'] as const,
   detail: (id: string) => [...placeKeys.details(), id] as const,
+  similar: (id: string) => [...placeKeys.all, 'similar', id] as const,
+  reviews: (id: string) => [...placeKeys.all, 'reviews', id] as const,
+  favorite: (userId: string, placeId: string) =>
+    [...placeKeys.all, 'favorite', userId, placeId] as const,
 }
 
 export const eventKeys = {
@@ -61,9 +65,43 @@ export const discoverKeys = {
   coords: () => [...discoverKeys.all, 'coords'] as const,
 }
 
+export const searchKeys = {
+  all: ['search'] as const,
+  results: (query: string) => [...searchKeys.all, 'results', query] as const,
+  recent: () => [...searchKeys.all, 'recent'] as const,
+}
+
+export const favoriteKeys = {
+  all: ['favorites'] as const,
+  places: (userId: string) => [...favoriteKeys.all, 'places', userId] as const,
+  /** Count-only queries — never share cache with `places` (array vs number). */
+  count: (userId: string) => [...favoriteKeys.all, 'count', userId] as const,
+}
+
+export const recommendationKeys = {
+  all: ['recommendation'] as const,
+  profile: (userId: string | null) =>
+    [...recommendationKeys.all, 'profile', userId ?? 'anon'] as const,
+  places: (userId: string | null, limit: number) =>
+    [...recommendationKeys.all, 'places', userId ?? 'anon', limit] as const,
+}
+
 export const STALE = {
   places: 60_000,
   events: 60_000,
   user: 30_000,
   coords: 5 * 60_000,
 } as const
+
+export const explorerKeys = {
+  all: ['explorer'] as const,
+  list: (filters: {
+    category?: string | null
+    search?: string
+    userId?: string | null
+  } = {}) => [...explorerKeys.all, 'list', {
+    category: filters.category ?? 'all',
+    search: filters.search ?? '',
+    userId: filters.userId ?? 'anon',
+  }] as const,
+}

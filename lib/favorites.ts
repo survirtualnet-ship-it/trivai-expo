@@ -1,6 +1,8 @@
 import { router } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import { logPlaceSave } from '@/lib/userActivity'
+import { PLACE_CARD_SELECT } from '@/lib/queries/places'
+import type { PlaceCardData } from '@/components/ui/PlaceCard'
 
 export async function isPlaceFavorite(userId: string, placeId: string): Promise<boolean> {
   const { data } = await supabase.from('favorites')
@@ -52,6 +54,20 @@ export async function loadSavedEventIds(userId: string): Promise<Set<string>> {
     .eq('user_id', userId)
     .eq('status', 'interested')
   return new Set((data ?? []).map(r => r.event_id))
+}
+
+export async function fetchFavoritePlaces(userId: string): Promise<PlaceCardData[]> {
+  const { data, error } = await supabase
+    .from('favorites')
+    .select(`created_at, place:places(${PLACE_CARD_SELECT})`)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+
+  return (data ?? [])
+    .map(row => (row as { place?: PlaceCardData | null }).place)
+    .filter((p): p is PlaceCardData => !!p?.id)
 }
 
 export async function withAuth<T>(fn: (userId: string) => Promise<T>): Promise<T | null> {
