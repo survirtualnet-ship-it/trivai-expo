@@ -1,4 +1,5 @@
--- Run in Supabase SQL editor (shared with trivai web backend).
+-- Primera instalación de user_activity (sin DROP → sin aviso destructivo en Supabase).
+-- Usa este archivo si la tabla NO existe todavía.
 
 create table if not exists public.user_activity (
   id uuid primary key default gen_random_uuid(),
@@ -16,12 +17,10 @@ create index if not exists user_activity_place_idx
 
 alter table public.user_activity enable row level security;
 
-drop policy if exists "user_activity_insert_own" on public.user_activity;
 create policy "user_activity_insert_own"
   on public.user_activity for insert
   with check (auth.uid() = user_id);
 
-drop policy if exists "user_activity_select_own" on public.user_activity;
 create policy "user_activity_select_own"
   on public.user_activity for select
   using (auth.uid() = user_id);

@@ -1,4 +1,6 @@
--- Run in Supabase SQL editor (shared with trivai web backend).
+-- user_activity: crea la tabla completa (view, like, save, share).
+-- Ejecuta ESTE archivo en Supabase SQL Editor si la tabla no existe.
+-- Seguro de re-ejecutar: usa IF NOT EXISTS / DROP POLICY IF EXISTS.
 
 create table if not exists public.user_activity (
   id uuid primary key default gen_random_uuid(),
@@ -25,3 +27,11 @@ drop policy if exists "user_activity_select_own" on public.user_activity;
 create policy "user_activity_select_own"
   on public.user_activity for select
   using (auth.uid() = user_id);
+
+-- Si la tabla ya existía sin 'share', actualiza el check constraint:
+alter table public.user_activity
+  drop constraint if exists user_activity_action_check;
+
+alter table public.user_activity
+  add constraint user_activity_action_check
+  check (action in ('view', 'like', 'save', 'share'));

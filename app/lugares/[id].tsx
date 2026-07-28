@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect, useRef } from 'react'
 import {
   View, Text, ScrollView, FlatList, Image, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Linking, TextInput, Share, Dimensions,
+  StyleSheet, ActivityIndicator, Linking, TextInput, Dimensions,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, router } from 'expo-router'
@@ -15,7 +15,7 @@ import { T, F, S, R, getCatColor } from '@/lib/tokens'
 import { CatCover, CategoryPill } from '@/components/CatCover'
 import { grantXP, XP } from '@/lib/xp'
 import { calcIsOpen } from '@/lib/hours'
-import { appLink } from '@/lib/appUrl'
+import { sharePlace } from '@/lib/sharePlace'
 
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
 
@@ -177,12 +177,17 @@ export default function LugarDetalle() {
   const horario = lugar.hours?.[diaHoy] ?? null
 
   const compartir = () => {
-    const url = appLink(`/lugares/${lugar.id}`)
-    Share.share({
-      title: lugar.name,
-      message: `${lugar.name} en Santa Cruz. Ver en Trivai: ${url}`,
-      url,
-    })
+    sharePlace(
+      {
+        id: lugar.id,
+        name: lugar.name,
+        description: lugar.description,
+        category: lugar.category,
+        photos: lugar.photos,
+        address: lugar.address,
+      },
+      userId,
+    )
   }
 
   const abrirMaps = () => {

@@ -26,6 +26,8 @@ export const DISCOVER_POOL_SIZE = 300
 type DiscoverPlaceRow = PlaceCardData & {
   rating_count?: number | null
   created_at?: string | null
+  is_featured?: boolean | null
+  is_sponsored?: boolean | null
 }
 
 type DiscoverEventRow = EventCardData & {

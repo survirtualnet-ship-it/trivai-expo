@@ -6,18 +6,21 @@ import { DISCOVER_STRINGS, categoryLabel } from '@/lib/i18n/discover'
 import { getCatLabel } from '@/lib/tokens'
 import { distToMinutes } from '@/lib/zones'
 
-export type DiscoverBadge = 'hoy' | 'evento' | 'popular'
+export type DiscoverBadge = 'hoy' | 'evento' | 'popular' | 'recommended' | 'sponsored'
 
 export function firstPhoto(photos?: string[] | null): string | null {
   return photos?.[0] ?? null
 }
 
 export function placeBadge(place: PlaceCardData): DiscoverBadge | null {
+  if (place.is_featured) return 'recommended'
+  if (place.is_sponsored) return 'sponsored'
   if ((place.rating_avg ?? 0) >= 4.5) return 'popular'
   return null
 }
 
-export function eventBadge(event: EventCardData): DiscoverBadge | null {
+export function eventBadge(event: EventCardData & { is_featured?: boolean | null }): DiscoverBadge | null {
+  if (event.is_featured) return 'recommended'
   if (esHoy(event.start_datetime)) return 'hoy'
   if ((event.attendees_count ?? 0) >= 8) return 'popular'
   return 'evento'
@@ -28,11 +31,15 @@ export function badgeLabel(badge: DiscoverBadge, locale: AppLocale): string {
     hoy: 'HOY',
     evento: 'EVENTO',
     popular: 'POPULAR',
+    recommended: 'RECOMENDADO',
+    sponsored: 'PATROCINADO',
   }
   const en: Record<DiscoverBadge, string> = {
     hoy: 'TODAY',
     evento: 'EVENT',
     popular: 'POPULAR',
+    recommended: 'RECOMMENDED',
+    sponsored: 'SPONSORED',
   }
   return (locale === 'es' ? es : en)[badge]
 }

@@ -3,6 +3,7 @@ import type { ComponentType } from 'react'
 import { Clock, MapPin } from 'lucide-react-native'
 import { CatCover } from '@/components/CatCover'
 import { HeartButton } from '@/components/HeartButton'
+import { SharePlaceButton } from '@/components/SharePlaceButton'
 import { T, F, S, R, SHADOW, getCatLabel } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import { calcIsOpen } from '@/lib/hours'
@@ -23,16 +24,26 @@ export type PlaceCardData = {
   _dist?: number
   _zone?: CityZone | null
   photos?: string[] | null
+  is_featured?: boolean
+  is_sponsored?: boolean
+  description?: string | null
 }
 
 type Props = {
   place: PlaceCardData
   onPress: () => void
   showHeart?: boolean
+  showShare?: boolean
   locale?: AppLocale
 }
 
-export function PlaceCard({ place, onPress, showHeart = true, locale = 'es' }: Props) {
+export function PlaceCard({
+  place,
+  onPress,
+  showHeart = true,
+  showShare = true,
+  locale = 'es',
+}: Props) {
   const t = DISCOVER_STRINGS[locale]
   const isOpen = calcIsOpen(place.hours, place.is_open ?? false)
   const minutes = place._dist != null ? distToMinutes(place._dist) : null
@@ -69,9 +80,10 @@ export function PlaceCard({ place, onPress, showHeart = true, locale = 'es' }: P
           </View>
         )}
       </View>
-      {showHeart && (
-        <View style={styles.heart}>
-          <HeartButton size={18} placeId={place.id} />
+      {(showShare || showHeart) && (
+        <View style={styles.actions}>
+          {showShare && <SharePlaceButton place={place} />}
+          {showHeart && <HeartButton size={18} placeId={place.id} />}
         </View>
       )}
     </TouchableOpacity>
@@ -145,7 +157,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   status: { fontFamily: FONT.semibold, fontSize: F.size.xs, fontWeight: F.weight.semibold },
-  heart: { alignSelf: 'flex-start', paddingTop: 2 },
+  actions: {
+    alignSelf: 'flex-start',
+    alignItems: 'center',
+    gap: 2,
+    paddingTop: 2,
+  },
   zone: {
     width: 128,
     height: 96,

@@ -3,7 +3,7 @@ import { dedupePlaces } from '@/lib/places'
 import type { PlaceCardData } from '@/components/ui/PlaceCard'
 
 export const PLACE_CARD_SELECT =
-  'id,name,category,address,rating_avg,rating_count,is_open,hours,latitude,longitude,photos'
+  'id,name,category,address,rating_avg,rating_count,is_open,hours,latitude,longitude,photos,is_featured,is_sponsored'
 
 export const PLACE_LIST_SELECT = PLACE_CARD_SELECT
 

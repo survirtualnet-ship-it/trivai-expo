@@ -17,6 +17,7 @@ export type EventCardData = {
   place?: { name: string; address?: string | null } | null
   _dist?: number
   photos?: string[] | null
+  is_featured?: boolean
 }
 
 type Props = {

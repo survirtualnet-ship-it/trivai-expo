@@ -57,8 +57,17 @@ export const DiscoverCarouselCard = memo(function DiscoverCarouselCard({
           style={styles.image}
         />
         {badge && (
-          <View style={[styles.badge, badge === 'popular' && styles.badgeAccent]}>
-            <Text style={styles.badgeText}>{badgeLabel(badge, locale)}</Text>
+          <View style={[
+            styles.badge,
+            badge === 'popular' && styles.badgeAccent,
+            badge === 'recommended' && styles.badgeRecommended,
+            badge === 'sponsored' && styles.badgeSponsored,
+          ]}>
+            <Text style={[
+              styles.badgeText,
+              badge === 'recommended' && styles.badgeTextRecommended,
+              badge === 'sponsored' && styles.badgeTextSponsored,
+            ]}>{badgeLabel(badge, locale)}</Text>
           </View>
         )}
       </View>
@@ -155,12 +164,27 @@ const styles = StyleSheet.create({
   badgeAccent: {
     backgroundColor: T.accent,
   },
+  badgeRecommended: {
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(124, 92, 255, 0.35)',
+  },
+  badgeSponsored: {
+    backgroundColor: 'rgba(0, 0, 0, 0.42)',
+  },
   badgeText: {
     fontFamily: FONT.bold,
     fontSize: 9,
     fontWeight: F.weight.bold,
     color: '#fff',
     letterSpacing: 0.4,
+  },
+  badgeTextRecommended: {
+    color: T.primary,
+  },
+  badgeTextSponsored: {
+    color: 'rgba(255, 255, 255, 0.92)',
+    fontWeight: F.weight.semibold,
   },
   body: {
     flex: 1,

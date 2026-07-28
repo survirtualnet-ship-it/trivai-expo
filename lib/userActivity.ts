@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { normalizeCategory, type Category } from '@/lib/categories'
 
-export type UserActivityAction = 'view' | 'like' | 'save'
+export type UserActivityAction = 'view' | 'like' | 'save' | 'share'
 
 export interface UserActivityRow {
   user_id: string
@@ -21,6 +21,7 @@ const ACTION_WEIGHT: Record<UserActivityAction, number> = {
   view: 1,
   like: 2,
   save: 3,
+  share: 2,
 }
 
 const ACTIVITY_LOOKBACK_LIMIT = 80
@@ -58,6 +59,12 @@ export function logPlaceView(userId: string, placeId: string): void {
 export function logPlaceSave(userId: string, placeId: string): void {
   if (!userId || !placeId) return
   enqueuePlaceActivity(userId, placeId, 'save')
+}
+
+/** Fire-and-forget share log. */
+export function logPlaceShare(userId: string, placeId: string): void {
+  if (!userId || !placeId) return
+  enqueuePlaceActivity(userId, placeId, 'share')
 }
 
 /** Fire-and-forget like log (heart / positive signal). */

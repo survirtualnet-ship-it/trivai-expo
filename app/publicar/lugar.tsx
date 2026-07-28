@@ -97,6 +97,7 @@ export default function CrearLugar() {
       rating_count: 0,
       is_open:      true,
       is_sponsored: false,
+      is_featured: false,
       is_verified:  false,
       latitude:     resolved?.lat ?? null,
       longitude:    resolved?.lng ?? null,

@@ -68,6 +68,7 @@ export interface Place {
   rating_count: number
   is_open:      boolean
   is_sponsored: boolean
+  is_featured:  boolean
   is_verified:  boolean
 }
 

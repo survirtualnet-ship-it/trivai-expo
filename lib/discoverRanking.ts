@@ -19,7 +19,11 @@ export interface PlaceRankingInput {
   category?: string | null
   latitude?: number | null
   longitude?: number | null
+  is_featured?: boolean | null
 }
+
+/** Small editorial boost — surfaces featured places without dominating the feed. */
+export const PLACE_FEATURED_RANKING_BOOST = 1.2
 
 export interface EventRankingInput {
   attendees_count?: number | null
@@ -72,6 +76,8 @@ export function computePlaceDiscoverScore(
 
   const activityWeight = mode === 'trending' ? 2.8 : 0.65
   score += Math.log1p(recentActivity) * activityWeight
+
+  if (place.is_featured) score += PLACE_FEATURED_RANKING_BOOST
 
   return score
 }
