@@ -9,7 +9,10 @@ import { distToMinutes } from '@/lib/zones'
 export type DiscoverBadge = 'hoy' | 'evento' | 'popular' | 'recommended' | 'sponsored'
 
 export function firstPhoto(photos?: string[] | null): string | null {
-  return photos?.[0] ?? null
+  const uri = photos?.[0]
+  if (typeof uri !== 'string') return null
+  const trimmed = uri.trim()
+  return trimmed.length > 0 ? trimmed : null
 }
 
 export function placeBadge(place: PlaceCardData): DiscoverBadge | null {

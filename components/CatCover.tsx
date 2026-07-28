@@ -1,7 +1,8 @@
+import { useEffect, useState } from 'react'
 import { View, Text, Image, StyleSheet, type ViewStyle } from 'react-native'
 import { getCatEmoji, getCatColor, normalizeCategory } from '@/lib/categories'
 import { getCatImage } from '@/lib/catImages'
-import { R } from '@/lib/tokens'
+import { R, T } from '@/lib/tokens'
 
 type Variant = 'thumb' | 'banner' | 'hero'
 
@@ -23,13 +24,29 @@ export function CatCover({ category, variant = 'thumb', style, photoUri }: Props
   const color = getCatColor(category)
   const emoji = getCatEmoji(category)
   const catImg = getCatImage(cat)
-  const source = photoUri ? { uri: photoUri } : catImg
   const height = (style as ViewStyle)?.height ?? HEIGHT[variant]
+  const remoteUri = typeof photoUri === 'string' && photoUri.trim() ? photoUri.trim() : null
+
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    setFailed(false)
+  }, [remoteUri])
+
+  const useRemote = Boolean(remoteUri) && !failed
+  const source = useRemote ? { uri: remoteUri! } : catImg
 
   if (source) {
     return (
-      <View style={[styles.wrap, { height }, style]}>
-        <Image source={source} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      <View style={[styles.wrap, { height, backgroundColor: T.muted }, style]}>
+        <Image
+          source={source}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+          onError={() => {
+            if (useRemote) setFailed(true)
+          }}
+        />
         <View style={styles.overlay} />
       </View>
     )
@@ -40,7 +57,7 @@ export function CatCover({ category, variant = 'thumb', style, photoUri }: Props
       style={[
         styles.wrap,
         styles.fallback,
-        { height: (style as ViewStyle)?.height ?? HEIGHT[variant], backgroundColor: color + '28' },
+        { height, backgroundColor: color + '28' },
         style,
       ]}
     >
