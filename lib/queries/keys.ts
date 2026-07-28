@@ -8,6 +8,10 @@ export const placeKeys = {
   map: () => [...placeKeys.all, 'map'] as const,
   details: () => [...placeKeys.all, 'detail'] as const,
   detail: (id: string) => [...placeKeys.details(), id] as const,
+  similar: (id: string) => [...placeKeys.all, 'similar', id] as const,
+  reviews: (id: string) => [...placeKeys.all, 'reviews', id] as const,
+  favorite: (userId: string, placeId: string) =>
+    [...placeKeys.all, 'favorite', userId, placeId] as const,
 }
 
 export const eventKeys = {
@@ -67,3 +71,16 @@ export const STALE = {
   user: 30_000,
   coords: 5 * 60_000,
 } as const
+
+export const explorerKeys = {
+  all: ['explorer'] as const,
+  list: (filters: {
+    category?: string | null
+    search?: string
+    userId?: string | null
+  } = {}) => [...explorerKeys.all, 'list', {
+    category: filters.category ?? 'all',
+    search: filters.search ?? '',
+    userId: filters.userId ?? 'anon',
+  }] as const,
+}

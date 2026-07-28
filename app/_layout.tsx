@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
 import { View, ActivityIndicator, StyleSheet } from 'react-native'
@@ -33,17 +34,20 @@ export default function RootLayout() {
           </View>
         </WebAppShell>
       ) : (
-        <SafeAreaProvider>
-          <WebAppShell>
-            <StatusBar style="dark" backgroundColor={T.surface} />
-            <Stack screenOptions={{ headerShown: false }} />
-          </WebAppShell>
-        </SafeAreaProvider>
+        <GestureHandlerRootView style={styles.root}>
+          <SafeAreaProvider>
+            <WebAppShell>
+              <StatusBar style="dark" backgroundColor={T.surface} />
+              <Stack screenOptions={{ headerShown: false }} />
+            </WebAppShell>
+          </SafeAreaProvider>
+        </GestureHandlerRootView>
       )}
     </QueryProvider>
   )
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: T.bg },
 })

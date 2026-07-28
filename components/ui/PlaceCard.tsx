@@ -17,6 +17,7 @@ export type PlaceCardData = {
   category: string
   address?: string | null
   rating_avg?: number
+  rating_count?: number
   is_open?: boolean
   hours?: Record<string, string> | null
   latitude?: number | null
