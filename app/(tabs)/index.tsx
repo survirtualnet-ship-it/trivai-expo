@@ -6,10 +6,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
 import { router } from 'expo-router'
-import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
+import { useDiscover } from '@/hooks/useDiscover'
 import { useLocale } from '@/hooks/useLocale'
-import { useDiscoverSearch } from '@/hooks/useDiscoverSearch'
 import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import {
@@ -45,10 +44,8 @@ import {
 } from '@/lib/discoverSuggestions'
 import { groupEventsByBucket, formatEventDateShort } from '@/lib/eventUtils'
 import { calcIsOpen } from '@/lib/hours'
-import { getCurrentCoords } from '@/lib/geolocation'
-import { loadNotifPrefs, prefAllows } from '@/lib/notifPrefs'
 import { deferredPush } from '@/lib/deferredNav'
-import { dedupePlaces } from '@/lib/places'
+import OnboardingModal from '@/components/OnboardingModal'
 import { DISCOVER_STRINGS } from '@/lib/i18n/discover'
 import {
   buildSearchSuggestions,
@@ -57,120 +54,48 @@ import {
   matchesSearch,
 } from '@/lib/smartSearch'
 
-interface FriendActivity {
-  id: string
-  quien: string
-  ini: string
-  nombre: string
-  href: string
-}
-
 const SC_CENTER = { lat: -17.7833, lng: -63.1821 }
 const FILTER_RESULTS_CAP = 32
 
 export default function Discover() {
-  const { profile, isAuthenticated, signOut } = useUser()
+  const { profile, isAuthenticated, signOut, isOnboarded, refreshProfile, dismissOnboarding } = useUser()
   const { locale, setLocale } = useLocale()
   const t = DISCOVER_STRINGS[locale]
   const cityName = profile?.city ?? 'Santa Cruz de la Sierra'
 
-  const [lugares, setLugares] = useState<PlaceCardData[]>([])
-  const [eventos, setEventos] = useState<EventCardData[]>([])
-  const [actividad, setActividad] = useState<FriendActivity[]>([])
-  const [loading, setLoading] = useState(true)
-  const [sinLeer, setSinLeer] = useState(0)
+  const [searchQuery, setSearchQuery] = useState('')
+  const deferredSearchQuery = useDeferredValue(searchQuery)
+
+  const {
+    lugares,
+    eventos,
+    actividad,
+    sinLeer,
+    userCoords,
+    remoteLugares,
+    remoteEventos,
+    personas,
+    searching,
+    isSearchActive,
+    loading,
+    isError,
+    refetch,
+  } = useDiscover(searchQuery)
+
   const [locationFilter, setLocationFilter] = useState<LocationFilter | null>(null)
   const [appliedLocationFilter, setAppliedLocationFilter] = useState<LocationFilter | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('Todos')
   const [appliedCategoryFilter, setAppliedCategoryFilter] = useState<CategoryFilter>('Todos')
   const [isFilterPending, startFilterTransition] = useTransition()
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  const deferredSearchQuery = useDeferredValue(searchQuery)
+  const [mostrarOnboarding, setMostrarOnboarding] = useState(false)
+
+  useEffect(() => {
+    if (!profile || !isAuthenticated) return
+    if (!isOnboarded) setMostrarOnboarding(true)
+  }, [profile, isAuthenticated, isOnboarded])
 
   const handleSearchChange = useCallback((text: string) => {
     setSearchQuery(text)
-  }, [])
-
-  const {
-    remoteLugares,
-    remoteEventos,
-    personas,
-    searching,
-    isActive: isSearchActive,
-  } = useDiscoverSearch(searchQuery)
-
-  useEffect(() => {
-    getCurrentCoords().then(c => { if (c) setUserCoords(c) })
-
-    const fetch = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      const user = session?.user ?? null
-
-      const queries: Promise<any>[] = [
-        supabase.from('places')
-          .select('id,name,category,address,rating_avg,is_open,hours,latitude,longitude,photos')
-          .not('latitude', 'is', null)
-          .order('rating_avg', { ascending: false })
-          .limit(200),
-        supabase.from('events')
-          .select('id,name,category,start_datetime,is_free,price,attendees_count,photos,place:places(name,address,latitude,longitude)')
-          .eq('is_active', true)
-          .gte('start_datetime', new Date().toISOString())
-          .order('start_datetime', { ascending: true })
-          .limit(200),
-      ]
-
-      if (user) {
-        queries.push(
-          supabase.from('friendships').select('friend_id').eq('user_id', user.id).eq('status', 'accepted'),
-          supabase.from('friendships').select('user_id').eq('friend_id', user.id).eq('status', 'accepted'),
-          supabase.from('notifications').select('id, type').eq('user_id', user.id).eq('is_read', false),
-        )
-      }
-
-      const results = await Promise.all(queries)
-      const [lugRes, evtRes, f1Res, f2Res, notifRes] = results
-
-      if (lugRes?.data) setLugares(dedupePlaces(lugRes.data))
-      if (evtRes?.data) {
-        setEventos(evtRes.data.map((e: any) => ({ ...e, attendees_count: e.attendees_count ?? 0 })))
-      }
-
-      if (notifRes?.data && user) {
-        const prefs = await loadNotifPrefs(user.id)
-        setSinLeer((notifRes.data as { type: string }[]).filter(n => prefAllows(prefs, n.type ?? 'system')).length)
-      }
-
-      if (user && (f1Res?.data?.length || f2Res?.data?.length)) {
-        const friendIds = [...new Set([
-          ...(f1Res?.data ?? []).map((f: any) => f.friend_id),
-          ...(f2Res?.data ?? []).map((f: any) => f.user_id),
-        ])]
-        if (friendIds.length) {
-          const { data: asistencias } = await supabase
-            .from('event_attendees')
-            .select('event:events(id,name), profile:profiles(full_name,username)')
-            .in('user_id', friendIds)
-            .eq('status', 'going')
-            .limit(8)
-          if (asistencias) {
-            setActividad((asistencias as any[])
-              .filter(a => a.event?.id && a.profile?.full_name)
-              .map((a, i) => ({
-                id: `${a.event.id}-${i}`,
-                quien: a.profile.full_name.split(' ')[0],
-                ini: a.profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
-                nombre: a.event.name,
-                href: `/eventos/${a.event.id}`,
-              })))
-          }
-        }
-      }
-
-      setLoading(false)
-    }
-    fetch()
   }, [])
 
   const distOrigin = userCoords ?? SC_CENTER
@@ -371,6 +296,16 @@ export default function Discover() {
           </View>
         )}
 
+        {isError && !loading && (
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyIcon}>⚠️</Text>
+            <Text style={styles.emptyTitle}>No se pudo cargar el contenido</Text>
+            <TouchableOpacity onPress={() => refetch()}>
+              <Text style={styles.emptyLink}>Reintentar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {showBrowseSections && (
           <>
             <LinearGradient colors={[T.primary, '#8E6CFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cta}>
@@ -495,6 +430,15 @@ export default function Discover() {
         )}
 
       </ScrollView>
+
+      <OnboardingModal
+        visible={mostrarOnboarding}
+        onDone={() => {
+          setMostrarOnboarding(false)
+          dismissOnboarding()
+          refreshProfile()
+        }}
+      />
     </SafeAreaView>
   )
 }

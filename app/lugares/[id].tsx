@@ -8,7 +8,8 @@ import { useLocalSearchParams, router } from 'expo-router'
 import { MapPin, Phone, Globe, Clock, Star, Navigation, Heart, MessageSquare, Share2 } from 'lucide-react-native'
 import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
-import type { Place } from '@/lib/supabase'
+import { usePlace } from '@/hooks/usePlaces'
+import { useUser } from '@/hooks/useUser'
 import { T, F, S, R, getCatColor } from '@/lib/tokens'
 import { CatCover, CategoryPill } from '@/components/CatCover'
 import { grantXP, XP } from '@/lib/xp'
@@ -51,10 +52,11 @@ function StarPicker({ value, onChange }: { value: number; onChange: (v: number) 
 
 export default function LugarDetalle() {
   const { id }      = useLocalSearchParams<{ id: string }>()
-  const [lugar,     setLugar]     = useState<Place | null>(null)
-  const [loading,   setLoading]   = useState(true)
+  const { user }    = useUser()
+  const { data: lugar, isLoading: placeLoading } = usePlace(id)
   const [favorito,  setFavorito]  = useState(false)
   const [togFav,    setTogFav]    = useState(false)
+  const [reviewsLoaded, setReviewsLoaded] = useState(false)
 
   // Reseñas
   const [reviews,       setReviews]       = useState<Review[]>([])
@@ -63,30 +65,28 @@ export default function LugarDetalle() {
   const [formRating,    setFormRating]    = useState(0)
   const [formTexto,     setFormTexto]     = useState('')
   const [guardandoRev,  setGuardandoRev]  = useState(false)
-  const [userId,        setUserId]        = useState<string | null>(null)
+
+  const userId = user?.id ?? null
+  const loading = placeLoading || !reviewsLoaded
 
   useEffect(() => {
-    const load = async () => {
-      const [{ data: placeData }, { data: { session } }] = await Promise.all([
-        supabase.from('places').select('*').eq('id', id).single(),
-        supabase.auth.getSession(),
-      ])
-      if (placeData) setLugar(placeData)
-
-      const uid = session?.user?.id ?? null
-      setUserId(uid)
-
-      if (uid) {
-        const { data: fav } = await supabase.from('favorites')
-          .select('id').eq('user_id', uid).eq('place_id', id).maybeSingle()
-        setFavorito(!!fav)
+    if (!id) return
+    const loadFav = async () => {
+      if (!userId) {
+        setFavorito(false)
+        return
       }
-
-      await cargarResenas(uid)
-      setLoading(false)
+      const { data: fav } = await supabase.from('favorites')
+        .select('id').eq('user_id', userId).eq('place_id', id).maybeSingle()
+      setFavorito(!!fav)
     }
-    load()
-  }, [id])
+    loadFav()
+  }, [id, userId])
+
+  useEffect(() => {
+    if (!id) return
+    cargarResenas(userId).finally(() => setReviewsLoaded(true))
+  }, [id, userId])
 
   const cargarResenas = async (uid: string | null) => {
     const { data } = await supabase

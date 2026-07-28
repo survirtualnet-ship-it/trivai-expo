@@ -38,6 +38,7 @@ export interface Profile {
   plan:              Plan
   xp_points:         number
   account_type:      'personal' | 'business' | null
+  business_place_id: string | null
   business_name:     string | null
   business_address:  string | null
   business_lat:      number | null
@@ -45,7 +46,9 @@ export interface Profile {
   business_phone:    string | null
   business_website:  string | null
   business_category: string | null
+  phone:             string | null
   created_at:        string
+  updated_at:        string
 }
 
 export interface Place {

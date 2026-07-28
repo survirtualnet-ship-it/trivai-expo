@@ -10,9 +10,11 @@ import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
 import { T, F, S, R, CATEGORIES } from '@/lib/tokens'
+import { ENV } from '@/lib/env'
+import { verificarPorDominio } from '@/lib/verificacion-cliente'
 
 export default function MiNegocio() {
-  const { profile, refreshProfile } = useUser()
+  const { profile, refreshProfile, user } = useUser()
 
   const [nombre,      setNombre]      = useState('')
   const [categoria,   setCategoria]   = useState('')
@@ -25,6 +27,16 @@ export default function MiNegocio() {
   const [guardando,   setGuardando]   = useState(false)
   const [error,       setError]       = useState<string | null>(null)
   const [exito,       setExito]       = useState(false)
+
+  const [verificando,  setVerificando]  = useState(false)
+  const [confirmando,  setConfirmando]  = useState(false)
+  const [waEnviado,    setWaEnviado]    = useState(false)
+  const [codigoInput,  setCodigoInput]  = useState('')
+  const [errorVerif,   setErrorVerif]   = useState<string | null>(null)
+
+  const userEmail = user?.email ?? ''
+  const userId = user?.id ?? profile?.id ?? ''
+  const puedeVerificarDominio = verificarPorDominio(userEmail, website)
 
   useEffect(() => {
     if (!profile) return
@@ -52,6 +64,60 @@ export default function MiNegocio() {
     }
     cargarLugar()
   }, [profile])
+
+  const verificarDominio = async () => {
+    if (!placeUUID || !userId) return
+    setVerificando(true); setErrorVerif(null)
+    try {
+      const res = await fetch(`${ENV.webApiUrl}/api/verificar-negocio`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ placeId: placeUUID, userId, userEmail, method: 'dominio' }),
+      })
+      const data = await res.json()
+      if (data.ok) setIsVerified(true)
+      else setErrorVerif(data.error ?? 'No se pudo verificar')
+    } catch {
+      setErrorVerif('Error al verificar')
+    }
+    setVerificando(false)
+  }
+
+  const enviarWhatsApp = async () => {
+    if (!placeUUID || !userId) return
+    setVerificando(true); setErrorVerif(null)
+    try {
+      const res = await fetch(`${ENV.webApiUrl}/api/verificar-negocio`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ placeId: placeUUID, userId, userEmail, method: 'whatsapp' }),
+      })
+      const data = await res.json()
+      if (data.ok) setWaEnviado(true)
+      else setErrorVerif(data.error ?? 'No se pudo enviar')
+    } catch {
+      setErrorVerif('Error al enviar WhatsApp')
+    }
+    setVerificando(false)
+  }
+
+  const confirmarCodigo = async () => {
+    if (!placeUUID || !userId || !codigoInput.trim()) return
+    setConfirmando(true); setErrorVerif(null)
+    try {
+      const res = await fetch(`${ENV.webApiUrl}/api/verificar-negocio`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ placeId: placeUUID, userId, codigo: codigoInput.trim() }),
+      })
+      const data = await res.json()
+      if (data.ok) { setIsVerified(true); setWaEnviado(false) }
+      else setErrorVerif(data.error ?? 'Código incorrecto')
+    } catch {
+      setErrorVerif('Error al confirmar código')
+    }
+    setConfirmando(false)
+  }
 
   const handleGuardar = async () => {
     if (!nombre.trim()) { setError('El nombre del negocio es obligatorio.'); return }
@@ -135,12 +201,73 @@ export default function MiNegocio() {
               </View>
             </View>
           ) : placeUUID ? (
-            <View style={c.pendienteBanner}>
-              <ShieldAlert size={22} color={T.orange} strokeWidth={2} />
-              <View style={{ flex: 1 }}>
-                <Text style={c.pendienteTitle}>Pendiente de verificación</Text>
-                <Text style={c.pendienteSub}>Contacta al equipo de Trivai para verificar tu negocio</Text>
+            <View style={c.verifSection}>
+              <View style={c.pendienteBanner}>
+                <ShieldAlert size={22} color={T.orange} strokeWidth={2} />
+                <View style={{ flex: 1 }}>
+                  <Text style={c.pendienteTitle}>Pendiente de verificación</Text>
+                  <Text style={c.pendienteSub}>Verifica tu negocio para aparecer como confiable</Text>
+                </View>
               </View>
+
+              <Text style={c.verifHeading}>1️⃣ Verificación por dominio</Text>
+              <Text style={c.verifHint}>
+                {puedeVerificarDominio
+                  ? `Tu email (${userEmail}) coincide con el sitio web. ¡Puedes verificar automáticamente!`
+                  : 'Usa un email corporativo que coincida con el sitio web de tu negocio.'}
+              </Text>
+              {puedeVerificarDominio && (
+                <TouchableOpacity
+                  style={[c.verifBtn, verificando && c.verifBtnDisabled]}
+                  onPress={verificarDominio}
+                  disabled={verificando}
+                >
+                  {verificando
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={c.verifBtnText}>✓ Verificar automáticamente</Text>
+                  }
+                </TouchableOpacity>
+              )}
+
+              <Text style={[c.verifHeading, { marginTop: S.lg }]}>2️⃣ Verificación por WhatsApp</Text>
+              {!waEnviado ? (
+                <TouchableOpacity
+                  style={[c.verifBtn, c.verifBtnWa, verificando && c.verifBtnDisabled]}
+                  onPress={enviarWhatsApp}
+                  disabled={verificando || !telefono.trim()}
+                >
+                  {verificando
+                    ? <ActivityIndicator color="#fff" />
+                    : <Text style={c.verifBtnText}>Enviar código por WhatsApp</Text>
+                  }
+                </TouchableOpacity>
+              ) : (
+                <View>
+                  <Text style={c.verifHint}>
+                    ✅ Código enviado a {telefono}. Válido por 10 minutos.
+                  </Text>
+                  <TextInput
+                    style={c.codigoInput}
+                    value={codigoInput}
+                    onChangeText={t => setCodigoInput(t.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="000000"
+                    keyboardType="number-pad"
+                    maxLength={6}
+                  />
+                  <TouchableOpacity
+                    style={[c.verifBtn, codigoInput.length !== 6 && c.verifBtnDisabled]}
+                    onPress={confirmarCodigo}
+                    disabled={confirmando || codigoInput.length !== 6}
+                  >
+                    {confirmando
+                      ? <ActivityIndicator color="#fff" />
+                      : <Text style={c.verifBtnText}>Confirmar código</Text>
+                    }
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {errorVerif && <Text style={c.errorVerif}>{errorVerif}</Text>}
             </View>
           ) : null}
 
@@ -256,6 +383,15 @@ const c = StyleSheet.create({
   pendienteBanner:   { flexDirection: 'row', alignItems: 'center', gap: S.md, backgroundColor: T.orangeSoft, borderRadius: R.md, padding: S.md, marginBottom: S.lg },
   pendienteTitle:    { fontSize: F.size.md, fontWeight: F.weight.bold, color: T.orangeInk },
   pendienteSub:      { fontSize: F.size.xs, color: T.orangeInk, opacity: 0.8, marginTop: 2 },
+  verifSection:      { marginBottom: S.lg },
+  verifHeading:      { fontSize: F.size.sm, fontWeight: F.weight.bold, color: T.fg1, marginBottom: S.xs },
+  verifHint:         { fontSize: F.size.xs, color: T.fg3, lineHeight: 18, marginBottom: S.sm },
+  verifBtn:          { height: 44, borderRadius: R.full, backgroundColor: T.green, alignItems: 'center', justifyContent: 'center', marginTop: S.xs },
+  verifBtnWa:        { backgroundColor: '#25D366' },
+  verifBtnDisabled:  { backgroundColor: T.fg4 },
+  verifBtnText:      { fontSize: F.size.sm, fontWeight: F.weight.bold, color: '#fff' },
+  codigoInput:       { backgroundColor: T.muted, borderWidth: 1.5, borderColor: T.border, borderRadius: R.md, paddingHorizontal: S.md, paddingVertical: S.sm, fontSize: 22, letterSpacing: 8, textAlign: 'center', color: T.fg1, marginVertical: S.sm },
+  errorVerif:        { fontSize: F.size.sm, color: T.danger, marginTop: S.sm },
   campo:             { marginBottom: S.lg },
   campoLabelRow:     { flexDirection: 'row', alignItems: 'center', gap: S.xs, marginBottom: S.sm },
   campoLabel:        { fontSize: F.size.xs, fontWeight: F.weight.bold, color: T.fg2, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: S.sm },

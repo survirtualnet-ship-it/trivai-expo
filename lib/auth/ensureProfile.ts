@@ -35,8 +35,10 @@ function profileFromAuthUser(user: User): Omit<Profile, 'created_at'> & { update
     city: 'Santa Cruz',
     plan: 'free',
     xp_points: 0,
-    account_type: 'personal',
+    account_type: null,
+    business_place_id: null,
     business_name: null,
+    phone: null,
     business_address: null,
     business_lat: null,
     business_lng: null,
@@ -55,7 +57,36 @@ export async function ensureProfile(user: User): Promise<Profile | null> {
     .eq('id', user.id)
     .maybeSingle()
 
-  if (existing) return existing as Profile
+  if (existing) {
+    const filled = existing as Profile
+    const meta = user.user_metadata ?? {}
+    const fullName =
+      (meta.full_name as string | undefined) ??
+      (meta.name as string | undefined) ??
+      ''
+    const avatarUrl =
+      (meta.avatar_url as string | undefined) ??
+      (meta.picture as string | undefined) ??
+      null
+    const needsUpdate =
+      (!filled.username && user.email) ||
+      (!filled.avatar_url && avatarUrl) ||
+      (!filled.full_name && fullName)
+    if (needsUpdate) {
+      const updates: Record<string, string> = { updated_at: new Date().toISOString() }
+      if (!filled.username && user.email) updates.username = slugUsername(user.email.split('@')[0])
+      if (!filled.avatar_url && avatarUrl) updates.avatar_url = avatarUrl
+      if (!filled.full_name && fullName) updates.full_name = fullName
+      const { data: updated } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id)
+        .select('*')
+        .single()
+      return (updated ?? filled) as Profile
+    }
+    return filled
+  }
 
   const draft = profileFromAuthUser(user)
   const { data: created, error } = await supabase

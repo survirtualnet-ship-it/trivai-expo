@@ -1,52 +1,33 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { User } from '@supabase/supabase-js'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { Profile } from '@/lib/supabase'
-import { ensureProfile } from '@/lib/auth/ensureProfile'
+import { fetchCurrentUserSession } from '@/lib/queries/user'
+import { userKeys, STALE } from '@/lib/queries/keys'
+import { getOnboardingDone } from '@/lib/onboardingStorage'
 
 export function useUser() {
-  const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false)
 
-  const load = useCallback(async () => {
-    // getSession() lee del caché local (sin red) — más fiable tras un OAuth redirect
-    const { data: { session } } = await supabase.auth.getSession()
-    const authUser = session?.user ?? null
+  const sessionQuery = useQuery({
+    queryKey: userKeys.session(),
+    queryFn: fetchCurrentUserSession,
+    staleTime: STALE.user,
+  })
 
-    if (!authUser) {
-      setUser(null)
-      setProfile(null)
-      setLoading(false)
-      return
-    }
-
-    setUser(authUser)
-
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authUser.id)
-      .maybeSingle()
-
-    if (data) {
-      setProfile(data as Profile)
-      setLoading(false)
-      return
-    }
-
-    const ensured = await ensureProfile(authUser)
-    setProfile(ensured)
-    setLoading(false)
+  useEffect(() => {
+    getOnboardingDone().then(done => { if (done) setOnboardingDismissed(true) })
   }, [])
 
   useEffect(() => {
-    load()
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      load()
+      queryClient.invalidateQueries({ queryKey: userKeys.all })
     })
     return () => subscription.unsubscribe()
-  }, [load])
+  }, [queryClient])
+
+  const user = sessionQuery.data?.user ?? null
+  const profile = sessionQuery.data?.profile ?? null
 
   const meta = user?.user_metadata ?? {}
   const fallbackName =
@@ -71,24 +52,31 @@ export function useUser() {
     null
 
   const isBusiness = profile?.account_type === 'business'
+  const isOnboarded = profile?.account_type != null || onboardingDismissed
   const isAuthenticated = !!user
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut()
-    setUser(null)
-    setProfile(null)
-  }
+    queryClient.setQueryData(userKeys.session(), { user: null, profile: null })
+    queryClient.invalidateQueries({ queryKey: userKeys.all })
+  }, [queryClient])
+
+  const refreshProfile = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: userKeys.session() })
+  }, [queryClient])
 
   return {
     user,
     profile,
-    loading,
+    loading: sessionQuery.isLoading,
     isAuthenticated,
     displayName,
     initials,
     avatarUrl,
     isBusiness,
+    isOnboarded,
     signOut,
-    refreshProfile: load,
+    refreshProfile,
+    dismissOnboarding: () => setOnboardingDismissed(true),
   }
 }

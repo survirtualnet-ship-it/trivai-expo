@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { usePlacesMapMarkers } from '@/hooks/usePlaces'
+import { useEventsMapMarkers } from '@/hooks/useEvents'
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -8,7 +10,6 @@ import { BrandDateHeader } from '@/components/ui/BrandDateHeader'
 import { useUser } from '@/hooks/useUser'
 import { useLocale } from '@/hooks/useLocale'
 import { Navigation } from 'lucide-react-native'
-import { supabase } from '@/lib/supabase'
 import { T, F, S, R, getCatEmoji, getCatColor, CATEGORY_CHIPS, normalizeCategory, type Category } from '@/lib/tokens'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { ENV } from '@/lib/env'
@@ -39,6 +40,7 @@ function buildMapHTML(
   apiKey: string,
   selId?: string,
   userPos?: { lat: number; lng: number } | null,
+  zoom?: number,
 ) {
   // Define all marker data as a JS object for click handlers
   const markersDataJS = `var __markers = {
@@ -85,7 +87,7 @@ ${markersDataJS}
 function initMap() {
   var map = new google.maps.Map(document.getElementById('map'), {
     center: { lat: ${centro.lat}, lng: ${centro.lng} },
-    zoom: ${selId ? 15 : 14},
+    zoom: ${zoom ?? (selId ? 15 : 14)},
     disableDefaultUI: true,
     zoomControl: true,
     styles: [
@@ -106,7 +108,7 @@ function initMap() {
 }
 
 export default function Mapa() {
-  const params = useLocalSearchParams<{ lugar?: string; lat?: string; lng?: string; zona?: string }>()
+  const params = useLocalSearchParams<{ lugar?: string; lat?: string; lng?: string; zoom?: string; zona?: string }>()
   const { profile } = useUser()
   const { locale } = useLocale()
   const cityName = profile?.city ?? 'Santa Cruz de la Sierra'
@@ -115,44 +117,31 @@ export default function Mapa() {
   const [marcadores,   setMarcadores]   = useState<Marcador[]>([])
   const [filtro,       setFiltro]       = useState<Filtro>('todos')
   const [centro,       setCentro]       = useState(SANTA_CRUZ)
-  const [loading,      setLoading]      = useState(true)
   const [seleccionado, setSeleccionado] = useState<Marcador | null>(null)
   const [userPos,      setUserPos]      = useState<{ lat: number; lng: number } | null>(null)
+  const [mapZoom,      setMapZoom]      = useState<number | undefined>(undefined)
+
+  const { data: placeMarkers = [], isLoading: placesLoading } = usePlacesMapMarkers()
+  const { data: eventMarkers = [], isLoading: eventsLoading } = useEventsMapMarkers()
+  const loading = placesLoading || eventsLoading
 
   const apiKey = ENV.googleMapsKey
 
-  // Carga inicial de datos
   useEffect(() => {
-    const fetch = async () => {
-      const [{ data: places }, { data: events }] = await Promise.all([
-        supabase.from('places').select('id,name,category,latitude,longitude')
-          .not('latitude', 'is', null).not('longitude', 'is', null),
-        supabase.from('events').select('id,name,category,start_datetime,place:places(latitude,longitude)')
-          .eq('is_active', true).gte('start_datetime', new Date().toISOString()),
-      ])
-
-      const mLugares: Marcador[] = (places ?? []).map(p => ({
-        id: p.id, tipo: 'lugar' as const,
-        name: p.name, category: p.category,
-        lat: p.latitude, lng: p.longitude,
-      }))
-
-      // Eventos solo aparecen si su lugar tiene coordenadas reales
-      const mEventos: Marcador[] = (events ?? [])
-        .filter((e: any) => e.place?.latitude && e.place?.longitude)
-        .map((e: any) => ({
-          id: e.id, tipo: 'evento' as const,
-          name: e.name, category: e.category,
-          lat: e.place.latitude, lng: e.place.longitude,
-        }))
-
-      const lista = [...mLugares, ...mEventos]
-      setTodos(lista)
-      setMarcadores(lista)
-      setLoading(false)
-    }
-    fetch()
-  }, [])
+    const mLugares: Marcador[] = placeMarkers.map(p => ({
+      id: p.id, tipo: 'lugar' as const,
+      name: p.name, category: p.category,
+      lat: p.lat, lng: p.lng,
+    }))
+    const mEventos: Marcador[] = eventMarkers.map(e => ({
+      id: e.id, tipo: 'evento' as const,
+      name: e.name, category: e.category,
+      lat: e.lat, lng: e.lng,
+    }))
+    const lista = [...mLugares, ...mEventos]
+    setTodos(lista)
+    setMarcadores(lista)
+  }, [placeMarkers, eventMarkers])
 
   // URL param: ?lugar=UUID → centra y selecciona ese lugar
   useEffect(() => {
@@ -164,12 +153,13 @@ export default function Mapa() {
     }
   }, [params.lugar, todos])
 
-  // URL param: ?lat=X&lng=Y&zona=Nombre → centra el mapa en esas coords
+  // URL param: ?lat=X&lng=Y&zoom=Z&zona=Nombre → centra el mapa en esas coords
   useEffect(() => {
     if (params.lat && params.lng) {
       setCentro({ lat: Number(params.lat), lng: Number(params.lng) })
+      if (params.zoom) setMapZoom(Number(params.zoom))
     }
-  }, [params.lat, params.lng])
+  }, [params.lat, params.lng, params.zoom])
 
   function aplicarFiltro(f: Filtro) {
     const filtrados = f === 'todos'
@@ -188,8 +178,8 @@ export default function Mapa() {
   }, [])
 
   const mapHTML = useMemo(
-    () => buildMapHTML(marcadores, centro, apiKey, seleccionado?.id, userPos),
-    [marcadores, centro, apiKey, seleccionado?.id, userPos],
+    () => buildMapHTML(marcadores, centro, apiKey, seleccionado?.id, userPos, mapZoom),
+    [marcadores, centro, apiKey, seleccionado?.id, userPos, mapZoom],
   )
 
   return (

@@ -12,13 +12,15 @@ import {
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, normalizeCategory, getCatColor, getCatLabel } from '@/lib/tokens'
+import { usePlaces } from '@/hooks/usePlaces'
 import { deferredPush } from '@/lib/deferredNav'
 import { AppHeader, HeaderLogo } from '@/components/ui/AppHeader'
 import { PlaceCard } from '@/components/ui/PlaceCard'
 import { DiscoveryCard } from '@/components/DiscoveryCard'
+import { SectionHeader } from '@/components/ui/SectionHeader'
+import { BARRIO_ZONES, getZoneEmoji } from '@/lib/barrioZones'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { ENV } from '@/lib/env'
-import { dedupePlaces } from '@/lib/places'
 
 interface Place {
   id: string; name: string; category: string
@@ -72,42 +74,49 @@ const MAP_PREVIEW_URI = ENV.googleMapsKey
 
 export default function Lugares() {
   const { cat: catParam } = useLocalSearchParams<{ cat?: string }>()
-  const [lugares,       setLugares]       = useState<Place[]>([])
-  const [searchResults, setSearchResults] = useState<Place[]>([])
   const [recos,         setRecos]         = useState<Recomendacion[]>([])
-  const [loading,       setLoading]       = useState(true)
-  const [searchLoading, setSearchLoading] = useState(false)
   const [cat,           setCat]           = useState(typeof catParam === 'string' && catParam ? catParam : '')
   const [busqueda,      setBusqueda]      = useState('')
   const [userCoords,    setUserCoords]    = useState<{ lat: number; lng: number } | null>(null)
+
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+
+  const buscando = busqueda.trim().length >= 2
+  const searchTerm = busqueda.trim()
+
+  useEffect(() => {
+    if (searchTerm.length < 2) {
+      setDebouncedSearch('')
+      return
+    }
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  const listQuery = usePlaces({
+    category: cat || undefined,
+    limit: 40,
+    enabled: !buscando,
+  })
+  const searchQuery = usePlaces({
+    search: debouncedSearch,
+    limit: 40,
+    enabled: debouncedSearch.length >= 2,
+  })
+
+  const lugares = listQuery.data ?? []
+  const searchResults = searchQuery.data ?? []
+  const loading = buscando ? searchQuery.isLoading : listQuery.isLoading
+  const searchLoading = searchQuery.isFetching && buscando
 
   // Si llega un filtro por parámetro (ej. desde las categorías del Home), aplicarlo
   useEffect(() => {
     if (typeof catParam === 'string' && catParam) setCat(catParam)
   }, [catParam])
 
-  // Geolocalización para distancias
   useEffect(() => {
     getCurrentCoords().then(coords => { if (coords) setUserCoords(coords) })
   }, [])
-
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true)
-      let q = supabase.from('places')
-        .select('id,name,category,address,rating_avg,rating_count,is_open,hours,latitude,longitude')
-        .not('latitude', 'is', null)
-        .order('rating_avg', { ascending: false })
-        .limit(40)
-
-      if (cat) q = q.eq('category', cat)
-
-      const { data } = await q
-      if (data) setLugares(dedupePlaces(data))
-      setLoading(false)
-    }
-    load()
-  }, [cat])
 
   // Sección social: lugares favoritos de mis amigos
   useEffect(() => {
@@ -151,29 +160,6 @@ export default function Lugares() {
     loadRecos()
   }, [])
 
-  // Búsqueda directa en Supabase (debounced)
-  useEffect(() => {
-    const term = busqueda.trim()
-    if (term.length < 2) { setSearchResults([]); return }
-
-    setSearchLoading(true)
-    const timer = setTimeout(async () => {
-      const { data } = await supabase
-        .from('places')
-        .select('id,name,category,address,rating_avg,rating_count,is_open,hours,latitude,longitude')
-        .ilike('name', `%${term}%`)
-        .order('rating_avg', { ascending: false })
-        .limit(40)
-      if (data) setSearchResults(dedupePlaces(data))
-      setSearchLoading(false)
-    }, 300)
-
-    return () => clearTimeout(timer)
-  }, [busqueda])
-
-  const buscando = busqueda.trim().length >= 2
-
-  // Distancias + orden por cercanía en la lista
   const conDist: Place[] = (buscando ? searchResults : lugares).map(l =>
     userCoords && l.latitude && l.longitude
       ? { ...l, _dist: haversineKm(userCoords.lat, userCoords.lng, l.latitude, l.longitude) }
@@ -237,6 +223,35 @@ export default function Lugares() {
             )
           })}
         </ScrollView>
+
+        {/* Explorar por zona — solo sin filtro de categoría */}
+        {!cat && (
+          <View style={styles.zonesSection}>
+            <SectionHeader
+              title="Explorar por zona"
+              actionLabel="Ver mapa"
+              onAction={() => router.push('/mapa')}
+            />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.zonesRow}>
+              {BARRIO_ZONES.map(zona => (
+                <TouchableOpacity
+                  key={zona.nombre}
+                  style={styles.zoneCard}
+                  activeOpacity={0.85}
+                  onPress={() => router.push(
+                    `/mapa?lat=${zona.lat}&lng=${zona.lng}&zoom=15&zona=${encodeURIComponent(zona.nombre)}`,
+                  )}
+                >
+                  <Text style={styles.zoneEmoji}>{getZoneEmoji(zona.kind)}</Text>
+                  <View style={styles.zoneOverlay}>
+                    <Text style={styles.zoneName}>{zona.nombre}</Text>
+                    <Text style={styles.zoneCount}>{zona.count} lugares</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* 4. CTA — gradiente naranja + verde */}
         <LinearGradient
@@ -394,6 +409,13 @@ const styles = StyleSheet.create({
   chips:             { paddingHorizontal: S.lg, gap: S.sm, paddingTop: S.lg, paddingBottom: 4 },
   chip:              { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: S.lg, paddingVertical: 10, borderRadius: R.full },
   chipText:          { fontSize: F.size.sm, fontWeight: F.weight.semibold },
+  zonesSection:      { marginTop: S.lg },
+  zonesRow:          { paddingHorizontal: S.lg, gap: S.sm, paddingBottom: 4 },
+  zoneCard:          { width: 140, height: 100, borderRadius: R.lg, backgroundColor: T.purple, overflow: 'hidden', justifyContent: 'flex-end' },
+  zoneEmoji:         { position: 'absolute', top: 10, right: 10, fontSize: 24 },
+  zoneOverlay:       { padding: S.sm, paddingTop: 24, backgroundColor: 'rgba(0,0,0,0.45)' },
+  zoneName:          { fontSize: F.size.sm, fontWeight: F.weight.bold, color: '#fff' },
+  zoneCount:         { fontSize: 11, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
   // Mapa
   mapCard:           { marginHorizontal: S.lg, marginTop: S.xl, borderRadius: R.xl, overflow: 'hidden', backgroundColor: T.muted, shadowColor: '#15131A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 14, elevation: 3 },
   mapImg:            { width: '100%', height: 120 },

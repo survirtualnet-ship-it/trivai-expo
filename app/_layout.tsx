@@ -6,6 +6,7 @@ import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_7
 import { T } from '@/lib/tokens'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { ConfigMissingScreen } from '@/components/ConfigMissingScreen'
+import { QueryProvider } from '@/components/QueryProvider'
 import { WebAppShell } from '@/components/WebAppShell'
 
 export default function RootLayout() {
@@ -16,34 +17,30 @@ export default function RootLayout() {
     Inter_700Bold,
   })
 
-  if (!isSupabaseConfigured) {
-    return (
-      <SafeAreaProvider>
-        <WebAppShell>
-          <StatusBar style="dark" backgroundColor={T.surface} />
-          <ConfigMissingScreen />
-        </WebAppShell>
-      </SafeAreaProvider>
-    )
-  }
-
-  if (!fontsLoaded) {
-    return (
-      <WebAppShell>
-        <View style={styles.loader}>
-          <ActivityIndicator color={T.primary} size="large" />
-        </View>
-      </WebAppShell>
-    )
-  }
-
   return (
-    <SafeAreaProvider>
-      <WebAppShell>
-        <StatusBar style="dark" backgroundColor={T.surface} />
-        <Stack screenOptions={{ headerShown: false }} />
-      </WebAppShell>
-    </SafeAreaProvider>
+    <QueryProvider>
+      {!isSupabaseConfigured ? (
+        <SafeAreaProvider>
+          <WebAppShell>
+            <StatusBar style="dark" backgroundColor={T.surface} />
+            <ConfigMissingScreen />
+          </WebAppShell>
+        </SafeAreaProvider>
+      ) : !fontsLoaded ? (
+        <WebAppShell>
+          <View style={styles.loader}>
+            <ActivityIndicator color={T.primary} size="large" />
+          </View>
+        </WebAppShell>
+      ) : (
+        <SafeAreaProvider>
+          <WebAppShell>
+            <StatusBar style="dark" backgroundColor={T.surface} />
+            <Stack screenOptions={{ headerShown: false }} />
+          </WebAppShell>
+        </SafeAreaProvider>
+      )}
+    </QueryProvider>
   )
 }
 

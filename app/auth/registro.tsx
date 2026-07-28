@@ -70,6 +70,12 @@ export default function Registro() {
     if (checkErr) { setError('No se pudo verificar el usuario. Intenta de nuevo.'); setLoading(false); return }
     if (existing) { setError('Ese nombre de usuario ya está en uso'); setLoading(false); return }
 
+    const fullPhone = `${paisCode}${phone.replace(/\s/g, '')}`
+    const { data: phoneTaken, error: phoneErr } = await supabase.from('profiles')
+      .select('id').eq('phone', fullPhone).maybeSingle()
+    if (phoneErr) { setError('No se pudo verificar el teléfono. Intenta de nuevo.'); setLoading(false); return }
+    if (phoneTaken) { setError('Ese número de teléfono ya está registrado'); setLoading(false); return }
+
     setLoading(false)
     setStep(2)
   }
@@ -95,10 +101,12 @@ export default function Registro() {
     if (err) { setError(err.message); setLoading(false); return }
 
     if (data.user) {
+      const fullPhone = `${paisCode}${phone.replace(/\s/g, '')}`
       await ensureProfile(data.user)
       await supabase.from('profiles').update({
         full_name:  fullName,
         username:   username.toLowerCase(),
+        phone:      fullPhone,
         updated_at: new Date().toISOString(),
       }).eq('id', data.user.id)
     }

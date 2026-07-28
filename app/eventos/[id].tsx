@@ -8,7 +8,10 @@ import { useLocalSearchParams, router } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Calendar, MapPin, Users, ChevronLeft, Share2, Heart } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase'
-import type { Event, Place } from '@/lib/supabase'
+import type { Place } from '@/lib/supabase'
+import { useEvent } from '@/hooks/useEvents'
+import { usePlace } from '@/hooks/usePlaces'
+import { useUser } from '@/hooks/useUser'
 import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import { CatCover, CategoryPill } from '@/components/CatCover'
@@ -23,31 +26,29 @@ const { width: SW } = Dimensions.get('window')
 export default function EventoDetalle() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const insets = useSafeAreaInsets()
-  const [evento, setEvento] = useState<Event | null>(null)
-  const [lugar, setLugar] = useState<Place | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { user } = useUser()
+  const { data: evento, isLoading: eventLoading } = useEvent(id)
+  const { data: lugar } = usePlace(evento?.place_id ?? undefined)
   const [asistire, setAsistire] = useState(false)
   const [toggling, setToggling] = useState(false)
   const [asistentes, setAsistentes] = useState<{ id: string; ini: string; avatarUrl?: string | null }[]>([])
   const [totalAsist, setTotalAsist] = useState(0)
+  const [attendeesLoading, setAttendeesLoading] = useState(true)
+
+  const loading = eventLoading || attendeesLoading
 
   useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase.from('events').select('*').eq('id', id).single()
-      if (data) {
-        setEvento(data)
-        if (data.place_id) {
-          const { data: pl } = await supabase.from('places').select('*').eq('id', data.place_id).single()
-          if (pl) setLugar(pl)
-        }
-      }
+    if (!id) return
+    const loadAttendees = async () => {
+      setAttendeesLoading(true)
 
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
+      if (user) {
         const { data: att } = await supabase
           .from('event_attendees').select('id')
-          .eq('event_id', id).eq('user_id', session.user.id).maybeSingle()
+          .eq('event_id', id).eq('user_id', user.id).maybeSingle()
         setAsistire(!!att)
+      } else {
+        setAsistire(false)
       }
 
       const [{ data: attList }, { count }] = await Promise.all([
@@ -68,10 +69,10 @@ export default function EventoDetalle() {
         }
       }))
 
-      setLoading(false)
+      setAttendeesLoading(false)
     }
-    load()
-  }, [id])
+    loadAttendees()
+  }, [id, user])
 
   const toggleAsistencia = async () => {
     const { data: { session } } = await supabase.auth.getSession()
