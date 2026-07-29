@@ -4,7 +4,7 @@ import { MapEmbed } from '@/components/MapEmbed'
 import { buildExplorerMapHtml } from '@/lib/explorerMapHtml'
 import type { ExplorerMapMarker } from '@/lib/explorerMapHtml'
 import type { Coords } from '@/lib/geolocation'
-import type { MapRegion } from '@/components/map/MapView.native'
+import type { MapRegion } from '@/components/map/types'
 
 type Props = {
   markers: ExplorerMapMarker[]

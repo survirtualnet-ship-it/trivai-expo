@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ExplorerSearchBar } from '@/components/explorer/SearchBar'
 import { ExplorerBottomSheetList } from '@/components/explorer/BottomSheetList'
 import { MapViewExplorer } from '@/components/map/MapView'
-import type { MapRegion } from '@/components/map/MapView.native'
+import type { MapRegion } from '@/components/map/types'
 import { toExplorerMarkers } from '@/lib/explorerMapHtml'
 import { useExplorerCoords, useExplorerPlaces } from '@/hooks/useExplorerPlaces'
 import {

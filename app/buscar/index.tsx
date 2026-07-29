@@ -9,7 +9,7 @@ import {
   TextInput,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { SearchInput } from '@/components/search/SearchInput'
 import { SearchSuggestions } from '@/components/search/SearchSuggestions'
@@ -27,6 +27,7 @@ import { FONT } from '@/lib/typography'
 export default function SearchScreen() {
   const inputRef = useRef<TextInput>(null)
   const queryClient = useQueryClient()
+  const { q } = useLocalSearchParams<{ q?: string }>()
   const {
     query,
     setQuery,
@@ -43,6 +44,10 @@ export default function SearchScreen() {
     selectSuggestion,
     userId,
   } = useSearchScreen()
+
+  useEffect(() => {
+    if (typeof q === 'string' && q.trim()) setQuery(q.trim())
+  }, [q, setQuery])
 
   useEffect(() => {
     const t = setTimeout(() => inputRef.current?.focus(), 80)

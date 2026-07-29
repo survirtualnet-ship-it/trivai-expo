@@ -1,107 +1,103 @@
-import { TouchableOpacity, View, StyleSheet } from 'react-native'
-import { Tabs, router } from 'expo-router'
+import { Tabs } from 'expo-router'
+import { View, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Map, Users, User, Plus, Home } from 'lucide-react-native'
-import { T } from '@/lib/tokens'
-import { deferredPush } from '@/lib/deferredNav'
+import { Feather } from '@expo/vector-icons'
+import { colors, fontWeight, radius } from '@/src/theme'
 
-/** Altura base del contenido (iconos + etiquetas), sin barra del sistema */
-const TAB_BAR_CONTENT_HEIGHT = 52
+const TAB_CONTENT_HEIGHT = 54
 
+/**
+ * Expo Router tabs — Inicio · Actividades · Mapa · Perfil
+ */
 export default function TabsLayout() {
   const insets = useSafeAreaInsets()
-  const bottomInset = Math.max(insets.bottom, 8)
-  const paddingBottom = bottomInset + 8
+  const paddingBottom = Math.max(insets.bottom, 8) + 8
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: T.primary,
-        tabBarInactiveTintColor: T.fg3,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
-          backgroundColor: T.surface,
-          borderTopColor: T.border,
-          paddingTop: 6,
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+          paddingTop: 8,
           paddingBottom,
-          height: TAB_BAR_CONTENT_HEIGHT + 6 + paddingBottom,
+          height: TAB_CONTENT_HEIGHT + 8 + paddingBottom,
         },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: fontWeight.semibold,
+        },
       }}
     >
       <Tabs.Screen
         name="index"
-        options={{ title: 'Inicio', tabBarIcon: ({ color, size }) => <Home size={size} color={color}/> }}
+        options={{
+          title: 'Inicio',
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+              <Feather name="home" size={size} color={color} />
+            </View>
+          ),
+        }}
       />
       <Tabs.Screen
-        name="discover"
-        options={{ href: null }}
+        name="activity"
+        options={{
+          title: 'Actividades',
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+              <Feather name="activity" size={size} color={color} />
+            </View>
+          ),
+        }}
       />
       <Tabs.Screen
         name="mapa"
-        options={{ title: 'Mapa', tabBarIcon: ({ color, size }) => <Map size={size} color={color}/> }}
-      />
-      <Tabs.Screen
-        name="crear"
         options={{
-          title: '',
-          tabBarLabel: () => null,
-          tabBarIcon: () => null,
-          tabBarButton: () => (
-            <TouchableOpacity
-              style={styles.fabWrap}
-              onPress={() => deferredPush('/publicar')}
-              activeOpacity={0.85}
-              accessibilityLabel="Publicar"
-              accessibilityRole="button"
-            >
-              <View style={styles.fab}>
-                <Plus size={26} color="#fff" strokeWidth={2.5} />
-              </View>
-            </TouchableOpacity>
+          title: 'Mapa',
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+              <Feather name="map" size={size} color={color} />
+            </View>
           ),
         }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault()
-            deferredPush('/publicar')
-          },
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+              <Feather name="user" size={size} color={color} />
+            </View>
+          ),
         }}
       />
-      <Tabs.Screen
-        name="amigos"
-        options={{ title: 'Actividad', tabBarIcon: ({ color, size }) => <Users size={size} color={color}/> }}
-      />
-      <Tabs.Screen
-        name="perfil"
-        options={{ title: 'Perfil', tabBarIcon: ({ color, size }) => <User size={size} color={color}/> }}
-      />
-      {/* Pantallas secundarias — accesibles desde Inicio, sin tab visible */}
+
+      <Tabs.Screen name="explore" options={{ href: null }} />
+      <Tabs.Screen name="crear" options={{ href: null }} />
+      <Tabs.Screen name="saved" options={{ href: null }} />
+      <Tabs.Screen name="discover" options={{ href: null }} />
+      <Tabs.Screen name="amigos" options={{ href: null }} />
       <Tabs.Screen name="eventos" options={{ href: null }} />
       <Tabs.Screen name="lugares" options={{ href: null }} />
+      <Tabs.Screen name="perfil" options={{ href: null }} />
     </Tabs>
   )
 }
 
 const styles = StyleSheet.create({
-  fabWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: 2,
-  },
-  fab: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: T.fab,
+  iconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -18,
-    shadowColor: T.purple,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
+    width: 44,
+    height: 28,
+    borderRadius: radius.full,
+  },
+  iconWrapActive: {
+    backgroundColor: colors.accentSoft,
   },
 })

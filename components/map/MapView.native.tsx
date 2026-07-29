@@ -4,11 +4,9 @@ import MapView, { PROVIDER_GOOGLE, type Region } from 'react-native-maps'
 import { PlaceMarker } from '@/components/map/Marker'
 import type { ExplorerMapMarker } from '@/lib/explorerMapHtml'
 import type { Coords } from '@/lib/geolocation'
+import type { MapRegion } from '@/components/map/types'
 
-export type MapRegion = {
-  center: Coords
-  bounds: { ne: Coords; sw: Coords }
-}
+export type { MapRegion }
 
 type Props = {
   markers: ExplorerMapMarker[]

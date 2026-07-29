@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, lazy, Suspense } from 'react'
 import { Platform } from 'react-native'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '@/lib/queryClient'
@@ -7,10 +7,14 @@ interface Props {
   children: ReactNode
 }
 
-function WebReactQueryDevtools() {
-  const { ReactQueryDevtools } = require('@tanstack/react-query-devtools') as typeof import('@tanstack/react-query-devtools')
-  return <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
-}
+/** ESM import — avoid require()/CJS which duplicates QueryClient context on web. */
+const WebReactQueryDevtools = lazy(() =>
+  import('@tanstack/react-query-devtools').then((mod) => ({
+    default: function Devtools() {
+      return <mod.ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+    },
+  })),
+)
 
 function NativeReactQueryDevtools() {
   const { useReactQueryDevTools } = require('@dev-plugins/react-query') as typeof import('@dev-plugins/react-query')
@@ -25,7 +29,11 @@ export function QueryProvider({ children }: Props) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      {showWebDevtools ? <WebReactQueryDevtools /> : null}
+      {showWebDevtools ? (
+        <Suspense fallback={null}>
+          <WebReactQueryDevtools />
+        </Suspense>
+      ) : null}
       {showNativeDevtools ? <NativeReactQueryDevtools /> : null}
     </QueryClientProvider>
   )
