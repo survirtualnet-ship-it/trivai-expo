@@ -146,8 +146,6 @@ export function InicioScreen() {
           statusLabel={statusLabel}
         />
 
-        <ZoneFilter locale={locale} selected={zone} onSelect={setZone} />
-
         <View style={styles.categories}>
           {categoryRows.map(row => (
             <View key={row.map(c => c.id).join('-')} style={styles.categoryRow}>
@@ -165,6 +163,8 @@ export function InicioScreen() {
             </View>
           ))}
         </View>
+
+        <ZoneFilter locale={locale} selected={zone} onSelect={setZone} />
 
         <HomePlaceSection
           title={nearbyTitle}

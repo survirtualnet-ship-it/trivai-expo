@@ -16,7 +16,27 @@ import {
 } from '@/src/data/mock'
 import type { Place } from '@/types/place'
 
-const SECTION_LIMIT = 7
+const SECTION_LIMIT = 8
+
+function sectionPlaces(
+  primary: PlaceItem[],
+  zone: ZoneId | null,
+  fallbackPool: PlaceItem[],
+): PlaceItem[] {
+  const filtered = filterByZone(primary, zone)
+  if (filtered.length >= SECTION_LIMIT) {
+    return filtered.slice(0, SECTION_LIMIT)
+  }
+
+  const seen = new Set(filtered.map(place => place.id))
+  const backfill = filterByZone(fallbackPool, zone).filter(place => {
+    if (seen.has(place.id)) return false
+    seen.add(place.id)
+    return true
+  })
+
+  return [...filtered, ...backfill].slice(0, SECTION_LIMIT)
+}
 
 function mockPool(): PlaceItem[] {
   const seen = new Set<string>()
@@ -74,17 +94,19 @@ export function useNearbyPlaces(
     const userLng = lng ?? 0
 
     if (useMock) {
+      const pool = mockPool()
       return {
-        nearby: filterByZone(NEARBY_PLACES, zone).slice(0, SECTION_LIMIT),
-        trending: filterByZone(TRENDING_PLACES, zone).slice(0, SECTION_LIMIT),
-        forYou: filterByZone(FOR_YOU_PLACES, zone).slice(0, SECTION_LIMIT),
-        recommended: filterByZone(RECOMMENDED_PLACES, zone).slice(0, SECTION_LIMIT),
-        totalCount: mockPool().length,
+        nearby: sectionPlaces(NEARBY_PLACES, zone, pool),
+        trending: sectionPlaces(TRENDING_PLACES, zone, pool),
+        forYou: sectionPlaces(FOR_YOU_PLACES, zone, pool),
+        recommended: sectionPlaces(RECOMMENDED_PLACES, zone, pool),
+        totalCount: pool.length,
         isMock: true,
       }
     }
 
     const items = raw.map(p => placeToItem(p, userLat, userLng))
+    const pool = items
     const byDistance = [...items]
     const byRating = sortByRating(raw, userLat, userLng)
     const forYouPool = raw
@@ -93,13 +115,14 @@ export function useNearbyPlaces(
       .map(p => placeToItem(p, userLat, userLng))
 
     return {
-      nearby: filterByZone(byDistance, zone).slice(0, SECTION_LIMIT),
-      trending: filterByZone(byRating, zone).slice(0, SECTION_LIMIT),
-      forYou: filterByZone(forYouPool.length ? forYouPool : byRating, zone).slice(
-        0,
-        SECTION_LIMIT,
+      nearby: sectionPlaces(byDistance, zone, pool),
+      trending: sectionPlaces(byRating, zone, pool),
+      forYou: sectionPlaces(
+        forYouPool.length ? forYouPool : byRating,
+        zone,
+        pool,
       ),
-      recommended: filterByZone(byRating, zone).slice(0, SECTION_LIMIT),
+      recommended: sectionPlaces(byRating, zone, pool),
       totalCount: raw.length,
       isMock: false,
     }
