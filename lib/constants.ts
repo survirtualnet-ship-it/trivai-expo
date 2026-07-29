@@ -26,6 +26,7 @@ export const QUERY_KEYS = {
     weather: ['home', 'weather'] as const,
     currency: ['home', 'currency'] as const,
     notifications: ['home', 'notifications'] as const,
+    news: ['home', 'news'] as const,
   },
 } as const
 
@@ -33,6 +34,7 @@ export const CACHE_TTL = {
   weather: 45 * 60_000,
   currency: 24 * 60 * 60_000,
   places: 60 * 60_000,
+  news: 30 * 60_000,
 } as const
 
 export const EMERGENCY_CATEGORIES = [

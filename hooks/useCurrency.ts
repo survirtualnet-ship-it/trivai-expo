@@ -17,8 +17,15 @@ export function useCurrency(countryCode: string | undefined, locale: Locale) {
       ? currency?.statusLabelEn ?? 'Stable'
       : currency?.statusLabelEs ?? 'Estable'
 
+  const contextSuffix =
+    currency?.source === 'bcb_official'
+      ? locale === 'EN'
+        ? 'BCB Official'
+        : 'Oficial BCB'
+      : statusLabel.replace(/^[^\s]+\s/, '')
+
   const contextLine = currency
-    ? `💱 ${currency.pairLabel} · ${statusLabel.replace(/^[^\s]+\s/, '')}`
+    ? `💱 ${currency.pairLabel} · ${contextSuffix}`
     : locale === 'EN'
       ? '💱 USD → — · Stable'
       : '💱 USD → — · Estable'

@@ -47,10 +47,12 @@ export const CACHE_KEYS = {
   currency: 'currency',
   places: 'places',
   manualCity: 'manual_city',
+  news: 'news',
 } as const
 
 export const CACHE_TTL = {
   weather: 45 * 60_000,
   currency: 24 * 60 * 60_000,
   places: 60 * 60_000,
+  news: 30 * 60_000,
 } as const

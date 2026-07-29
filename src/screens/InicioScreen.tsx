@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import {
   CategoryCard,
   ContextBlock,
+  CountryNewsSection,
   ExchangeRateCard,
   GlobalSearchBar,
   HomePlaceSection,
@@ -13,6 +14,7 @@ import {
 } from '../components'
 import { deferredPush } from '@/lib/deferredNav'
 import { buildHomeSearchParams } from '@/lib/home/searchContext'
+import { useCountryNews } from '@/hooks/useCountryNews'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useLocationProfile } from '@/hooks/useLocationProfile'
 import { useNearbyPlaces } from '@/hooks/useNearbyPlaces'
@@ -72,6 +74,13 @@ export function InicioScreen() {
     totalCount,
     locale,
   )
+
+  const {
+    items: newsItems,
+    title: newsTitle,
+    subtitle: newsSubtitle,
+    isLoading: isNewsLoading,
+  } = useCountryNews(profile, locale, isLocationLoading)
 
   const onToggleLocale = useCallback(() => {
     setLocale(prev => (prev === 'ES' ? 'EN' : 'ES'))
@@ -234,6 +243,14 @@ export function InicioScreen() {
           currencyLine={contextLine}
           alertLine={alertLine}
           hasAlert={hasAlert}
+        />
+
+        <CountryNewsSection
+          title={newsTitle}
+          subtitle={newsSubtitle}
+          items={newsItems}
+          locale={locale}
+          isLoading={isNewsLoading}
         />
 
         <View style={styles.bottom} />
