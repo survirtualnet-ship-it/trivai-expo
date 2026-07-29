@@ -11,7 +11,9 @@ import { supabase } from '@/lib/supabase'
 import type { Place } from '@/lib/supabase'
 import { useEvent } from '@/hooks/useEvents'
 import { usePlace } from '@/hooks/usePlaces'
+import { useLocationProfile } from '@/hooks/useLocationProfile'
 import { useUser } from '@/hooks/useUser'
+import { formatMoney } from '@/lib/currencyFormat'
 import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import { CatCover, CategoryPill } from '@/components/CatCover'
@@ -27,6 +29,8 @@ export default function EventoDetalle() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const insets = useSafeAreaInsets()
   const { user } = useUser()
+  const { profile } = useLocationProfile()
+  const countryCode = profile?.countryCode ?? 'BO'
   const { data: evento, isLoading: eventLoading } = useEvent(id)
   const { data: lugar } = usePlace(evento?.place_id ?? undefined)
   const [asistire, setAsistire] = useState(false)
@@ -146,7 +150,9 @@ export default function EventoDetalle() {
 
         <View style={styles.sheet}>
           <View style={styles.priceRow}>
-            <Text style={styles.price}>{evento.is_free ? 'Gratis' : `Bs. ${evento.price}`}</Text>
+            <Text style={styles.price}>
+              {evento.is_free ? 'Gratis' : formatMoney(evento.price, countryCode)}
+            </Text>
             <Text style={styles.attendees}>{totalAsist} asistentes</Text>
           </View>
 

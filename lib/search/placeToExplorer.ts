@@ -3,7 +3,7 @@ import { enrichAllPlaces } from '@/lib/discoverFilters'
 import type { DiscoverPreferences } from '@/lib/discoverPreferences'
 import type { ActivityCategoryProfile } from '@/lib/userActivity'
 import type { Coords } from '@/lib/geolocation'
-import { estimatePriceTier } from '@/lib/explorerCategories'
+import { estimatePriceLevel } from '@/lib/explorerCategories'
 import { buildExplorerRecommendation } from '@/lib/explorerRecommendations'
 import type { ExplorerPlace } from '@/lib/explorerRanking'
 
@@ -18,7 +18,7 @@ export function toExplorerPlace(
     ...enriched,
     score: place.rating_avg ?? 0,
     whyRecommended: buildExplorerRecommendation(place, prefs, activityProfile, origin),
-    priceTier: estimatePriceTier(place.rating_avg),
+    priceLevel: estimatePriceLevel(place.rating_avg),
   }
 }
 
@@ -33,6 +33,6 @@ export function toExplorerPlaces(
     ...place,
     score: places[i]?.rating_avg ?? 0,
     whyRecommended: buildExplorerRecommendation(places[i], prefs, activityProfile, origin),
-    priceTier: estimatePriceTier(places[i]?.rating_avg),
+    priceLevel: estimatePriceLevel(places[i]?.rating_avg),
   }))
 }

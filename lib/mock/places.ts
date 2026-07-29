@@ -2,6 +2,7 @@ import type { PlaceCardData } from '@/components/ui/PlaceCard'
 import type { PlaceDetail } from '@/lib/placeDetail'
 import { mapPlaceToDetail } from '@/lib/placeDetail'
 import type { Place } from '@/lib/supabase'
+import { formatPriceTierLabel } from '@/lib/currencyFormat'
 
 /** UI mock categories — map to app taxonomy via `mockCategoryToApp`. */
 export type MockPlaceCategory = 'Restaurante' | 'Café' | 'Hotel'
@@ -267,12 +268,6 @@ export const MOCK_PLACES: MockPlace[] = [
   },
 ]
 
-const PRICE_LABELS: Record<1 | 2 | 3, string> = {
-  1: '€',
-  2: '€€',
-  3: '€€€',
-}
-
 const ADDRESSES: Record<string, string> = {
   'mock-rest-001': 'Av. Monseñor Rivero 320, Centro',
   'mock-rest-002': 'Av. San Martín 450, Equipetrol',
@@ -372,8 +367,8 @@ export function mockToPlaceDetail(mock: MockPlace, userCoords?: { lat: number; l
   return mapPlaceToDetail(mockToPlace(mock), userCoords ?? null)
 }
 
-export function mockPriceLabel(level: 1 | 2 | 3): string {
-  return PRICE_LABELS[level]
+export function mockPriceLabel(level: 1 | 2 | 3, countryCode = 'BO'): string {
+  return formatPriceTierLabel(level, countryCode)
 }
 
 export const MOCK_PLACE_STATS = {

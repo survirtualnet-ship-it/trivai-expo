@@ -1,4 +1,5 @@
 import type { Category } from '@/lib/categories'
+import type { PriceLevel } from '@/lib/currencyFormat'
 
 export type ExplorerChipId =
   | 'all'
@@ -44,11 +45,16 @@ export const EXPLORER_LOCATIONS: ExplorerLocationOption[] = [
   { id: 'near_me', label: 'Cerca de mí', center: { lat: -17.7833, lng: -63.1821 } },
 ]
 
-export type PriceTier = '€' | '€€' | '€€€'
-
-export function estimatePriceTier(ratingAvg?: number | null): PriceTier {
+export function estimatePriceLevel(ratingAvg?: number | null): PriceLevel {
   const r = ratingAvg ?? 0
-  if (r >= 4.5) return '€€€'
-  if (r >= 3.8) return '€€'
-  return '€'
+  if (r >= 4.5) return 3
+  if (r >= 3.8) return 2
+  return 1
 }
+
+/** @deprecated Use estimatePriceLevel + formatPriceTierLabel */
+export function estimatePriceTier(ratingAvg?: number | null): PriceLevel {
+  return estimatePriceLevel(ratingAvg)
+}
+
+export type PriceTier = PriceLevel

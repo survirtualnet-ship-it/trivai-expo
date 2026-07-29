@@ -5,15 +5,20 @@ import { T, F, S } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import { getCatLabel } from '@/lib/tokens'
 import { distToMinutes } from '@/lib/zones'
+import { formatPriceTierLabel, type PriceLevel } from '@/lib/currencyFormat'
 import type { PlaceDetail } from '@/lib/placeDetail'
 
 type Props = {
   place: PlaceDetail
+  countryCode?: string
 }
 
-export const PlaceInfo = memo(function PlaceInfo({ place }: Props) {
+export const PlaceInfo = memo(function PlaceInfo({ place, countryCode = 'BO' }: Props) {
   const minutes = place.distance != null ? distToMinutes(place.distance) : null
   const cat = getCatLabel(place.category)
+  const priceLabel = place.priceLevel
+    ? formatPriceTierLabel(place.priceLevel as PriceLevel, countryCode)
+    : null
 
   return (
     <View style={styles.wrap}>
@@ -37,7 +42,7 @@ export const PlaceInfo = memo(function PlaceInfo({ place }: Props) {
 
       <Text style={styles.meta} numberOfLines={2}>
         {cat}
-        {place.priceLabel ? ` · ${place.priceLabel}` : ''}
+        {priceLabel ? ` · ${priceLabel}` : ''}
         {minutes != null ? ` · ${minutes} min` : ''}
         {place.isOpen ? ' · Abierto' : place.openingHours.length ? ' · Cerrado' : ''}
       </Text>

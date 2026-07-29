@@ -11,15 +11,15 @@ import type { ActivityCategoryProfile } from '@/lib/userActivity'
 import type { Coords } from '@/lib/geolocation'
 import { haversineKm } from '@/lib/eventUtils'
 import {
-  estimatePriceTier,
-  type PriceTier,
+  estimatePriceLevel,
+  type PriceLevel,
 } from '@/lib/explorerCategories'
 import { buildExplorerRecommendation } from '@/lib/explorerRecommendations'
 
 export interface ExplorerPlace extends EnrichedPlace {
   score: number
   whyRecommended: string
-  priceTier: PriceTier
+  priceLevel: PriceLevel
 }
 
 const DISTANCE_WEIGHT = 2.4
@@ -66,7 +66,7 @@ export function rankExplorerPlaces(
     return {
       ...place,
       score,
-      priceTier: estimatePriceTier(place.rating_avg),
+      priceLevel: estimatePriceLevel(place.rating_avg),
       whyRecommended: buildExplorerRecommendation(place, prefs, activityProfile, origin),
     }
   })

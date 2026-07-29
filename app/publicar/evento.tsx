@@ -9,6 +9,8 @@ import { Calendar, MapPin, DollarSign, AlignLeft, CheckCircle, X } from 'lucide-
 import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import { T, F, S, R, CATEGORIES, getCatEmoji } from '@/lib/tokens'
+import { useLocationProfile } from '@/hooks/useLocationProfile'
+import { pricePlaceholder } from '@/lib/currencyFormat'
 import { grantXP, XP } from '@/lib/xp'
 
 type LugarResult = { id: string; name: string; category: string; address: string | null }
@@ -67,6 +69,10 @@ function formatHoraInput(raw: string) {
 }
 
 export default function CrearEvento() {
+  const { profile } = useLocationProfile()
+  const countryCode = profile?.countryCode ?? 'BO'
+  const precioPlaceholder = pricePlaceholder(countryCode)
+
   const hoy = new Date()
   const diaHoy = String(hoy.getDate()).padStart(2,'0')
   const mesHoy = String(hoy.getMonth()+1).padStart(2,'0')
@@ -326,7 +332,7 @@ export default function CrearEvento() {
               <TextInput
                 value={precio}
                 onChangeText={setPrecio}
-                placeholder="Precio en Bolivianos (Bs.)"
+                placeholder={precioPlaceholder}
                 placeholderTextColor={T.fg4}
                 keyboardType="numeric"
                 style={[c.campoInput, { marginTop: S.sm }]}

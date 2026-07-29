@@ -3,7 +3,8 @@ import { normalizeCategory } from '@/lib/categories'
 import { calcIsOpen } from '@/lib/hours'
 import { haversineKm } from '@/lib/eventUtils'
 import type { Coords } from '@/lib/geolocation'
-import { estimatePriceTier, type PriceTier } from '@/lib/explorerCategories'
+import type { PriceLevel } from '@/lib/currencyFormat'
+import { estimatePriceLevel } from '@/lib/explorerCategories'
 
 export interface PlaceDetail {
   id: string
@@ -12,8 +13,7 @@ export interface PlaceDetail {
   category: string
   rating: number
   reviewCount: number
-  priceLevel?: 1 | 2 | 3
-  priceLabel?: PriceTier
+  priceLevel?: PriceLevel
   images: string[]
   address: string
   distance?: number
@@ -35,12 +35,6 @@ export interface PlaceDetail {
 export type IdealForTag = 'Pareja' | 'Amigos' | 'Familia'
 
 const DIAS_ORDER = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
-
-function priceTierToLevel(tier: PriceTier): 1 | 2 | 3 {
-  if (tier === '€') return 1
-  if (tier === '€€') return 2
-  return 3
-}
 
 function deriveIdealFor(place: Place): IdealForTag[] {
   const tags: IdealForTag[] = []
@@ -106,7 +100,7 @@ export function mapPlaceToDetail(
   place: Place,
   userCoords?: Coords | null,
 ): PlaceDetail {
-  const priceLabel = estimatePriceTier(place.rating_avg)
+  const priceLevel = estimatePriceLevel(place.rating_avg)
   const lat = place.latitude ?? 0
   const lng = place.longitude ?? 0
 
@@ -124,8 +118,7 @@ export function mapPlaceToDetail(
     category: place.category,
     rating: place.rating_avg ?? 0,
     reviewCount: place.rating_count ?? 0,
-    priceLevel: priceTierToLevel(priceLabel),
-    priceLabel,
+    priceLevel,
     images: place.photos?.length ? place.photos : [],
     address: place.address?.trim() || place.city || 'Santa Cruz de la Sierra',
     distance,

@@ -24,6 +24,7 @@ import {
   usePlaceFavorite,
   useSimilarPlaces,
 } from '@/hooks/usePlaceDetail'
+import { useLocationProfile } from '@/hooks/useLocationProfile'
 import { useUser } from '@/hooks/useUser'
 import {
   mapsDirectionsUrl,
@@ -38,6 +39,8 @@ import { FONT } from '@/lib/typography'
 export default function PlaceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { user } = useUser()
+  const { profile } = useLocationProfile()
+  const countryCode = profile?.countryCode ?? 'BO'
 
   const { place, isLoading, isError, refetch } = usePlaceDetail(id)
   const { isFavorite, toggle, isPending: favPending } = usePlaceFavorite(id)
@@ -125,7 +128,7 @@ export default function PlaceDetailScreen() {
         />
 
         <FadeInView>
-          <PlaceInfo place={place} />
+          <PlaceInfo place={place} countryCode={countryCode} />
         </FadeInView>
 
         <FadeInView delay={30}>

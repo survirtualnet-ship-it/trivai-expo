@@ -41,7 +41,7 @@ type ExchangeRateApiResponse = {
   conversion_rates?: Record<string, number>
 }
 
-function localCurrency(countryCode: string): LocalCurrency {
+export function getLocalCurrency(countryCode: string): LocalCurrency {
   return BY_COUNTRY[countryCode.toUpperCase()] ?? { code: 'USD', symbol: '$' }
 }
 
@@ -130,7 +130,7 @@ export async function fetchCurrency(countryCode: string): Promise<CurrencySnapsh
     return withSourceLabels(cached.data)
   }
 
-  const local = localCurrency(countryCode)
+  const local = getLocalCurrency(countryCode)
   const pairLabel = `USD → ${local.code}`
 
   const resolved = await resolveRate(countryCode, local.code)
