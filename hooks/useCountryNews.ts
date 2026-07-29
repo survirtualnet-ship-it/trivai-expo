@@ -32,13 +32,17 @@ export function useCountryNews(
   })
 
   const title =
-    profile?.country != null
+    profile?.countryCode?.toUpperCase() === 'BO'
       ? locale === 'EN'
-        ? `Latest news · ${profile.country}`
-        : `Últimas noticias · ${profile.country}`
-      : locale === 'EN'
-        ? 'Latest news'
-        : 'Últimas noticias'
+        ? 'Latest news · Opinión'
+        : 'Últimas noticias · Opinión'
+      : profile?.country != null
+        ? locale === 'EN'
+          ? `Latest news · ${profile.country}`
+          : `Últimas noticias · ${profile.country}`
+        : locale === 'EN'
+          ? 'Latest news'
+          : 'Últimas noticias'
 
   const subtitle =
     profile?.city && profile?.country
@@ -51,7 +55,8 @@ export function useCountryNews(
     items: query.data ?? [],
     title,
     subtitle,
-    isLoading: isLocationLoading || (query.isLoading && !query.data?.length),
-    isEmpty: !query.isLoading && (query.data?.length ?? 0) === 0,
+    isLoading: isLocationLoading || query.isLoading,
+    isEmpty: !query.isLoading && !query.isFetching && (query.data?.length ?? 0) === 0,
+    isError: query.isError,
   }
 }

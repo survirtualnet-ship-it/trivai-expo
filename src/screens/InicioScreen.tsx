@@ -3,7 +3,6 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import {
   CategoryCard,
-  ContextBlock,
   CountryNewsSection,
   ExchangeRateCard,
   GlobalSearchBar,
@@ -18,7 +17,6 @@ import { useCountryNews } from '@/hooks/useCountryNews'
 import { useCurrency } from '@/hooks/useCurrency'
 import { useLocationProfile } from '@/hooks/useLocationProfile'
 import { useNearbyPlaces } from '@/hooks/useNearbyPlaces'
-import { useNotifications } from '@/hooks/useNotifications'
 import { useWeather } from '@/hooks/useWeather'
 import {
   CATEGORIES,
@@ -42,37 +40,23 @@ export function InicioScreen() {
   const [locale, setLocale] = useState<Locale>('ES')
   const [zone, setZone] = useState<ZoneId | null>(null)
 
-  const {
-    profile,
-    permission,
-    offline,
-    isLoading: isLocationLoading,
-    statusMessageEs,
-    statusMessageEn,
-  } = useLocationProfile()
+  const { profile, isLoading: isLocationLoading } = useLocationProfile()
 
-  const { weather, weatherLine } = useWeather(
+  const { weatherLine } = useWeather(
     profile?.latitude,
     profile?.longitude,
     locale,
     isLocationLoading,
   )
 
-  const { pairLabel, rateLabel, statusLabel, contextLine } = useCurrency(
+  const { pairLabel, rateLabel, statusLabel } = useCurrency(
     profile?.countryCode,
     locale,
   )
 
-  const { nearby, trending, forYou, recommended, totalCount } = useNearbyPlaces(
+  const { nearby, trending, forYou, recommended } = useNearbyPlaces(
     profile,
     zone,
-  )
-
-  const { alertLine, hasAlert } = useNotifications(
-    profile,
-    weather,
-    totalCount,
-    locale,
   )
 
   const {
@@ -137,31 +121,6 @@ export function InicioScreen() {
     }
     return profile?.city ?? (locale === 'EN' ? 'Your city' : 'Tu ciudad')
   }, [isLocationLoading, profile?.city, locale])
-
-  const locationLine = useMemo(() => {
-    const statusMsg = locale === 'EN' ? statusMessageEn : statusMessageEs
-    if (statusMsg && permission === 'denied' && profile?.source !== 'manual') {
-      return statusMsg
-    }
-    if (offline && profile?.source === 'cache') {
-      return locale === 'EN'
-        ? '📍 Showing saved information.'
-        : '📍 Mostrando información guardada.'
-    }
-    if (profile) {
-      return locale === 'EN'
-        ? `📍 ${profile.city}, ${profile.country}`
-        : `📍 ${profile.city}, ${profile.country}`
-    }
-    return locale === 'EN' ? '📍 Location unavailable' : '📍 Ubicación no disponible'
-  }, [
-    locale,
-    statusMessageEn,
-    statusMessageEs,
-    permission,
-    profile,
-    offline,
-  ])
 
   const categoryRows = useMemo(() => chunk(CATEGORIES, 2), [])
 
@@ -236,13 +195,6 @@ export function InicioScreen() {
           title={recommendedTitle}
           places={recommended}
           onPressPlace={onPressPlace}
-        />
-
-        <ContextBlock
-          locationLine={locationLine}
-          currencyLine={contextLine}
-          alertLine={alertLine}
-          hasAlert={hasAlert}
         />
 
         <CountryNewsSection

@@ -37,8 +37,8 @@ export const CountryNewsSection = memo(function CountryNewsSection({
         ) : items.length === 0 ? (
           <Text style={styles.meta}>
             {locale === 'EN'
-              ? 'No news available for this country.'
-              : 'No hay noticias disponibles para este país.'}
+              ? 'News could not be loaded. Try again later.'
+              : 'No se pudieron cargar las noticias. Intenta más tarde.'}
           </Text>
         ) : (
           items.map((item, index) => (
