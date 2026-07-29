@@ -22,6 +22,17 @@ export const QUERY_KEYS = {
   favorites: ['favorites'] as const,
   activity: ['activity'] as const,
   location: ['location'] as const,
+  home: {
+    weather: ['home', 'weather'] as const,
+    currency: ['home', 'currency'] as const,
+    notifications: ['home', 'notifications'] as const,
+  },
+} as const
+
+export const CACHE_TTL = {
+  weather: 45 * 60_000,
+  currency: 24 * 60 * 60_000,
+  places: 60 * 60_000,
 } as const
 
 export const EMERGENCY_CATEGORIES = [

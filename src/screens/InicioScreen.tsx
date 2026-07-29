@@ -12,14 +12,15 @@ import {
   ZoneFilter,
 } from '../components'
 import { deferredPush } from '@/lib/deferredNav'
+import { buildHomeSearchParams } from '@/lib/home/searchContext'
+import { useCurrency } from '@/hooks/useCurrency'
+import { useLocationProfile } from '@/hooks/useLocationProfile'
+import { useNearbyPlaces } from '@/hooks/useNearbyPlaces'
+import { useNotifications } from '@/hooks/useNotifications'
+import { useWeather } from '@/hooks/useWeather'
 import {
   CATEGORIES,
-  FOR_YOU_PLACES,
-  NEARBY_PLACES,
   QUICK_PLANS,
-  RECOMMENDED_PLACES,
-  TRENDING_PLACES,
-  filterByZone,
   type Locale,
   type PlaceItem,
   type QuickPlan,
@@ -39,13 +40,53 @@ export function InicioScreen() {
   const [locale, setLocale] = useState<Locale>('ES')
   const [zone, setZone] = useState<ZoneId | null>(null)
 
+  const {
+    profile,
+    permission,
+    offline,
+    isLoading: isLocationLoading,
+    statusMessageEs,
+    statusMessageEn,
+  } = useLocationProfile()
+
+  const { weather, weatherLine } = useWeather(
+    profile?.latitude,
+    profile?.longitude,
+    locale,
+    isLocationLoading,
+  )
+
+  const { pairLabel, rateLabel, statusLabel, contextLine } = useCurrency(
+    profile?.countryCode,
+    locale,
+  )
+
+  const { nearby, trending, forYou, recommended, totalCount } = useNearbyPlaces(
+    profile,
+    zone,
+  )
+
+  const { alertLine, hasAlert } = useNotifications(
+    profile,
+    weather,
+    totalCount,
+    locale,
+  )
+
   const onToggleLocale = useCallback(() => {
     setLocale(prev => (prev === 'ES' ? 'EN' : 'ES'))
   }, [])
 
   const onSearch = useCallback(() => {
-    deferredPush('/buscar')
-  }, [])
+    if (!profile) {
+      deferredPush('/buscar')
+      return
+    }
+    deferredPush({
+      pathname: '/buscar',
+      params: buildHomeSearchParams(profile, locale),
+    })
+  }, [profile, locale])
 
   const onPressPlace = useCallback((place: PlaceItem) => {
     deferredPush({ pathname: '/lugares/[id]', params: { id: place.id } })
@@ -54,27 +95,65 @@ export function InicioScreen() {
   const onPressPlan = useCallback((plan: QuickPlan) => {
     deferredPush({
       pathname: '/buscar',
-      params: { q: plan.titleEs },
+      params: { q: locale === 'EN' ? plan.titleEn : plan.titleEs },
     })
-  }, [])
+  }, [locale])
 
-  const weather = locale === 'EN' ? '24°C · Sunny' : '24°C · Soleado'
-  const fxStatus = locale === 'EN' ? 'Stable' : 'Estable'
+  const onPressCategory = useCallback(
+    (categoryId: string, titleEs: string, titleEn: string) => {
+      if (profile) {
+        deferredPush({
+          pathname: '/buscar',
+          params: buildHomeSearchParams(profile, locale, categoryId),
+        })
+        return
+      }
+      deferredPush({
+        pathname: '/buscar',
+        params: { q: locale === 'EN' ? titleEn : titleEs },
+      })
+    },
+    [profile, locale],
+  )
+
   const nearbyTitle = locale === 'EN' ? 'Near you' : 'Cerca de ti'
   const trendingTitle = locale === 'EN' ? 'Trending' : 'Tendencias'
   const forYouTitle = locale === 'EN' ? 'For you' : 'Para ti'
   const planTitle = locale === 'EN' ? 'Quick plan' : 'Plan rápido'
   const recommendedTitle = locale === 'EN' ? 'Recommended' : 'Recomendados'
-  const locationLine = locale === 'EN' ? '📍 Lima, Peru' : '📍 Lima, Perú'
-  const currencyLine =
-    locale === 'EN' ? '💱 USD → PEN · Stable' : '💱 USD → PEN · Estable'
-  const alertLine =
-    locale === 'EN' ? '🛑 No active alerts' : '🛑 Sin alertas activas'
 
-  const nearby = useMemo(() => filterByZone(NEARBY_PLACES, zone), [zone])
-  const trending = useMemo(() => filterByZone(TRENDING_PLACES, zone), [zone])
-  const forYou = useMemo(() => filterByZone(FOR_YOU_PLACES, zone), [zone])
-  const recommended = useMemo(() => filterByZone(RECOMMENDED_PLACES, zone), [zone])
+  const cityDisplay = useMemo(() => {
+    if (isLocationLoading) {
+      return locale === 'EN' ? 'Detecting…' : 'Detectando…'
+    }
+    return profile?.city ?? (locale === 'EN' ? 'Your city' : 'Tu ciudad')
+  }, [isLocationLoading, profile?.city, locale])
+
+  const locationLine = useMemo(() => {
+    const statusMsg = locale === 'EN' ? statusMessageEn : statusMessageEs
+    if (statusMsg && permission === 'denied' && profile?.source !== 'manual') {
+      return statusMsg
+    }
+    if (offline && profile?.source === 'cache') {
+      return locale === 'EN'
+        ? '📍 Showing saved information.'
+        : '📍 Mostrando información guardada.'
+    }
+    if (profile) {
+      return locale === 'EN'
+        ? `📍 ${profile.city}, ${profile.country}`
+        : `📍 ${profile.city}, ${profile.country}`
+    }
+    return locale === 'EN' ? '📍 Location unavailable' : '📍 Ubicación no disponible'
+  }, [
+    locale,
+    statusMessageEn,
+    statusMessageEs,
+    permission,
+    profile,
+    offline,
+  ])
+
   const categoryRows = useMemo(() => chunk(CATEGORIES, 2), [])
 
   return (
@@ -85,8 +164,8 @@ export function InicioScreen() {
         decelerationRate="fast"
       >
         <InicioHeader
-          city="Lima"
-          weather={weather}
+          city={cityDisplay}
+          weather={weatherLine}
           locale={locale}
           onToggleLocale={onToggleLocale}
         />
@@ -94,9 +173,9 @@ export function InicioScreen() {
         <GlobalSearchBar locale={locale} onPress={onSearch} />
 
         <ExchangeRateCard
-          pair="USD → PEN"
-          rate="1 USD = S/ 3.70"
-          statusLabel={fxStatus}
+          pair={pairLabel}
+          rate={rateLabel}
+          statusLabel={statusLabel}
         />
 
         <ZoneFilter locale={locale} selected={zone} onSelect={setZone} />
@@ -111,10 +190,7 @@ export function InicioScreen() {
                   icon={item.icon}
                   tint={item.tint}
                   onPress={() =>
-                    deferredPush({
-                      pathname: '/buscar',
-                      params: { q: item.titleEs },
-                    })
+                    onPressCategory(item.id, item.titleEs, item.titleEn)
                   }
                 />
               ))}
@@ -155,9 +231,9 @@ export function InicioScreen() {
 
         <ContextBlock
           locationLine={locationLine}
-          currencyLine={currencyLine}
+          currencyLine={contextLine}
           alertLine={alertLine}
-          hasAlert={false}
+          hasAlert={hasAlert}
         />
 
         <View style={styles.bottom} />
