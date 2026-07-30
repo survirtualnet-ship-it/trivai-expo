@@ -1,4 +1,5 @@
 import type { MapPlace } from '../store/useMapStore'
+import { normalizeMapPlace } from '../utils/placeHelpers'
 
 /** Santa Cruz center — discovery mock cluster (TRIVAI home city) */
 export const MAP_CITY_CENTER = {
@@ -9,9 +10,9 @@ export const MAP_CITY_CENTER = {
 /** @deprecated use MAP_CITY_CENTER */
 export const MADRID_CENTER = MAP_CITY_CENTER
 
-export const MOCK_MAP_PLACES: MapPlace[] = [
+const RAW_MOCK_MAP_PLACES = [
   {
-    id: 'sc1',
+    id: 'p-002',
     name: 'Equipetrol · Food Court',
     lat: -17.7708,
     lng: -63.1654,
@@ -24,7 +25,7 @@ export const MOCK_MAP_PLACES: MapPlace[] = [
     imageUrl: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=640&q=80',
   },
   {
-    id: 'sc2',
+    id: 'p-024',
     name: 'Café 24 de Septiembre',
     lat: -17.7892,
     lng: -63.1755,
@@ -37,7 +38,7 @@ export const MOCK_MAP_PLACES: MapPlace[] = [
     imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=640&q=80',
   },
   {
-    id: 'sc3',
+    id: 'p-038',
     name: 'Fexpocruz · Noche de feria',
     lat: -17.7985,
     lng: -63.2012,
@@ -50,7 +51,7 @@ export const MOCK_MAP_PLACES: MapPlace[] = [
     imageUrl: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=640&q=80',
   },
   {
-    id: 'sc4',
+    id: 'p-007',
     name: 'Los Tajibos · Brunch',
     lat: -17.7765,
     lng: -63.1689,
@@ -63,7 +64,7 @@ export const MOCK_MAP_PLACES: MapPlace[] = [
     imageUrl: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=640&q=80',
   },
   {
-    id: 'sc5',
+    id: 'p-037',
     name: 'Cine Center · Premier',
     lat: -17.7812,
     lng: -63.1898,
@@ -76,7 +77,7 @@ export const MOCK_MAP_PLACES: MapPlace[] = [
     imageUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=640&q=80',
   },
   {
-    id: 'sc6',
+    id: 'p-033',
     name: 'Parque Urbano',
     lat: -17.7921,
     lng: -63.1712,
@@ -89,7 +90,7 @@ export const MOCK_MAP_PLACES: MapPlace[] = [
     imageUrl: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=640&q=80',
   },
   {
-    id: 'sc7',
+    id: 'p-019',
     name: 'Heladería Delicias',
     lat: -17.7856,
     lng: -63.1788,
@@ -102,7 +103,7 @@ export const MOCK_MAP_PLACES: MapPlace[] = [
     imageUrl: 'https://images.unsplash.com/photo-1481391039750-d96040c97a12?w=640&q=80',
   },
   {
-    id: 'sc8',
+    id: 'p-039',
     name: 'Museo Etno-Folklórico',
     lat: -17.7918,
     lng: -63.1815,
@@ -115,8 +116,8 @@ export const MOCK_MAP_PLACES: MapPlace[] = [
     imageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=640&q=80',
   },
   {
-    id: 'sc9',
-    name: 'Bar La Rinconada',
+    id: 'p-008',
+    name: 'Bar Equipetrol · Noche',
     lat: -17.7742,
     lng: -63.1628,
     type: 'bar',
@@ -128,7 +129,7 @@ export const MOCK_MAP_PLACES: MapPlace[] = [
     imageUrl: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=640&q=80',
   },
   {
-    id: 'sc10',
+    id: 'p-004',
     name: 'Mercado Los Pozos',
     lat: -17.8012,
     lng: -63.1945,
@@ -141,7 +142,7 @@ export const MOCK_MAP_PLACES: MapPlace[] = [
     imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=640&q=80',
   },
   {
-    id: 'sc11',
+    id: 'p-040',
     name: 'Festival de la Chiquitania',
     lat: -17.7875,
     lng: -63.1855,
@@ -154,7 +155,7 @@ export const MOCK_MAP_PLACES: MapPlace[] = [
     imageUrl: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=640&q=80',
   },
   {
-    id: 'sc12',
+    id: 'p-006',
     name: 'Patio de Comidas Ventura',
     lat: -17.7798,
     lng: -63.1725,
@@ -166,7 +167,11 @@ export const MOCK_MAP_PLACES: MapPlace[] = [
     category: 'Restaurante',
     imageUrl: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=640&q=80',
   },
-]
+] as const
+
+export const MOCK_MAP_PLACES: MapPlace[] = RAW_MOCK_MAP_PLACES.map(entry =>
+  normalizeMapPlace(entry as MapPlace),
+)
 
 export const SEARCH_SUGGESTIONS = [
   'Café en el centro',

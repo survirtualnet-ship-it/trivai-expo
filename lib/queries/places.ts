@@ -53,10 +53,17 @@ export async function fetchPlaceById(id: string): Promise<Place> {
     .from('places')
     .select('*')
     .eq('id', id)
-    .single()
+    .maybeSingle()
 
-  if (error) throw error
-  return data as Place
+  if (data) return data as Place
+
+  try {
+    const { fetchPlaceAsSupabase } = await import('@/services/mockApi')
+    return await fetchPlaceAsSupabase(id)
+  } catch {
+    if (error) throw error
+    throw new Error(`Place not found: ${id}`)
+  }
 }
 
 export async function fetchPlacesMapMarkers(): Promise<PlaceMapMarker[]> {

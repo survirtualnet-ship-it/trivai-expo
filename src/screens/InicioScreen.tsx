@@ -94,20 +94,13 @@ export function InicioScreen() {
   }, [locale])
 
   const onPressCategory = useCallback(
-    (categoryId: string, titleEs: string, titleEn: string) => {
-      if (profile) {
-        deferredPush({
-          pathname: '/buscar',
-          params: buildHomeSearchParams(profile, locale, categoryId),
-        })
-        return
-      }
+    (categoryId: string) => {
       deferredPush({
-        pathname: '/buscar',
-        params: { q: locale === 'EN' ? titleEn : titleEs },
+        pathname: '/categoria/[id]',
+        params: { id: categoryId, locale },
       })
     },
-    [profile, locale],
+    [locale],
   )
 
   const nearbyTitle = locale === 'EN' ? 'Near you' : 'Cerca de ti'
@@ -169,9 +162,7 @@ export function InicioScreen() {
                   title={locale === 'EN' ? item.titleEn : item.titleEs}
                   icon={item.icon}
                   tint={item.tint}
-                  onPress={() =>
-                    onPressCategory(item.id, item.titleEs, item.titleEn)
-                  }
+                  onPress={() => onPressCategory(item.id)}
                 />
               ))}
             </View>

@@ -3,6 +3,7 @@ import { MAP_DARK_STYLE } from '../mapDarkStyle'
 import { MAP_CITY_CENTER } from '../data/mockPlaces'
 import { mapTheme } from '../theme'
 import type { MapPlace } from '../store/useMapStore'
+import { placeLatitude, placeLongitude } from '../utils/placeHelpers'
 
 function markerColor(place: MapPlace): string {
   if (place.type === 'event') return mapTheme.event
@@ -21,29 +22,32 @@ export function buildDiscoveryMapHtml(
   const stylesJson = JSON.stringify([...MAP_DARK_STYLE])
 
   const markersDataJS = `var __markers = {
-${places.map(p => `  ${JSON.stringify(p.id)}: ${JSON.stringify({ id: p.id, name: p.name, lat: p.lat, lng: p.lng })}`).join(',\n')}
+${places.map(p => `  ${JSON.stringify(p.id)}: ${JSON.stringify({ id: p.id, name: p.name, lat: placeLatitude(p), lng: placeLongitude(p), color: markerColor(p) })}`).join(',\n')}
 };`
 
   const pinsJS = places.map(p => {
     const color = markerColor(p)
     const selected = p.id === selectedId
     const scale = selected ? 14 : 9
+    const strokeWeight = selected ? 3 : 2
     return `(function() {
       var mk = new google.maps.Marker({
-        position: { lat: ${p.lat}, lng: ${p.lng} },
+        position: { lat: ${placeLatitude(p)}, lng: ${placeLongitude(p)} },
         map: map,
         title: ${JSON.stringify(p.name)},
         zIndex: ${selected ? 999 : p.isTrending ? 50 : 1},
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
           scale: ${scale},
-          fillColor: '${color}',
+          fillColor: ${JSON.stringify(color)},
           fillOpacity: 1,
           strokeColor: '#fff',
-          strokeWeight: ${selected ? 3 : 2},
+          strokeWeight: ${strokeWeight}
         }
       });
+      window.__markerRefs[${JSON.stringify(p.id)}] = mk;
       mk.addListener('click', function() {
+        window.selectMarker(${JSON.stringify(p.id)});
         var msg = JSON.stringify({ type: 'marker', id: ${JSON.stringify(p.id)} });
         if (window.ReactNativeWebView) { window.ReactNativeWebView.postMessage(msg); }
         else { window.parent.postMessage(msg, '*'); }
@@ -75,6 +79,8 @@ ${places.map(p => `  ${JSON.stringify(p.id)}: ${JSON.stringify({ id: p.id, name:
 </head><body>
 <div id="map"></div>
 <script>
+window.__markerRefs = {};
+window.__selectedId = ${JSON.stringify(selectedId)};
 ${markersDataJS}
 var map = new google.maps.Map(document.getElementById('map'), {
   center: { lat: ${center.lat}, lng: ${center.lng} },
@@ -83,8 +89,34 @@ var map = new google.maps.Map(document.getElementById('map'), {
   gestureHandling: 'greedy',
   styles: ${stylesJson}
 });
+window.selectMarker = function(id) {
+  window.__selectedId = id;
+  for (var key in window.__markerRefs) {
+    var meta = __markers[key];
+    if (!meta) continue;
+    var selected = key === id;
+    window.__markerRefs[key].setIcon({
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: selected ? 14 : 9,
+      fillColor: meta.color,
+      fillOpacity: 1,
+      strokeColor: '#fff',
+      strokeWeight: selected ? 3 : 2
+    });
+    window.__markerRefs[key].setZIndex(selected ? 999 : 1);
+  }
+  var m = __markers[id];
+  if (m) map.panTo({ lat: m.lat, lng: m.lng });
+};
+window.addEventListener('message', function(e) {
+  try {
+    var data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    if (data && data.type === 'select' && data.id) window.selectMarker(data.id);
+  } catch (err) {}
+});
 ${pinsJS}
 ${userPinJS}
+if (window.__selectedId) window.selectMarker(window.__selectedId);
 window.panToPlace = function(id) {
   var m = __markers[id];
   if (!m) return;

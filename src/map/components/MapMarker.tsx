@@ -7,6 +7,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import { mapTheme } from '../theme'
 import type { MapPlace } from '../store/useMapStore'
+import { placeLatitude, placeLongitude } from '../utils/placeHelpers'
 
 type Props = {
   place: MapPlace
@@ -38,7 +39,7 @@ export const MapMarker = memo(function MapMarker({ place, selected, onPress }: P
 
   return (
     <Marker
-      coordinate={{ latitude: place.lat, longitude: place.lng }}
+      coordinate={{ latitude: placeLatitude(place), longitude: placeLongitude(place) }}
       zIndex={selected ? 999 : place.isTrending ? 50 : 1}
       onPress={() => onPress(place.id)}
       tracksViewChanges={Platform.OS === 'android'}
