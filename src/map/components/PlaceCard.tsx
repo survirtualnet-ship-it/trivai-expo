@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import * as Haptics from 'expo-haptics'
 import { mapTheme } from '../theme'
 import type { MapPlace } from '../store/useMapStore'
 
@@ -8,9 +9,21 @@ type Props = {
   active: boolean
   distance: string
   onPress: () => void
+  onPressVerMas?: () => void
 }
 
-export const PlaceCard = memo(function PlaceCard({ place, active, distance, onPress }: Props) {
+export const PlaceCard = memo(function PlaceCard({
+  place,
+  active,
+  distance,
+  onPress,
+  onPressVerMas,
+}: Props) {
+  const handleVerMas = () => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    onPressVerMas?.()
+  }
+
   return (
     <Pressable
       onPress={onPress}
@@ -20,7 +33,21 @@ export const PlaceCard = memo(function PlaceCard({ place, active, distance, onPr
         pressed && styles.pressed,
       ]}
     >
-      <Image source={{ uri: place.imageUrl }} style={styles.image} />
+      <View style={styles.imageWrap}>
+        <Image source={{ uri: place.imageUrl }} style={styles.image} />
+        {active && onPressVerMas ? (
+          <View style={styles.imageOverlay} pointerEvents="box-none">
+            <Pressable
+              onPress={handleVerMas}
+              style={({ pressed }) => [styles.verMasBtn, pressed && styles.verMasPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={`Ver más sobre ${place.name}`}
+            >
+              <Text style={styles.verMasText}>Ver más</Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </View>
       <View style={styles.body}>
         <Text style={styles.name} numberOfLines={1}>{place.name}</Text>
         <Text style={styles.meta} numberOfLines={1}>
@@ -56,10 +83,41 @@ const styles = StyleSheet.create({
     opacity: 0.92,
     transform: [{ scale: 0.98 }],
   },
+  imageWrap: {
+    position: 'relative',
+  },
   image: {
     width: '100%',
     height: 96,
     backgroundColor: mapTheme.surfaceElevated,
+  },
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.28)',
+  },
+  verMasBtn: {
+    backgroundColor: mapTheme.accent,
+    borderRadius: mapTheme.radius.full,
+    paddingHorizontal: mapTheme.spacing.lg,
+    paddingVertical: 10,
+    minWidth: 112,
+    alignItems: 'center',
+    shadowColor: mapTheme.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  verMasPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.98 }],
+  },
+  verMasText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   },
   body: {
     padding: mapTheme.spacing.md,

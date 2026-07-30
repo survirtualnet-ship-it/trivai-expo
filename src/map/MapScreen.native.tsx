@@ -3,18 +3,15 @@ import { StyleSheet, View } from 'react-native'
 import MapView, { PROVIDER_GOOGLE, type Region } from 'react-native-maps'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
+import { deferredPush } from '@/lib/deferredNav'
 import { useLocation } from '@/hooks/useLocation'
 import { MapMarker } from './components/MapMarker'
 import { SearchBar } from './components/SearchBar'
 import { FilterChips } from './components/FilterChips'
 import { MapControls } from './components/MapControls'
-import { FloatingPreviewCard } from './components/FloatingPreviewCard'
 import { PlacesCarousel } from './components/PlacesCarousel'
-import { PlaceDetailBottomSheet } from './components/BottomSheet'
 import {
   useVisiblePlaces,
-  useSelectedPlace,
-  usePlaceDistance,
 } from './hooks/useVisiblePlaces'
 import { useMapStore, DEFAULT_REGION } from './store/useMapStore'
 import { MAP_DARK_STYLE } from './mapDarkStyle'
@@ -36,18 +33,12 @@ export function MapScreen() {
   const tabBarClearance = 72 + insets.bottom
 
   const visiblePlaces = useVisiblePlaces()
-  const selectedPlace = useSelectedPlace()
-  const distance = usePlaceDistance(selectedPlace)
-
   const selectedPlaceId = useMapStore(s => s.selectedPlaceId)
-  const detailOpen = useMapStore(s => s.detailOpen)
   const filtersVisible = useMapStore(s => s.filtersVisible)
   const region = useMapStore(s => s.region)
   const setRegion = useMapStore(s => s.setRegion)
   const setUserLocation = useMapStore(s => s.setUserLocation)
   const setSelectedPlaceId = useMapStore(s => s.setSelectedPlaceId)
-  const openDetail = useMapStore(s => s.openDetail)
-  const closeDetail = useMapStore(s => s.closeDetail)
   const dismissPreview = useMapStore(s => s.dismissPreview)
   const toggleFilters = useMapStore(s => s.toggleFilters)
 
@@ -134,6 +125,10 @@ export function MapScreen() {
     [region],
   )
 
+  const handleOpenDetail = useCallback((place: MapPlace) => {
+    deferredPush({ pathname: '/lugares/[id]', params: { id: place.id } })
+  }, [])
+
   const onRegionChangeComplete = useCallback(
     (r: Region) => {
       setRegion({
@@ -159,8 +154,6 @@ export function MapScreen() {
     [handleMarkerPress, selectedPlaceId, visiblePlaces],
   )
 
-  const showPreview = selectedPlace && !detailOpen
-
   return (
     <View style={styles.root}>
       <MapView
@@ -172,9 +165,7 @@ export function MapScreen() {
         showsUserLocation
         showsMyLocationButton={false}
         onRegionChangeComplete={onRegionChangeComplete}
-        onPress={() => {
-          if (!detailOpen) dismissPreview()
-        }}
+        onPress={dismissPreview}
       >
         {markers}
       </MapView>
@@ -197,27 +188,13 @@ export function MapScreen() {
       </View>
 
       <View style={[styles.bottomOverlay, { bottom: tabBarClearance }]} pointerEvents="box-none">
-        {showPreview && (
-          <FloatingPreviewCard
-            place={selectedPlace}
-            distance={distance}
-            onDismiss={dismissPreview}
-            onOpenDetail={openDetail}
-          />
-        )}
         <PlacesCarousel
           places={visiblePlaces}
           onSelect={handleCarouselSelect}
           onScrollToPlace={handleCarouselScroll}
+          onOpenDetail={handleOpenDetail}
         />
       </View>
-
-      <PlaceDetailBottomSheet
-        place={selectedPlace}
-        distance={distance}
-        open={detailOpen}
-        onClose={closeDetail}
-      />
     </View>
   )
 }

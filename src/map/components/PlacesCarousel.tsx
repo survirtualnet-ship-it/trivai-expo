@@ -11,12 +11,14 @@ type Props = {
   places: MapPlace[]
   onSelect: (place: MapPlace) => void
   onScrollToPlace?: (place: MapPlace) => void
+  onOpenDetail: (place: MapPlace) => void
 }
 
 export const PlacesCarousel = memo(function PlacesCarousel({
   places,
   onSelect,
   onScrollToPlace,
+  onOpenDetail,
 }: Props) {
   const selectedPlaceId = useMapStore(s => s.selectedPlaceId)
   const userLocation = useMapStore(s => s.userLocation)
@@ -42,9 +44,10 @@ export const PlacesCarousel = memo(function PlacesCarousel({
           void Haptics.selectionAsync()
           onSelect(item)
         }}
+        onPressVerMas={() => onOpenDetail(item)}
       />
     )
-  }, [onSelect, selectedPlaceId, userLocation])
+  }, [onOpenDetail, onSelect, selectedPlaceId, userLocation])
 
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 65 }).current
 

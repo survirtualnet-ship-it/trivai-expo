@@ -3,17 +3,14 @@ import { StyleSheet, View } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Haptics from 'expo-haptics'
 import { MapEmbed } from '@/components/MapEmbed'
+import { deferredPush } from '@/lib/deferredNav'
 import { useLocation } from '@/hooks/useLocation'
 import { SearchBar } from './components/SearchBar'
 import { FilterChips } from './components/FilterChips'
 import { MapControls } from './components/MapControls'
-import { FloatingPreviewCard } from './components/FloatingPreviewCard'
 import { PlacesCarousel } from './components/PlacesCarousel'
-import { PlaceDetailBottomSheet } from './components/BottomSheet'
 import {
   useVisiblePlaces,
-  useSelectedPlace,
-  usePlaceDistance,
 } from './hooks/useVisiblePlaces'
 import { useMapStore } from './store/useMapStore'
 import { buildDiscoveryMapHtml } from './utils/mapWebHtml'
@@ -27,18 +24,11 @@ export function MapScreen() {
   const tabBarClearance = 72 + insets.bottom
 
   const visiblePlaces = useVisiblePlaces()
-  const selectedPlace = useSelectedPlace()
-  const distance = usePlaceDistance(selectedPlace)
-
   const selectedPlaceId = useMapStore(s => s.selectedPlaceId)
-  const detailOpen = useMapStore(s => s.detailOpen)
   const filtersVisible = useMapStore(s => s.filtersVisible)
   const userLocation = useMapStore(s => s.userLocation)
   const setUserLocation = useMapStore(s => s.setUserLocation)
   const setSelectedPlaceId = useMapStore(s => s.setSelectedPlaceId)
-  const openDetail = useMapStore(s => s.openDetail)
-  const closeDetail = useMapStore(s => s.closeDetail)
-  const dismissPreview = useMapStore(s => s.dismissPreview)
   const toggleFilters = useMapStore(s => s.toggleFilters)
 
   const { coords } = useLocation({ watch: false, enabled: true })
@@ -77,7 +67,9 @@ export function MapScreen() {
     [setSelectedPlaceId],
   )
 
-  const showPreview = selectedPlace && !detailOpen
+  const handleOpenDetail = useCallback((place: MapPlace) => {
+    deferredPush({ pathname: '/lugares/[id]', params: { id: place.id } })
+  }, [])
 
   return (
     <View style={styles.root}>
@@ -101,23 +93,12 @@ export function MapScreen() {
       </View>
 
       <View style={[styles.bottomOverlay, { bottom: tabBarClearance }]} pointerEvents="box-none">
-        {showPreview && (
-          <FloatingPreviewCard
-            place={selectedPlace}
-            distance={distance}
-            onDismiss={dismissPreview}
-            onOpenDetail={openDetail}
-          />
-        )}
-        <PlacesCarousel places={visiblePlaces} onSelect={handleCarouselSelect} />
+        <PlacesCarousel
+          places={visiblePlaces}
+          onSelect={handleCarouselSelect}
+          onOpenDetail={handleOpenDetail}
+        />
       </View>
-
-      <PlaceDetailBottomSheet
-        place={selectedPlace}
-        distance={distance}
-        open={detailOpen}
-        onClose={closeDetail}
-      />
     </View>
   )
 }
