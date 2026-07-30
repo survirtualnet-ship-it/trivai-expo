@@ -1,11 +1,16 @@
-import { useState } from 'react'
-import {
-  View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert, Switch,
-} from 'react-native'
+import { useMemo, useState } from 'react'
+import { Alert, Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native'
 import { router } from 'expo-router'
-import { Eye, EyeOff } from 'lucide-react-native'
+import { Lock, Mail } from 'lucide-react-native'
 import ScreenHeader from '@/components/ScreenHeader'
+import { ScreenContainer } from '@/components/ui/ScreenContainer'
+import { Card } from '@/components/ui/Card'
+import { AppInput } from '@/components/ui/AppInput'
+import { Button } from '@/components/ui/Button'
+import { AuthBranding } from '@/components/auth/AuthBranding'
+import { AuthDivider } from '@/components/auth/AuthDivider'
+import { AuthFooterLink } from '@/components/auth/AuthFooterLink'
+import { AuthErrorBanner } from '@/components/auth/AuthErrorBanner'
 import { supabase } from '@/lib/supabase'
 import { signInWithGoogle } from '@/lib/auth/googleOAuth'
 import { ensureProfile } from '@/lib/auth/ensureProfile'
@@ -13,23 +18,35 @@ import { navigateAfterAuth } from '@/lib/navigateAfterAuth'
 import { getAuthRedirectUrl } from '@/lib/auth/redirectUrl'
 import { mapAuthError } from '@/lib/auth/authErrors'
 import { useAuthStore } from '@/src/auth/store/useAuthStore'
-import { T, F, S, R } from '@/lib/tokens'
+import { T, F, S } from '@/lib/tokens'
+import { FONT } from '@/lib/typography'
 
 export default function Login() {
-  const [email,    setEmail]    = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPass, setShowPass] = useState(false)
-  const [loading,  setLoading]  = useState(false)
+  const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
-  const [error,    setError]    = useState('')
+  const [error, setError] = useState('')
   const rememberMe = useAuthStore(s => s.rememberMe)
   const setRememberMe = useAuthStore(s => s.setRememberMe)
 
-  const handleLogin = async () => {
-    if (!email || !password) { setError('Completa todos los campos'); return }
-    setLoading(true); setError('')
+  const isFormValid = useMemo(
+    () => email.trim().length > 0 && password.length > 0,
+    [email, password],
+  )
 
-    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password })
+  const handleLogin = async () => {
+    if (!isFormValid) {
+      setError('Completa todos los campos')
+      return
+    }
+    setLoading(true)
+    setError('')
+
+    const { data, error: err } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    })
 
     if (err) {
       setError(mapAuthError(err, 'No se pudo iniciar sesión.'))
@@ -41,6 +58,7 @@ export default function Login() {
       const profile = await ensureProfile(data.user)
       await navigateAfterAuth(data.user, profile)
     }
+    setLoading(false)
   }
 
   const handleGoogleLogin = async () => {
@@ -49,7 +67,6 @@ export default function Login() {
 
     try {
       await signInWithGoogle()
-      // En web la página redirige a Google; solo navegar en nativo
       if (Platform.OS !== 'web') router.replace('/')
     } catch (err) {
       setError(mapAuthError(err, 'Error al iniciar sesión con Google.'))
@@ -68,7 +85,6 @@ export default function Login() {
     setError('')
 
     const redirectTo = getAuthRedirectUrl('auth/callback')
-
     const { error: err } = await supabase.auth.resetPasswordForEmail(trimmed, { redirectTo })
     setLoading(false)
 
@@ -83,141 +99,118 @@ export default function Login() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+    <ScreenContainer
+      centered
+      header={<ScreenHeader title="" fallbackHref="/welcome" />}
+    >
+      <AuthBranding
+        title="Bienvenido a Trivai 👋"
+        subtitle="Descubre lo mejor cerca de ti"
+      />
 
-        {/* HEADER */}
-        <ScreenHeader title="Iniciar sesión" fallbackHref="/welcome" />
+      <Card style={styles.card}>
+        <AuthErrorBanner message={error} />
 
-        <View style={styles.content}>
-          <Text style={styles.title}>Bienvenido de vuelta</Text>
-          <Text style={styles.sub}>Inicia sesión para continuar explorando</Text>
+        <View style={styles.form}>
+          <AppInput
+            label="Email"
+            icon={Mail}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="tu@email.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="emailAddress"
+          />
 
-          {error ? (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
+          <AppInput
+            label="Contraseña"
+            icon={Lock}
+            password
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Tu contraseña"
+            onSubmitEditing={handleLogin}
+            textContentType="password"
+          />
 
-          {/* EMAIL */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="tu@email.com"
-              placeholderTextColor={T.fg4}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
-
-          {/* CONTRASEÑA */}
-          <View style={styles.field}>
-            <Text style={styles.label}>Contraseña</Text>
-            <View style={styles.passRow}>
-              <TextInput
-                style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Tu contraseña"
-                placeholderTextColor={T.fg4}
-                secureTextEntry={!showPass}
-                onSubmitEditing={handleLogin}
-              />
-              <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPass(v => !v)}>
-                {showPass
-                  ? <EyeOff size={20} color={T.fg3} />
-                  : <Eye size={20} color={T.fg3} />
-                }
-              </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={{ marginTop: S.sm, alignSelf: 'flex-end' }} onPress={handleForgotPassword}>
-              <Text style={styles.forgot}>¿Olvidaste tu contraseña?</Text>
-            </TouchableOpacity>
-          </View>
+          <Pressable onPress={handleForgotPassword} style={styles.forgotWrap}>
+            <Text style={styles.forgot}>¿Olvidaste tu contraseña?</Text>
+          </Pressable>
 
           <View style={styles.rememberRow}>
             <Switch
               value={rememberMe}
               onValueChange={setRememberMe}
               trackColor={{ false: T.border, true: T.purpleSoft }}
-              thumbColor={rememberMe ? T.purple : T.surface}
+              thumbColor={rememberMe ? T.primary : T.surface}
             />
             <Text style={styles.rememberLabel}>Recordarme</Text>
           </View>
 
-          <TouchableOpacity
-            style={[styles.btnPrimary, loading && styles.btnDisabled]}
+          <Button
+            label="Iniciar sesión"
             onPress={handleLogin}
-            disabled={loading || googleLoading}
-          >
-            {loading
-              ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.btnText}>Iniciar sesión</Text>
-            }
-          </TouchableOpacity>
+            variant="primary"
+            size="lg"
+            fullWidth
+            loading={loading}
+            disabled={!isFormValid || googleLoading}
+            style={styles.primaryBtn}
+          />
 
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerLabel}>o</Text>
-            <View style={styles.dividerLine} />
-          </View>
+          <AuthDivider />
 
-          <TouchableOpacity
-            style={[styles.btnGoogle, googleLoading && styles.btnDisabled]}
+          <Button
+            label="Continuar con Google"
             onPress={handleGoogleLogin}
-            disabled={loading || googleLoading}
-          >
-            {googleLoading
-              ? <ActivityIndicator color={T.purple} />
-              : <Text style={styles.btnGoogleText}>Continuar con Google</Text>
-            }
-          </TouchableOpacity>
-
-          <View style={styles.registerRow}>
-            <Text style={styles.registerText}>¿No tienes cuenta? </Text>
-            <TouchableOpacity onPress={() => router.push('/auth/registro')}>
-              <Text style={styles.registerLink}>Crear cuenta</Text>
-            </TouchableOpacity>
-          </View>
+            variant="secondary"
+            size="lg"
+            fullWidth
+            loading={googleLoading}
+            disabled={loading}
+          />
         </View>
+      </Card>
 
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <AuthFooterLink
+        prefix="¿No tienes cuenta?"
+        linkLabel="Crear cuenta"
+        onPress={() => router.push('/auth/registro')}
+      />
+    </ScreenContainer>
   )
 }
 
 const styles = StyleSheet.create({
-  root:         { flex: 1, backgroundColor: T.bg },
-  scroll:       { flexGrow: 1 },
-  header:       { flexDirection: 'row', alignItems: 'center', gap: S.md, backgroundColor: T.surface, paddingHorizontal: S.lg, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: T.border },
-  back:         { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  headerLogo:   { fontSize: F.size.xl, fontWeight: F.weight.bold, color: T.purple },
-  content:      { padding: S.xl },
-  title:        { fontSize: 26, fontWeight: F.weight.bold, color: T.fg1, marginBottom: S.sm },
-  sub:          { fontSize: F.size.base, color: T.fg3, marginBottom: S.xl },
-  errorBox:     { backgroundColor: T.orangeSoft, borderWidth: 1, borderColor: T.orange, borderRadius: R.md, padding: S.md, marginBottom: S.lg },
-  errorText:    { fontSize: F.size.sm, color: T.orange, fontWeight: F.weight.medium },
-  field:        { marginBottom: S.lg },
-  label:        { fontSize: F.size.sm, fontWeight: F.weight.semibold, color: T.fg1, marginBottom: S.sm },
-  input:        { height: 52, borderRadius: R.md, borderWidth: 1.5, borderColor: T.border, backgroundColor: T.surface, paddingHorizontal: S.lg, fontSize: F.size.md, color: T.fg1, marginBottom: 0 },
-  passRow:      { flexDirection: 'row', alignItems: 'center', gap: S.sm },
-  eyeBtn:       { width: 44, height: 52, alignItems: 'center', justifyContent: 'center' },
-  forgot:       { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold },
-  rememberRow:  { flexDirection: 'row', alignItems: 'center', gap: S.sm, marginBottom: S.lg },
-  rememberLabel:{ fontSize: F.size.sm, color: T.fg2 },
-  btnPrimary:   { height: 52, borderRadius: R.lg, backgroundColor: T.purple, alignItems: 'center', justifyContent: 'center', shadowColor: T.purple, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 6, marginBottom: S.lg },
-  btnDisabled:  { backgroundColor: T.fg4, shadowOpacity: 0, elevation: 0 },
-  btnText:      { fontSize: F.size.lg, fontWeight: F.weight.bold, color: '#fff' },
-  divider:      { flexDirection: 'row', alignItems: 'center', gap: S.md, marginBottom: S.lg },
-  dividerLine:  { flex: 1, height: 1, backgroundColor: T.border },
-  dividerLabel: { fontSize: F.size.sm, color: T.fg4 },
-  btnGoogle:    { height: 52, borderRadius: R.lg, backgroundColor: T.surface, borderWidth: 1.5, borderColor: T.border2, alignItems: 'center', justifyContent: 'center', marginBottom: S.lg },
-  btnGoogleText:{ fontSize: F.size.base, fontWeight: F.weight.semibold, color: T.fg1 },
-  registerRow:  { flexDirection: 'row', justifyContent: 'center' },
-  registerText: { fontSize: F.size.base, color: T.fg3 },
-  registerLink: { fontSize: F.size.base, color: T.purple, fontWeight: F.weight.bold },
+  card: {
+    gap: S.md,
+  },
+  form: {
+    gap: S.lg,
+  },
+  forgotWrap: {
+    alignSelf: 'flex-end',
+    marginTop: -S.sm,
+  },
+  forgot: {
+    fontFamily: FONT.semibold,
+    fontSize: F.size.sm,
+    color: T.primary,
+    fontWeight: F.weight.semibold,
+  },
+  rememberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: S.sm,
+  },
+  rememberLabel: {
+    fontFamily: FONT.regular,
+    fontSize: F.size.sm,
+    color: T.fg2,
+  },
+  primaryBtn: {
+    backgroundColor: T.primary,
+  },
 })

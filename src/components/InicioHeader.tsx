@@ -26,7 +26,7 @@ export const InicioHeader = memo(function InicioHeader({
       <View style={styles.topRow}>
         <View style={styles.brandRow}>
           <View style={styles.logo}>
-            <Image source={BrandAssets.logoMark} style={styles.logoImage} resizeMode="contain" />
+            <Image source={BrandAssets.logoTrivai} style={styles.logoImage} resizeMode="contain" />
           </View>
           <Text style={styles.brand}>Trivai</Text>
         </View>
@@ -98,8 +98,8 @@ const styles = StyleSheet.create({
     ...shadows.soft,
   },
   logoImage: {
-    width: 28,
-    height: 28,
+    width: 34,
+    height: 34,
   },
   brand: {
     fontSize: fontSize.caption,

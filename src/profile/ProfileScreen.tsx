@@ -11,6 +11,7 @@ import { ActivityItem } from './components/ActivityItem'
 import { FavoritesList } from './components/FavoritesList'
 import { AchievementBadge } from './components/AchievementBadge'
 import { SettingsList } from './components/SettingsList'
+import { LogoutSection } from './components/LogoutSection'
 import { MyBusinessSection } from './components/MyBusinessSection'
 import { ProfileSkeleton } from './components/ProfileSkeleton'
 import { useProfileStore } from './store/useProfileStore'
@@ -92,6 +93,7 @@ export function ProfileScreen() {
         <SectionHeader title="Ajustes" />
         <MyBusinessSection />
         <SettingsList />
+        <LogoutSection />
 
         <View style={styles.footer} />
       </ScrollView>
