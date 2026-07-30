@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { fetchCurrentUserSession } from '@/lib/queries/user'
 import { userKeys, STALE } from '@/lib/queries/keys'
 import { getOnboardingDone } from '@/lib/onboardingStorage'
+import { useAuthStore } from '@/src/auth/store/useAuthStore'
 
 export function useUser() {
   const queryClient = useQueryClient()
@@ -53,10 +54,10 @@ export function useUser() {
 
   const isBusiness = profile?.account_type === 'business'
   const isOnboarded = profile?.account_type != null || onboardingDismissed
-  const isAuthenticated = !!user
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated) || !!user
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut()
+    await useAuthStore.getState().logout()
     queryClient.setQueryData(userKeys.session(), { user: null, profile: null })
     queryClient.invalidateQueries({ queryKey: userKeys.all })
   }, [queryClient])

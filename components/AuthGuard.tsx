@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'expo-router'
 import { useAppBootstrap } from '@/hooks/useAppBootstrap'
+import { useAuthStore } from '@/src/auth/store/useAuthStore'
 import {
   destinationMatchesPath,
   isOnboardingPath,
@@ -8,21 +9,21 @@ import {
 } from '@/lib/appBootstrap'
 
 /**
- * Route guard — redirects based on auth + onboarding + role.
- * Prevents flicker loops with a ref lock.
+ * Global route protection — redirects unauthenticated users to welcome/login
+ * and enforces onboarding + role-based destinations.
  */
-export function NavigationGuard() {
+export function AuthGuard() {
   const bootstrap = useAppBootstrap()
+  const authLoading = useAuthStore(s => s.isLoading)
   const pathname = usePathname()
   const router = useRouter()
   const lastRedirect = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!bootstrap.ready) return
+    if (!bootstrap.ready || authLoading) return
 
     const path = pathname || '/'
 
-    // Public routes: welcome + auth
     if (isPublicPath(path)) {
       if (bootstrap.isAuthenticated && !bootstrap.hasCompletedOnboarding) {
         if (lastRedirect.current !== '/onboarding') {
@@ -41,7 +42,6 @@ export function NavigationGuard() {
       return
     }
 
-    // Onboarding routes — require auth, block if already done
     if (isOnboardingPath(path)) {
       if (!bootstrap.isAuthenticated) {
         if (lastRedirect.current !== '/welcome') {
@@ -60,7 +60,6 @@ export function NavigationGuard() {
       return
     }
 
-    // All other routes — require auth
     if (!bootstrap.isAuthenticated) {
       const dest = '/welcome'
       if (lastRedirect.current !== dest) {
@@ -70,7 +69,6 @@ export function NavigationGuard() {
       return
     }
 
-    // Require onboarding before app modules
     if (!bootstrap.hasCompletedOnboarding) {
       if (lastRedirect.current !== '/onboarding') {
         lastRedirect.current = '/onboarding'
@@ -79,7 +77,6 @@ export function NavigationGuard() {
       return
     }
 
-    // Company users should not stay on tourist tabs as home
     if (
       bootstrap.role === 'company' &&
       bootstrap.companyId &&
@@ -93,7 +90,6 @@ export function NavigationGuard() {
       return
     }
 
-    // Tourist users should not access company owner onboarding if already tourist
     if (
       bootstrap.role === 'tourist' &&
       path === '/empresa/onboarding'
@@ -103,7 +99,10 @@ export function NavigationGuard() {
         router.replace('/(tabs)/')
       }
     }
-  }, [bootstrap, pathname, router])
+  }, [bootstrap, authLoading, pathname, router])
 
   return null
 }
+
+/** @deprecated Use AuthGuard — kept for existing imports */
+export const NavigationGuard = AuthGuard

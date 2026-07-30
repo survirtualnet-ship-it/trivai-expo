@@ -9,17 +9,21 @@ import { isSupabaseConfigured } from '@/lib/supabase'
 import { ConfigMissingScreen } from '@/components/ConfigMissingScreen'
 import { QueryProvider } from '@/components/QueryProvider'
 import { WebAppShell } from '@/components/WebAppShell'
-import { NavigationGuard } from '@/components/NavigationGuard'
+import { AuthGuard } from '@/components/AuthGuard'
+import { AuthProvider } from '@/components/AuthProvider'
 import { SplashScreen } from '@/components/SplashScreen'
 import { useAppBootstrap } from '@/hooks/useAppBootstrap'
+import { useAuthStore } from '@/src/auth/store/useAuthStore'
 
 function AppShell() {
   const bootstrap = useAppBootstrap()
+  const authLoading = useAuthStore(s => s.isLoading)
+  const showSplash = !bootstrap.ready || authLoading
 
   return (
     <>
-      <NavigationGuard />
-      {!bootstrap.ready ? (
+      <AuthGuard />
+      {showSplash ? (
         <SplashScreen />
       ) : (
         <Stack screenOptions={{ headerShown: false }} />
@@ -56,7 +60,9 @@ export default function RootLayout() {
           <SafeAreaProvider>
             <WebAppShell>
               <StatusBar style="dark" backgroundColor={T.surface} />
-              <AppShell />
+              <AuthProvider>
+                <AppShell />
+              </AuthProvider>
             </WebAppShell>
           </SafeAreaProvider>
         </GestureHandlerRootView>

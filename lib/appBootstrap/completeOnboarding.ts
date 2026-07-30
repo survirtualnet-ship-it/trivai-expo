@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { setOnboardingDone, setBusinessIntent } from '@/lib/onboardingStorage'
 import { useOnboardingStore } from '@/onboarding/store/onboardingStore'
 import { useProfileStore } from '@/src/profile/store/useProfileStore'
+import { syncAuthStoreFromProfile } from '@/src/auth/syncAuthStore'
 import { resolvePostAuthDestination } from './resolveDestination'
 import type { UserRole } from './types'
 
@@ -40,6 +41,13 @@ export async function completeTouristOnboarding({
   })
 
   await setOnboardingDone()
+
+  syncAuthStoreFromProfile({
+    id: userId,
+    email,
+    name: name ?? useProfileStore.getState().user.name,
+    role: 'tourist',
+  })
 
   await supabase
     .from('profiles')
@@ -83,6 +91,14 @@ export async function completeBusinessOnboarding({
 
   await setOnboardingDone()
   await setBusinessIntent()
+
+  syncAuthStoreFromProfile({
+    id: userId,
+    email,
+    name: name ?? useProfileStore.getState().user.name,
+    role: 'company',
+    companyId,
+  })
 
   await supabase
     .from('profiles')

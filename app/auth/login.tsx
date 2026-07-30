@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert,
+  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Alert, Switch,
 } from 'react-native'
 import { router } from 'expo-router'
 import { Eye, EyeOff } from 'lucide-react-native'
@@ -12,6 +12,7 @@ import { ensureProfile } from '@/lib/auth/ensureProfile'
 import { navigateAfterAuth } from '@/lib/navigateAfterAuth'
 import { getAuthRedirectUrl } from '@/lib/auth/redirectUrl'
 import { mapAuthError } from '@/lib/auth/authErrors'
+import { useAuthStore } from '@/src/auth/store/useAuthStore'
 import { T, F, S, R } from '@/lib/tokens'
 
 export default function Login() {
@@ -21,6 +22,8 @@ export default function Login() {
   const [loading,  setLoading]  = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error,    setError]    = useState('')
+  const rememberMe = useAuthStore(s => s.rememberMe)
+  const setRememberMe = useAuthStore(s => s.setRememberMe)
 
   const handleLogin = async () => {
     if (!email || !password) { setError('Completa todos los campos'); return }
@@ -136,6 +139,16 @@ export default function Login() {
             </TouchableOpacity>
           </View>
 
+          <View style={styles.rememberRow}>
+            <Switch
+              value={rememberMe}
+              onValueChange={setRememberMe}
+              trackColor={{ false: T.border, true: T.purpleSoft }}
+              thumbColor={rememberMe ? T.purple : T.surface}
+            />
+            <Text style={styles.rememberLabel}>Recordarme</Text>
+          </View>
+
           <TouchableOpacity
             style={[styles.btnPrimary, loading && styles.btnDisabled]}
             onPress={handleLogin}
@@ -167,7 +180,7 @@ export default function Login() {
           <View style={styles.registerRow}>
             <Text style={styles.registerText}>¿No tienes cuenta? </Text>
             <TouchableOpacity onPress={() => router.push('/auth/registro')}>
-              <Text style={styles.registerLink}>Regístrate gratis</Text>
+              <Text style={styles.registerLink}>Crear cuenta</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -194,6 +207,8 @@ const styles = StyleSheet.create({
   passRow:      { flexDirection: 'row', alignItems: 'center', gap: S.sm },
   eyeBtn:       { width: 44, height: 52, alignItems: 'center', justifyContent: 'center' },
   forgot:       { fontSize: F.size.sm, color: T.purple, fontWeight: F.weight.semibold },
+  rememberRow:  { flexDirection: 'row', alignItems: 'center', gap: S.sm, marginBottom: S.lg },
+  rememberLabel:{ fontSize: F.size.sm, color: T.fg2 },
   btnPrimary:   { height: 52, borderRadius: R.lg, backgroundColor: T.purple, alignItems: 'center', justifyContent: 'center', shadowColor: T.purple, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 6, marginBottom: S.lg },
   btnDisabled:  { backgroundColor: T.fg4, shadowOpacity: 0, elevation: 0 },
   btnText:      { fontSize: F.size.lg, fontWeight: F.weight.bold, color: '#fff' },

@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { useUser } from '@/hooks/useUser'
 import { useProfileStore } from '@/src/profile/store/useProfileStore'
 import { useOnboardingStore } from '@/onboarding/store/onboardingStore'
+import { useAuthHydrated, useAuthStore } from '@/src/auth/store/useAuthStore'
 import { getOnboardingDone } from '@/lib/onboardingStorage'
 import {
   resolveAppDestination,
   syncProfileStoreFromAuth,
   type BootstrapState,
 } from '@/lib/appBootstrap'
+import { syncAuthStoreFromSession } from '@/src/auth/syncAuthStore'
 
 function useStoreHydrated(): boolean {
   const [profileHydrated, setProfileHydrated] = useState(
@@ -39,6 +41,10 @@ function useStoreHydrated(): boolean {
  */
 export function useAppBootstrap(): BootstrapState {
   const { user, profile, loading: checkingSession } = useUser()
+  const authHydrated = useAuthHydrated()
+  const authUser = useAuthStore(s => s.user)
+  const authAuthenticated = useAuthStore(s => s.isAuthenticated)
+  const authLoading = useAuthStore(s => s.isLoading)
   const storesHydrated = useStoreHydrated()
   const [storageDone, setStorageDone] = useState<boolean | null>(null)
 
@@ -52,12 +58,17 @@ export function useAppBootstrap(): BootstrapState {
   useEffect(() => {
     if (user && profile) {
       syncProfileStoreFromAuth(user, profile)
+      void syncAuthStoreFromSession(user, profile)
     }
   }, [user, profile])
 
-  const isAuthenticated = !!user
-  const role = profileUser.role ?? null
-  const companyId = profileUser.companyId ?? profile?.business_place_id ?? null
+  const isAuthenticated = authAuthenticated || !!user
+  const role = authUser?.role ?? profileUser.role ?? null
+  const companyId =
+    authUser?.companyId ??
+    profileUser.companyId ??
+    profile?.business_place_id ??
+    null
 
   const hasCompletedOnboarding =
     profileUser.onboardingCompleted ||
@@ -66,7 +77,12 @@ export function useAppBootstrap(): BootstrapState {
     storageDone === true
 
   const loadingUser = storageDone === null
-  const ready = storesHydrated && !checkingSession && !loadingUser
+  const ready =
+    authHydrated &&
+    storesHydrated &&
+    !checkingSession &&
+    !authLoading &&
+    !loadingUser
 
   return useMemo(() => {
     const { phase, destination } = ready
