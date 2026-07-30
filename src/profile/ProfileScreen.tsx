@@ -49,6 +49,7 @@ export function ProfileScreen() {
         decelerationRate="fast"
       >
         <ProfileHeader />
+        <LogoutSection />
         <SmartProfile />
         <StatusCard />
 
@@ -93,7 +94,6 @@ export function ProfileScreen() {
         <SectionHeader title="Ajustes" />
         <MyBusinessSection />
         <SettingsList />
-        <LogoutSection />
 
         <View style={styles.footer} />
       </ScrollView>

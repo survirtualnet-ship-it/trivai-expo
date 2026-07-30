@@ -1,28 +1,43 @@
 import { memo, useCallback } from 'react'
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native'
-import { LogOut, Settings } from 'lucide-react-native'
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native'
+import { LogOut } from 'lucide-react-native'
 import { router } from 'expo-router'
 import * as Haptics from 'expo-haptics'
 import { useUser } from '@/hooks/useUser'
+import { useAuthStore } from '@/src/auth/store/useAuthStore'
 import { T } from '@/lib/tokens'
 import { profileTheme } from '../theme'
 
 export const LogoutSection = memo(function LogoutSection() {
-  const { isAuthenticated, signOut } = useUser()
+  const { isAuthenticated: userAuth, signOut } = useUser()
+  const storeAuth = useAuthStore(s => s.isAuthenticated)
+  const isAuthenticated = storeAuth || userAuth
+
+  const doLogout = useCallback(async () => {
+    await signOut()
+    router.replace('/welcome')
+  }, [signOut])
 
   const handleLogout = useCallback(() => {
+    if (Platform.OS === 'web') {
+      const ok =
+        typeof window !== 'undefined' &&
+        window.confirm('¿Estás seguro de que quieres cerrar sesión?')
+      if (ok) void doLogout()
+      return
+    }
+
     Alert.alert('Cerrar sesión', '¿Estás seguro de que quieres salir?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Cerrar sesión',
         style: 'destructive',
-        onPress: async () => {
-          await signOut()
-          router.replace('/welcome')
+        onPress: () => {
+          void doLogout()
         },
       },
     ])
-  }, [signOut])
+  }, [doLogout])
 
   if (!isAuthenticated) return null
 
@@ -30,24 +45,12 @@ export const LogoutSection = memo(function LogoutSection() {
     <View style={styles.wrap}>
       <Pressable
         onPress={() => {
-          void Haptics.selectionAsync()
-          router.push('/perfil/configuracion')
-        }}
-        style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-      >
-        <View style={styles.iconWrap}>
-          <Settings size={18} color={profileTheme.textSecondary} />
-        </View>
-        <Text style={styles.rowLabel}>Configuración</Text>
-        <Text style={styles.chevron}>›</Text>
-      </Pressable>
-
-      <Pressable
-        onPress={() => {
           void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
           handleLogout()
         }}
         style={({ pressed }) => [styles.logoutBtn, pressed && styles.pressed]}
+        accessibilityRole="button"
+        accessibilityLabel="Cerrar sesión"
       >
         <LogOut size={18} color={T.danger} />
         <Text style={styles.logoutText}>Cerrar sesión</Text>
@@ -60,37 +63,7 @@ const styles = StyleSheet.create({
   wrap: {
     marginHorizontal: profileTheme.spacing.lg,
     marginTop: profileTheme.spacing.md,
-    gap: profileTheme.spacing.md,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: profileTheme.spacing.md,
-    backgroundColor: profileTheme.surface,
-    borderRadius: profileTheme.radius.lg,
-    borderWidth: 1,
-    borderColor: profileTheme.border,
-    paddingHorizontal: profileTheme.spacing.lg,
-    paddingVertical: profileTheme.spacing.lg,
-  },
-  iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: profileTheme.radius.md,
-    backgroundColor: profileTheme.surfaceElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowLabel: {
-    flex: 1,
-    color: profileTheme.text,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  chevron: {
-    color: profileTheme.textMuted,
-    fontSize: 22,
-    fontWeight: '300',
+    marginBottom: profileTheme.spacing.sm,
   },
   logoutBtn: {
     flexDirection: 'row',
@@ -100,8 +73,8 @@ const styles = StyleSheet.create({
     paddingVertical: profileTheme.spacing.lg,
     borderRadius: profileTheme.radius.lg,
     borderWidth: 1.5,
-    borderColor: 'rgba(239,68,68,0.25)',
-    backgroundColor: 'rgba(239,68,68,0.08)',
+    borderColor: 'rgba(239,68,68,0.35)',
+    backgroundColor: 'rgba(239,68,68,0.12)',
   },
   logoutText: {
     color: T.danger,
