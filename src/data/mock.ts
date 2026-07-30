@@ -26,6 +26,7 @@ export type QuickPlan = {
   subtitleEs: string
   subtitleEn: string
   imageUrl: string
+  zone: ZoneId
 }
 
 export type ActivityItem = {
@@ -71,6 +72,7 @@ export const QUICK_PLANS: QuickPlan[] = [
     subtitleEs: '2–3 horas · nocturno',
     subtitleEn: '2–3 hours · evening',
     imageUrl: img('photo-1414235077428-338989a2e8c0'),
+    zone: 'sur',
   },
   {
     id: 'qp2',
@@ -79,6 +81,7 @@ export const QUICK_PLANS: QuickPlan[] = [
     subtitleEs: 'Mañana cultural',
     subtitleEn: 'Cultural morning',
     imageUrl: img('photo-1501339847302-ac426a4a7cbb'),
+    zone: 'norte',
   },
   {
     id: 'qp3',
@@ -87,6 +90,7 @@ export const QUICK_PLANS: QuickPlan[] = [
     subtitleEs: 'Noche con amigos',
     subtitleEn: 'Night with friends',
     imageUrl: img('photo-1514933651103-005eec06c04b'),
+    zone: 'este',
   },
   {
     id: 'qp4',
@@ -95,6 +99,7 @@ export const QUICK_PLANS: QuickPlan[] = [
     subtitleEs: 'Vista al mar · golden hour',
     subtitleEn: 'Ocean view · golden hour',
     imageUrl: img('photo-1507525428034-b723cf961d3e'),
+    zone: 'oeste',
   },
 ]
 
@@ -286,4 +291,9 @@ export const LIMA_REGION = {
 export function filterByZone(places: PlaceItem[], zone: ZoneId | null) {
   if (!zone) return places
   return places.filter(p => p.zone === zone)
+}
+
+export function filterQuickPlansByZone(plans: QuickPlan[], zone: ZoneId | null) {
+  if (!zone) return plans
+  return plans.filter(p => p.zone === zone)
 }

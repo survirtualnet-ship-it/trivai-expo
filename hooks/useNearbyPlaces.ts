@@ -18,6 +18,27 @@ import type { Place } from '@/types/place'
 
 const SECTION_LIMIT = 8
 
+function nearbyOnlyPlaces(
+  primary: PlaceItem[],
+  fallbackPool: PlaceItem[],
+): PlaceItem[] {
+  const seen = new Set<string>()
+  const merged: PlaceItem[] = []
+  for (const place of primary) {
+    if (seen.has(place.id)) continue
+    seen.add(place.id)
+    merged.push(place)
+    if (merged.length >= SECTION_LIMIT) return merged
+  }
+  for (const place of fallbackPool) {
+    if (seen.has(place.id)) continue
+    seen.add(place.id)
+    merged.push(place)
+    if (merged.length >= SECTION_LIMIT) break
+  }
+  return merged
+}
+
 function sectionPlaces(
   primary: PlaceItem[],
   zone: ZoneId | null,
@@ -96,7 +117,7 @@ export function useNearbyPlaces(
     if (useMock) {
       const pool = mockPool()
       return {
-        nearby: sectionPlaces(NEARBY_PLACES, zone, pool),
+        nearby: nearbyOnlyPlaces(NEARBY_PLACES, pool),
         trending: sectionPlaces(TRENDING_PLACES, zone, pool),
         forYou: sectionPlaces(FOR_YOU_PLACES, zone, pool),
         recommended: sectionPlaces(RECOMMENDED_PLACES, zone, pool),
@@ -115,7 +136,7 @@ export function useNearbyPlaces(
       .map(p => placeToItem(p, userLat, userLng))
 
     return {
-      nearby: sectionPlaces(byDistance, zone, pool),
+      nearby: nearbyOnlyPlaces(byDistance, pool),
       trending: sectionPlaces(byRating, zone, pool),
       forYou: sectionPlaces(
         forYouPool.length ? forYouPool : byRating,

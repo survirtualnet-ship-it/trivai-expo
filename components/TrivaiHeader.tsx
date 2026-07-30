@@ -1,4 +1,5 @@
 import { View, Text, Image, StyleSheet, type ReactNode } from 'react-native'
+import { BrandAssets } from '@/lib/brandAssets'
 import { T, F, S } from '@/lib/tokens'
 
 type Props = {
@@ -34,7 +35,7 @@ export function TrivaiHeader({ title, subtitle, left, right, light }: Props) {
         <View style={styles.side}>{left}</View>
         <View style={styles.center}>
           <Image
-            source={require('../assets/logo-trivai.png')}
+            source={BrandAssets.logoFull}
             style={styles.logo}
             resizeMode="contain"
             accessibilityLabel="Trivai"

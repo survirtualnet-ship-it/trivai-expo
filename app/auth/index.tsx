@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BrandAssets } from '@/lib/brandAssets'
 import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native'
 import { router } from 'expo-router'
 import { signInWithGoogle } from '@/lib/auth/googleOAuth'
@@ -29,7 +30,7 @@ export default function Bienvenida() {
       {/* LOGO */}
       <View style={styles.logoArea}>
         <Image
-          source={require('../../assets/logo-trivai.png')}
+          source={BrandAssets.logoFull}
           style={styles.logoImg}
           resizeMode="contain"
           accessibilityLabel="Trivai"

@@ -6,26 +6,26 @@ import { colors, spacing, radius, fontSize, fontWeight, shadows } from '../theme
 type Props = {
   pair: string
   rate: string
-  statusLabel: string
+  dateLabel: string
 }
 
 export const ExchangeRateCard = memo(function ExchangeRateCard({
   pair,
   rate,
-  statusLabel,
+  dateLabel,
 }: Props) {
   return (
     <View style={styles.card}>
       <View style={styles.iconWrap}>
-        <Ionicons name="swap-horizontal" size={22} color={colors.accent} />
+        <Ionicons name="logo-usd" size={24} color={colors.accent} />
       </View>
       <View style={styles.copy}>
         <Text style={styles.pair}>{pair}</Text>
         <Text style={styles.rate}>{rate}</Text>
       </View>
-      <View style={styles.badge}>
-        <View style={styles.dot} />
-        <Text style={styles.badgeText}>{statusLabel}</Text>
+      <View style={styles.dateBadge}>
+        <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
+        <Text style={styles.dateText}>{dateLabel}</Text>
       </View>
     </View>
   )
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     letterSpacing: -0.3,
   },
-  badge: {
+  dateBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -76,16 +76,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    maxWidth: 148,
   },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: colors.alertOk,
-  },
-  badgeText: {
+  dateText: {
+    flex: 1,
     fontSize: fontSize.caption,
     fontWeight: fontWeight.medium,
     color: colors.textSecondary,
+    textTransform: 'capitalize',
   },
 })

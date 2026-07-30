@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity, Image, StyleSheet, type ReactNode } from 'react-native'
+import { BrandAssets } from '@/lib/brandAssets'
 import { Bell } from 'lucide-react-native'
 import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
@@ -51,7 +52,7 @@ export function HeaderLogo({ onPress, height = 36 }: { onPress?: () => void; hei
   const width = Math.round(height * (151 / 43))
   const image = (
     <Image
-      source={require('../../assets/logo-trivai.png')}
+      source={BrandAssets.logoFull}
       style={{ height, width }}
       resizeMode="contain"
       accessibilityLabel="Trivai"

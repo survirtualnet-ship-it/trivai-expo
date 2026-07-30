@@ -21,6 +21,7 @@ import { useWeather } from '@/hooks/useWeather'
 import {
   CATEGORIES,
   QUICK_PLANS,
+  filterQuickPlansByZone,
   type Locale,
   type PlaceItem,
   type QuickPlan,
@@ -49,7 +50,7 @@ export function InicioScreen() {
     isLocationLoading,
   )
 
-  const { pairLabel, rateLabel, statusLabel } = useCurrency(
+  const { pairLabel, rateLabel } = useCurrency(
     profile?.countryCode,
     locale,
   )
@@ -124,6 +125,19 @@ export function InicioScreen() {
 
   const categoryRows = useMemo(() => chunk(CATEGORIES, 2), [])
 
+  const todayLabel = useMemo(() => {
+    const formatted = new Date().toLocaleDateString(
+      locale === 'EN' ? 'en-US' : 'es-BO',
+      { weekday: 'short', day: 'numeric', month: 'short' },
+    )
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1)
+  }, [locale])
+
+  const quickPlans = useMemo(
+    () => filterQuickPlansByZone(QUICK_PLANS, zone),
+    [zone],
+  )
+
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView
@@ -143,7 +157,7 @@ export function InicioScreen() {
         <ExchangeRateCard
           pair={pairLabel}
           rate={rateLabel}
-          statusLabel={statusLabel}
+          dateLabel={todayLabel}
         />
 
         <View style={styles.categories}>
@@ -186,7 +200,7 @@ export function InicioScreen() {
 
         <PlanRapidoSection
           title={planTitle}
-          plans={QUICK_PLANS}
+          plans={quickPlans}
           locale={locale}
           onPressPlan={onPressPlan}
         />

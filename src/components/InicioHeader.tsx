@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { colors, spacing, radius, fontSize, fontWeight, shadows } from '../theme'
 import type { Locale } from '../data/mock'
 
-const logoSource = require('../../assets/T.png')
+import { BrandAssets } from '@/lib/brandAssets'
 
 type Props = {
   city: string
@@ -26,7 +26,7 @@ export const InicioHeader = memo(function InicioHeader({
       <View style={styles.left}>
         <View style={styles.brandRow}>
           <View style={styles.logo}>
-            <Image source={logoSource} style={styles.logoImage} resizeMode="contain" />
+            <Image source={BrandAssets.logoMark} style={styles.logoImage} resizeMode="contain" />
           </View>
           <View style={styles.cityBlock}>
             <Text style={styles.brand}>Trivai</Text>
