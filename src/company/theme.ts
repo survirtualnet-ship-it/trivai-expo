@@ -1,0 +1,18 @@
+export const companyTheme = {
+  bg: '#F8F7FA',
+  surface: '#FFFFFF',
+  surfaceMuted: '#F1EFF3',
+  border: '#ECE9EF',
+  text: '#15131A',
+  textSecondary: '#4B4754',
+  textMuted: '#8A8590',
+  accent: '#6C4CF1',
+  accentSoft: '#EBE6FD',
+  success: '#2BB673',
+  successSoft: '#DFF5EA',
+  warning: '#FF6B2C',
+  star: '#F5C542',
+  shadow: 'rgba(21, 19, 26, 0.08)',
+  radius: { sm: 8, md: 12, lg: 16, xl: 20, full: 999 },
+  spacing: { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 },
+} as const

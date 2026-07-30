@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import {
   MOCK_USER,
   MOCK_PREFERENCES,
@@ -13,6 +15,8 @@ import {
 
 export type TravelerType = 'Foodie' | 'Cultural' | 'Nightlife' | 'Explorer'
 
+export type UserRole = 'tourist' | 'company'
+
 export type ProfileUser = {
   id: string
   name: string
@@ -20,6 +24,8 @@ export type ProfileUser = {
   initials: string
   city: string
   travelerType: TravelerType
+  role: UserRole
+  companyId?: string
 }
 
 export type ProfilePreferences = {
@@ -95,12 +101,15 @@ type ProfileStore = {
   settings: ProfileSettings
   isLoading: boolean
   setLoading: (loading: boolean) => void
+  setUser: (patch: Partial<ProfileUser>) => void
   generatePlan: (planId: string) => void
   toggleNotifications: () => void
   togglePrivacy: () => void
 }
 
-export const useProfileStore = create<ProfileStore>((set, get) => ({
+export const useProfileStore = create<ProfileStore>()(
+  persist(
+    (set, get) => ({
   user: MOCK_USER,
   preferences: MOCK_PREFERENCES,
   currentStatus: MOCK_CURRENT_STATUS,
@@ -112,6 +121,10 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
   settings: MOCK_SETTINGS,
   isLoading: false,
   setLoading: loading => set({ isLoading: loading }),
+  setUser: patch =>
+    set(state => ({
+      user: { ...state.user, ...patch },
+    })),
   generatePlan: planId => {
     set(state => ({
       autoPlans: state.autoPlans.map(p =>
@@ -134,7 +147,16 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
     const { settings } = get()
     set({ settings: { ...settings, privacy: !settings.privacy } })
   },
-}))
+}),
+    {
+      name: 'trivai-profile-user',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: state => ({
+        user: state.user,
+      }),
+    },
+  ),
+)
 
 export function budgetLabel(level: 1 | 2 | 3): string {
   if (level === 1) return '€'

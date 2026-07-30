@@ -3,6 +3,7 @@ import { Image, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeInDown } from 'react-native-reanimated'
 import { profileTheme } from '../theme'
 import { useProfileStore } from '../store/useProfileStore'
+import { ModeIndicator } from './ModeIndicator'
 
 export const ProfileHeader = memo(function ProfileHeader() {
   const user = useProfileStore(s => s.user)
@@ -17,9 +18,15 @@ export const ProfileHeader = memo(function ProfileHeader() {
         <Text style={styles.cityIcon}>📍</Text>
         <Text style={styles.city}>{user.city}</Text>
       </View>
+      <ModeIndicator role={user.role} />
       <View style={styles.typePill}>
         <Text style={styles.typeText}>{user.travelerType}</Text>
       </View>
+      {user.companyId ? (
+        <View style={styles.companyBadge}>
+          <Text style={styles.companyBadgeText}>Empresa verificada ✔️</Text>
+        </View>
+      ) : null}
     </Animated.View>
   )
 })
@@ -86,6 +93,20 @@ const styles = StyleSheet.create({
   typeText: {
     color: profileTheme.text,
     fontSize: 13,
+    fontWeight: '700',
+  },
+  companyBadge: {
+    marginTop: profileTheme.spacing.xs,
+    paddingHorizontal: profileTheme.spacing.lg,
+    paddingVertical: 8,
+    borderRadius: profileTheme.radius.full,
+    backgroundColor: 'rgba(52,211,153,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(52,211,153,0.35)',
+  },
+  companyBadgeText: {
+    color: profileTheme.success,
+    fontSize: 12,
     fontWeight: '700',
   },
 })
