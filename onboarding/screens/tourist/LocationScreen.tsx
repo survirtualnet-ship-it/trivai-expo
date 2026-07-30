@@ -4,6 +4,7 @@ import * as Location from 'expo-location'
 import { OnboardingLayout } from '../../components/OnboardingLayout'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { useOnboardingStore } from '../../store/onboardingStore'
+import { useProfileStore } from '@/src/profile/store/useProfileStore'
 import { ONBOARDING_CONFIG } from '../../lib/config'
 import { onboardingTheme as t } from '../../lib/theme'
 import type { TouristLocationProps } from '../types'
@@ -20,7 +21,7 @@ export function LocationScreen({ navigation }: TouristLocationProps) {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync()
       if (status !== 'granted') {
-        setError('Necesitamos permiso de ubicación para recomendarte lugares cerca.')
+        setError('Puedes activar ubicación después desde ajustes.')
         return
       }
 
@@ -33,6 +34,7 @@ export function LocationScreen({ navigation }: TouristLocationProps) {
         lng: pos.coords.longitude,
         label: 'Mi ubicación actual',
       })
+      useProfileStore.getState().setUser({ locationPermission: true })
       navigation.navigate('TouristSocial')
     } catch {
       setError('No pudimos obtener tu ubicación. Prueba ingresar la ciudad manualmente.')

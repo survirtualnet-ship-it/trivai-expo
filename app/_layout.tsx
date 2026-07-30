@@ -9,6 +9,24 @@ import { isSupabaseConfigured } from '@/lib/supabase'
 import { ConfigMissingScreen } from '@/components/ConfigMissingScreen'
 import { QueryProvider } from '@/components/QueryProvider'
 import { WebAppShell } from '@/components/WebAppShell'
+import { NavigationGuard } from '@/components/NavigationGuard'
+import { SplashScreen } from '@/components/SplashScreen'
+import { useAppBootstrap } from '@/hooks/useAppBootstrap'
+
+function AppShell() {
+  const bootstrap = useAppBootstrap()
+
+  return (
+    <>
+      <NavigationGuard />
+      {!bootstrap.ready ? (
+        <SplashScreen />
+      ) : (
+        <Stack screenOptions={{ headerShown: false }} />
+      )}
+    </>
+  )
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -38,7 +56,7 @@ export default function RootLayout() {
           <SafeAreaProvider>
             <WebAppShell>
               <StatusBar style="dark" backgroundColor={T.surface} />
-              <Stack screenOptions={{ headerShown: false }} />
+              <AppShell />
             </WebAppShell>
           </SafeAreaProvider>
         </GestureHandlerRootView>

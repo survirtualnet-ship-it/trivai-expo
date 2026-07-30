@@ -20,12 +20,17 @@ export type UserRole = 'tourist' | 'company'
 export type ProfileUser = {
   id: string
   name: string
+  email?: string
+  /** Alias visual — same as avatarUrl when synced from auth */
+  photo?: string
   avatarUrl: string
   initials: string
   city: string
   travelerType: TravelerType
   role: UserRole
   companyId?: string
+  onboardingCompleted: boolean
+  locationPermission?: boolean
 }
 
 export type ProfilePreferences = {
@@ -102,6 +107,8 @@ type ProfileStore = {
   isLoading: boolean
   setLoading: (loading: boolean) => void
   setUser: (patch: Partial<ProfileUser>) => void
+  completeOnboarding: (patch?: Partial<ProfileUser>) => void
+  resetUser: () => void
   generatePlan: (planId: string) => void
   toggleNotifications: () => void
   togglePrivacy: () => void
@@ -124,6 +131,22 @@ export const useProfileStore = create<ProfileStore>()(
   setUser: patch =>
     set(state => ({
       user: { ...state.user, ...patch },
+    })),
+  completeOnboarding: patch =>
+    set(state => ({
+      user: {
+        ...state.user,
+        ...patch,
+        onboardingCompleted: true,
+      },
+    })),
+  resetUser: () =>
+    set(state => ({
+      user: {
+        ...MOCK_USER,
+        id: state.user.id,
+        onboardingCompleted: false,
+      },
     })),
   generatePlan: planId => {
     set(state => ({
@@ -152,7 +175,20 @@ export const useProfileStore = create<ProfileStore>()(
       name: 'trivai-profile-user',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: state => ({
-        user: state.user,
+        user: {
+          id: state.user.id,
+          name: state.user.name,
+          email: state.user.email,
+          photo: state.user.photo,
+          avatarUrl: state.user.avatarUrl,
+          initials: state.user.initials,
+          city: state.user.city,
+          travelerType: state.user.travelerType,
+          role: state.user.role,
+          companyId: state.user.companyId,
+          onboardingCompleted: state.user.onboardingCompleted,
+          locationPermission: state.user.locationPermission,
+        },
       }),
     },
   ),

@@ -8,6 +8,7 @@ import { Eye, EyeOff, ChevronDown } from 'lucide-react-native'
 import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import { ensureProfile } from '@/lib/auth/ensureProfile'
+import { navigateAfterAuth } from '@/lib/navigateAfterAuth'
 import { getAuthRedirectUrl } from '@/lib/auth/redirectUrl'
 import { T, F, S, R } from '@/lib/tokens'
 
@@ -122,7 +123,10 @@ export default function Registro() {
       return
     }
 
-    router.replace('/')
+    if (data.user) {
+      const profile = await ensureProfile(data.user)
+      await navigateAfterAuth(data.user, profile)
+    }
   }
 
   return (

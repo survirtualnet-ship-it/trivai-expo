@@ -9,6 +9,7 @@ import ScreenHeader from '@/components/ScreenHeader'
 import { supabase } from '@/lib/supabase'
 import { signInWithGoogle } from '@/lib/auth/googleOAuth'
 import { ensureProfile } from '@/lib/auth/ensureProfile'
+import { navigateAfterAuth } from '@/lib/navigateAfterAuth'
 import { getAuthRedirectUrl } from '@/lib/auth/redirectUrl'
 import { mapAuthError } from '@/lib/auth/authErrors'
 import { T, F, S, R } from '@/lib/tokens'
@@ -33,8 +34,10 @@ export default function Login() {
       return
     }
 
-    if (data.user) await ensureProfile(data.user)
-    router.replace('/')
+    if (data.user) {
+      const profile = await ensureProfile(data.user)
+      await navigateAfterAuth(data.user, profile)
+    }
   }
 
   const handleGoogleLogin = async () => {

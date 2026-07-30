@@ -3,6 +3,7 @@ import { View, ActivityIndicator, Text } from 'react-native'
 import { router } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import { ensureProfile } from '@/lib/auth/ensureProfile'
+import { navigateAfterAuth } from '@/lib/navigateAfterAuth'
 import {
   isPasswordRecoveryCallback,
   resolveOAuthSessionFromUrl,
@@ -17,8 +18,8 @@ export default function AuthCallback() {
     const goHome = async (user: Parameters<typeof ensureProfile>[0]) => {
       if (navigated) return
       navigated = true
-      await ensureProfile(user)
-      router.replace('/')
+      const profile = await ensureProfile(user)
+      await navigateAfterAuth(user, profile)
     }
 
     const goResetPassword = () => {

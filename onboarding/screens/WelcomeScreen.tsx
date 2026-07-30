@@ -5,20 +5,39 @@ import { PrimaryButton } from '../components/PrimaryButton'
 import { onboardingTheme as t } from '../lib/theme'
 import type { WelcomeProps } from '../types'
 
-export function WelcomeScreen({ navigation }: WelcomeProps) {
+type Props = WelcomeProps & {
+  /** Expo Router — skip React Navigation */
+  onContinue?: () => void
+  onLogin?: () => void
+}
+
+export function WelcomeScreen({ navigation, onContinue, onLogin }: Props) {
+  const handleContinue = () => {
+    if (onContinue) {
+      onContinue()
+      return
+    }
+    navigation.navigate('UserType')
+  }
+
+  const handleLogin = () => {
+    if (onLogin) {
+      onLogin()
+      return
+    }
+    navigation.navigate('UserType')
+  }
+
   return (
     <OnboardingLayout
       centered
       footer={
         <>
-          <PrimaryButton
-            label="Continuar"
-            onPress={() => navigation.navigate('UserType')}
-          />
+          <PrimaryButton label="Continuar" onPress={handleContinue} />
           <PrimaryButton
             label="Ya tengo cuenta"
             variant="ghost"
-            onPress={() => navigation.navigate('UserType')}
+            onPress={handleLogin}
           />
         </>
       }

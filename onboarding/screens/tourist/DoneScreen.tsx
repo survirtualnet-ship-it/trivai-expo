@@ -1,25 +1,47 @@
+import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { OnboardingLayout } from '../../components/OnboardingLayout'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { useOnboardingStore } from '../../store/onboardingStore'
+import { useProfileStore } from '@/src/profile/store/useProfileStore'
+import { useUser } from '@/hooks/useUser'
+import { completeTouristOnboarding } from '@/lib/appBootstrap'
 import { onboardingTheme as t } from '../../lib/theme'
 import type { TouristDoneProps } from '../types'
 
-export function TouristDoneScreen({ navigation }: TouristDoneProps) {
-  const completeOnboarding = useOnboardingStore(s => s.completeOnboarding)
+export function TouristDoneScreen(_props: TouristDoneProps) {
   const interests = useOnboardingStore(s => s.interests)
   const location = useOnboardingStore(s => s.location)
+  const locationPermission = useProfileStore(s => s.user.locationPermission)
+  const { user, profile, avatarUrl, displayName } = useUser()
+  const [finishing, setFinishing] = useState(false)
 
-  const handleFinish = () => {
-    completeOnboarding()
-    navigation.getParent()?.goBack?.()
+  const handleFinish = async () => {
+    if (!user?.id || finishing) return
+    setFinishing(true)
+    try {
+      await completeTouristOnboarding({
+        userId: user.id,
+        email: user.email,
+        name: profile?.full_name ?? displayName,
+        avatarUrl: avatarUrl ?? undefined,
+        city: location?.label ?? profile?.city,
+        locationPermission: locationPermission ?? !!location,
+      })
+    } finally {
+      setFinishing(false)
+    }
   }
 
   return (
     <OnboardingLayout
       centered
       footer={
-        <PrimaryButton label="Ir al inicio" onPress={handleFinish} />
+        <PrimaryButton
+          label="Ir al inicio"
+          loading={finishing}
+          onPress={handleFinish}
+        />
       }
     >
       <View style={styles.wrap}>
@@ -74,6 +96,6 @@ const styles = StyleSheet.create({
   },
   summaryLine: {
     color: t.textSecondary,
-    fontSize: t.font.body,
+    fontSize: t.font.caption,
   },
 })

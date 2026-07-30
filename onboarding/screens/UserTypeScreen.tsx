@@ -4,6 +4,7 @@ import { OnboardingLayout } from '../components/OnboardingLayout'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { CardSelect } from '../components/CardSelect'
 import { useOnboardingStore } from '../store/onboardingStore'
+import { useProfileStore } from '@/src/profile/store/useProfileStore'
 import { onboardingTheme as t } from '../lib/theme'
 import type { UserTypeProps } from './types'
 
@@ -14,6 +15,9 @@ export function UserTypeScreen({ navigation }: UserTypeProps) {
   const handleContinue = () => {
     if (!selected) return
     setUserType(selected)
+    useProfileStore.getState().setUser({
+      role: selected === 'business' ? 'company' : 'tourist',
+    })
     if (selected === 'tourist') {
       navigation.navigate('TouristInterests')
     } else {

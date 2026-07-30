@@ -18,6 +18,7 @@ export const MOCK_USER: ProfileUser = {
   city: 'Santa Cruz de la Sierra',
   travelerType: 'Foodie',
   role: 'tourist',
+  onboardingCompleted: false,
 }
 
 export const MOCK_PREFERENCES: ProfilePreferences = {

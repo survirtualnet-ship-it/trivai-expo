@@ -5,6 +5,7 @@ import { StyleSheet } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { OnboardingNavigator } from './navigation/OnboardingNavigator'
 import { onboardingTheme as t } from './lib/theme'
+import type { OnboardingRouteName } from './navigation/types'
 
 const navTheme = {
   ...DefaultTheme,
@@ -27,13 +28,17 @@ const navTheme = {
  * export default function Preview() { return <OnboardingRoot /> }
  * ```
  */
-export function OnboardingRoot() {
+export function OnboardingRoot({
+  initialRouteName = 'Welcome',
+}: {
+  initialRouteName?: OnboardingRouteName
+}) {
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
-        <NavigationContainer theme={navTheme}>
+        <NavigationContainer theme={navTheme} independent>
           <StatusBar style="light" />
-          <OnboardingNavigator />
+          <OnboardingNavigator initialRouteName={initialRouteName} />
         </NavigationContainer>
       </SafeAreaProvider>
     </GestureHandlerRootView>
