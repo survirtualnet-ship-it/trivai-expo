@@ -11,9 +11,9 @@ import { ActivityItem } from './components/ActivityItem'
 import { FavoritesList } from './components/FavoritesList'
 import { AchievementBadge } from './components/AchievementBadge'
 import { SettingsList } from './components/SettingsList'
-import { LogoutSection } from './components/LogoutSection'
 import { MyBusinessSection } from './components/MyBusinessSection'
 import { ProfileSkeleton } from './components/ProfileSkeleton'
+import { LogoutButton } from '@/components/auth/LogoutButton'
 import { useProfileStore } from './store/useProfileStore'
 import { profileTheme } from './theme'
 
@@ -49,7 +49,7 @@ export function ProfileScreen() {
         decelerationRate="fast"
       >
         <ProfileHeader />
-        <LogoutSection />
+        <LogoutButton />
         <SmartProfile />
         <StatusCard />
 
@@ -94,6 +94,7 @@ export function ProfileScreen() {
         <SectionHeader title="Ajustes" />
         <MyBusinessSection />
         <SettingsList />
+        <LogoutButton />
 
         <View style={styles.footer} />
       </ScrollView>

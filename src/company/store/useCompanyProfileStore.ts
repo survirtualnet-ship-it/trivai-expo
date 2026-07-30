@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useProfileStore } from '@/src/profile/store/useProfileStore'
+import { useAuthStore } from '@/src/auth/store/useAuthStore'
 import {
   buildInitialCatalog,
   buildInitialCompanies,
@@ -151,8 +152,14 @@ export const useCompanyProfileStore = create<CompanyProfileStore>()(
       },
 
       loadCompany: companyId => {
-        const userCompanyId = useProfileStore.getState().user.companyId
-        const isOwner = userCompanyId === companyId
+        const profileCompanyId = useProfileStore.getState().user.companyId
+        const authUser = useAuthStore.getState().user
+        const isOwner =
+          profileCompanyId === companyId ||
+          authUser?.companyId === companyId ||
+          (authUser?.role === 'company' &&
+            Boolean(authUser.companyId || profileCompanyId) &&
+            (authUser.companyId ?? profileCompanyId) === companyId)
         const { companies, catalog } = get()
         set(syncActiveView(companyId, companies, catalog, isOwner))
       },

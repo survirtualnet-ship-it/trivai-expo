@@ -5,8 +5,10 @@ import { router } from 'expo-router'
 import { ChevronLeft } from 'lucide-react-native'
 import { CompanyHeader } from './components/CompanyHeader'
 import { ProfileTabs } from './components/ProfileTabs'
+import { LogoutButton } from '@/components/auth/LogoutButton'
 import { useCompanyProfileStore } from './store/useCompanyProfileStore'
 import { useProfileStore } from '@/src/profile/store/useProfileStore'
+import { useAuthStore } from '@/src/auth/store/useAuthStore'
 import { HomeTab } from './tabs/HomeTab'
 import { ProductsTab } from './tabs/ProductsTab'
 import { GalleryTab } from './tabs/GalleryTab'
@@ -29,6 +31,13 @@ export function CompanyProfileScreen({ companyId }: Props) {
   const activeTab = useCompanyProfileStore(s => s.activeTab)
   const isCompanyOwner = useCompanyProfileStore(s => s.isCompanyOwner)
   const userCompanyId = useProfileStore(s => s.user.companyId)
+  const authCompanyId = useAuthStore(s => s.user?.companyId)
+  const authRole = useAuthStore(s => s.user?.role)
+  const isOwner =
+    isCompanyOwner ||
+    userCompanyId === companyId ||
+    authCompanyId === companyId ||
+    (authRole === 'company' && Boolean(authCompanyId || userCompanyId))
 
   const loadCompany = useCompanyProfileStore(s => s.loadCompany)
   const setActiveTab = useCompanyProfileStore(s => s.setActiveTab)
@@ -42,14 +51,14 @@ export function CompanyProfileScreen({ companyId }: Props) {
   const replyToReview = useCompanyProfileStore(s => s.replyToReview)
 
   useEffect(() => {
-    if (activeTab === 'dashboard' && !isCompanyOwner) {
+    if (activeTab === 'dashboard' && !isOwner) {
       setActiveTab('home')
     }
-  }, [activeTab, isCompanyOwner, setActiveTab])
+  }, [activeTab, isOwner, setActiveTab])
 
   useEffect(() => {
     loadCompany(companyId)
-  }, [companyId, userCompanyId, loadCompany])
+  }, [companyId, userCompanyId, authCompanyId, loadCompany])
 
   const featuredProducts = useMemo(
     () => products.filter(p => p.isFeatured).slice(0, 3),
@@ -73,7 +82,7 @@ export function CompanyProfileScreen({ companyId }: Props) {
             <ChevronLeft size={24} color={t.text} />
           </Pressable>
           <Text style={styles.navTitle}>Perfil de empresa</Text>
-          <View style={styles.backBtn} />
+          <LogoutButton variant="nav" />
         </View>
         <View style={styles.center}>
           <ActivityIndicator color={t.accent} size="large" />
@@ -94,20 +103,20 @@ export function CompanyProfileScreen({ companyId }: Props) {
         <Text style={styles.navTitle} numberOfLines={1}>
           {company.name}
         </Text>
-        <View style={styles.backBtn} />
+        <LogoutButton variant="nav" />
       </View>
 
       <CompanyHeader
         company={company}
         editMode={editMode}
-        isOwner={isCompanyOwner}
+        isOwner={isOwner}
         onToggleEdit={handleToggleEdit}
         onSave={handleSave}
       />
 
       <ProfileTabs
         active={activeTab}
-        showDashboard={isCompanyOwner}
+        showDashboard={isOwner}
         onSelect={setActiveTab}
       />
 
@@ -125,7 +134,7 @@ export function CompanyProfileScreen({ companyId }: Props) {
         {activeTab === 'products' ? (
           <ProductsTab
             products={products}
-            editMode={editMode && isCompanyOwner}
+            editMode={editMode && isOwner}
             onAdd={addProduct}
             onUpdate={updateProduct}
             onDelete={deleteProduct}
@@ -137,12 +146,12 @@ export function CompanyProfileScreen({ companyId }: Props) {
         {activeTab === 'reviews' ? (
           <ReviewsTab
             reviews={reviews}
-            canReply={isCompanyOwner}
+            canReply={isOwner}
             onReply={replyToReview}
           />
         ) : null}
 
-        {activeTab === 'dashboard' && stats && isCompanyOwner ? (
+        {activeTab === 'dashboard' && stats && isOwner ? (
           <DashboardTab stats={stats} />
         ) : null}
       </View>
@@ -176,6 +185,7 @@ const styles = StyleSheet.create({
     color: t.text,
     fontSize: 16,
     fontWeight: '700',
+    paddingHorizontal: t.spacing.xs,
   },
   tabBody: {
     flex: 1,

@@ -4,7 +4,7 @@ import { Star } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
 import { companyTheme as t } from '../theme'
 import { ActionButtons } from './ActionButtons'
-import { CompanyLogoutButton } from './CompanyLogoutButton'
+import { LogoutButton } from '@/components/auth/LogoutButton'
 import type { Company } from '../types'
 
 type Props = {
@@ -80,7 +80,7 @@ export const CompanyHeader = memo(function CompanyHeader({
         </View>
       ) : null}
 
-      {isOwner ? <CompanyLogoutButton /> : null}
+      <LogoutButton />
     </View>
   )
 })
