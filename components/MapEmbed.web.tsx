@@ -1,5 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { View } from 'react-native'
+
+export type MapEmbedRef = {
+  /** Pan map and highlight marker (web iframe). */
+  focusPlace: (placeId: string) => void
+}
 
 interface Props {
   html: string
@@ -8,8 +13,21 @@ interface Props {
   onMessage?: (data: string) => void
 }
 
-export function MapEmbed({ html, mapKey, selectedPlaceId, onMessage }: Props) {
+export const MapEmbed = forwardRef<MapEmbedRef, Props>(function MapEmbed(
+  { html, mapKey, selectedPlaceId, onMessage },
+  ref,
+) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
+
+  const postToMap = (payload: object) => {
+    iframeRef.current?.contentWindow?.postMessage(JSON.stringify(payload), '*')
+  }
+
+  useImperativeHandle(ref, () => ({
+    focusPlace: (placeId: string) => {
+      postToMap({ type: 'select', id: placeId })
+    },
+  }))
 
   useEffect(() => {
     if (!onMessage) return
@@ -21,11 +39,8 @@ export function MapEmbed({ html, mapKey, selectedPlaceId, onMessage }: Props) {
   }, [onMessage])
 
   useEffect(() => {
-    if (!selectedPlaceId || !iframeRef.current?.contentWindow) return
-    iframeRef.current.contentWindow.postMessage(
-      JSON.stringify({ type: 'select', id: selectedPlaceId }),
-      '*',
-    )
+    if (!selectedPlaceId) return
+    postToMap({ type: 'select', id: selectedPlaceId })
   }, [selectedPlaceId, mapKey])
 
   const src = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`
@@ -40,4 +55,4 @@ export function MapEmbed({ html, mapKey, selectedPlaceId, onMessage }: Props) {
       />
     </View>
   )
-}
+})
