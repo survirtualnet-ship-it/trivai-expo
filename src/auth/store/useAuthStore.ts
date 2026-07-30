@@ -75,7 +75,11 @@ export const useAuthStore = create<AuthState>()(
             const hasOAuthParams =
               search.includes('code=') || hash.includes('access_token=')
             if (hasOAuthParams) {
-              await resolveOAuthSessionFromUrl()
+              try {
+                await resolveOAuthSessionFromUrl()
+              } catch (err) {
+                console.warn('[auth] oauth restore:', err)
+              }
             }
           }
 
@@ -91,7 +95,16 @@ export const useAuthStore = create<AuthState>()(
             return
           }
 
-          const { user: authUser, profile } = await fetchCurrentUserSession()
+          let authUser = session.user
+          let profile = null
+          try {
+            const fetched = await fetchCurrentUserSession()
+            authUser = fetched.user ?? session.user
+            profile = fetched.profile
+          } catch (err) {
+            console.warn('[auth] profile fetch:', err)
+          }
+
           if (!authUser) {
             set({
               user: null,

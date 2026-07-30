@@ -19,10 +19,13 @@ function AppShell() {
   const pathname = usePathname()
   const bootstrap = useAppBootstrap()
   const authLoading = useAuthStore(s => s.isLoading)
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated)
   // OAuth return must mount /auth/callback — never cover auth routes with splash
   const isAuthRoute = (pathname ?? '').startsWith('/auth')
+  // Once signed in, don't keep the branded splash forever waiting on bootstrap
   const showSplash =
-    !isAuthRoute && (!bootstrap.ready || authLoading)
+    !isAuthRoute &&
+    (authLoading || (!bootstrap.ready && !isAuthenticated))
 
   return (
     <>

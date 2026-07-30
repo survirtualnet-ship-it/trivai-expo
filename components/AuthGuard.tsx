@@ -7,6 +7,7 @@ import {
   isOnboardingPath,
   isPublicPath,
 } from '@/lib/appBootstrap'
+import { isAuthCallbackPath } from '@/lib/auth/completeAuthCallback'
 
 /**
  * Global route protection — redirects unauthenticated users to welcome/login
@@ -23,6 +24,9 @@ export function AuthGuard() {
     if (!bootstrap.ready || authLoading) return
 
     const path = pathname || '/'
+
+    // Let /auth/callback finish OAuth + navigateAfterAuth without being yanked away
+    if (isAuthCallbackPath(path)) return
 
     if (isPublicPath(path)) {
       if (bootstrap.isAuthenticated && !bootstrap.hasCompletedOnboarding) {
