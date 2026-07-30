@@ -1,32 +1,37 @@
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { colors, spacing, radius, fontSize, fontWeight, shadows } from '../theme'
-import type { PlaceItem } from '../data/mock'
+import { zoneLabel, type Locale, type PlaceItem } from '../data/mock'
 
 type Props = {
   place: PlaceItem
+  locale?: Locale
   onPress?: () => void
 }
 
-export const PlaceCard = memo(function PlaceCard({ place, onPress }: Props) {
+export const PlaceCard = memo(function PlaceCard({ place, locale = 'ES', onPress }: Props) {
+  const meta = useMemo(() => {
+    const zone = zoneLabel(place.zone, locale)
+    return `${place.distance} · ${zone} · ${place.category}`
+  }, [place.category, place.distance, place.zone, locale])
+
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       accessibilityRole="button"
-      accessibilityLabel={place.name}
+      accessibilityLabel={`${place.name}, ${meta}`}
     >
       <View style={styles.imageWrap}>
         <Image source={{ uri: place.imageUrl }} style={styles.image} resizeMode="cover" />
       </View>
       <View style={styles.body}>
-        <Text style={styles.category} numberOfLines={1}>
-          {place.category}
-        </Text>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={styles.name} numberOfLines={2}>
           {place.name}
         </Text>
-        <Text style={styles.distance}>{place.distance}</Text>
+        <Text style={styles.meta} numberOfLines={2}>
+          {meta}
+        </Text>
       </View>
     </Pressable>
   )
@@ -34,7 +39,7 @@ export const PlaceCard = memo(function PlaceCard({ place, onPress }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    width: 160,
+    width: 168,
     backgroundColor: colors.card,
     borderRadius: radius.md,
     ...shadows.card,
@@ -57,19 +62,13 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     gap: spacing.xs,
   },
-  category: {
-    fontSize: fontSize.caption,
-    fontWeight: fontWeight.medium,
-    color: colors.accent,
-    lineHeight: 16,
-  },
   name: {
     fontSize: fontSize.body,
     fontWeight: fontWeight.semibold,
     color: colors.text,
     lineHeight: 20,
   },
-  distance: {
+  meta: {
     fontSize: fontSize.captionLg,
     fontWeight: fontWeight.regular,
     color: colors.textSecondary,

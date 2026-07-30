@@ -288,6 +288,12 @@ export const LIMA_REGION = {
   longitudeDelta: 0.08,
 }
 
+export function zoneLabel(zone: ZoneId, locale: Locale): string {
+  const match = ZONES.find(z => z.id === zone)
+  if (!match) return zone
+  return locale === 'EN' ? match.labelEn : match.labelEs
+}
+
 export function filterByZone(places: PlaceItem[], zone: ZoneId | null) {
   if (!zone) return places
   return places.filter(p => p.zone === zone)

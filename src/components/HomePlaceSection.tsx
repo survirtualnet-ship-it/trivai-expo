@@ -3,17 +3,19 @@ import { ScrollView, StyleSheet, View } from 'react-native'
 import { PlaceCard } from './PlaceCard'
 import { SectionHeader } from './SectionHeader'
 import { spacing } from '../theme'
-import type { PlaceItem } from '../data/mock'
+import type { Locale, PlaceItem } from '../data/mock'
 
 type Props = {
   title: string
   places: PlaceItem[]
+  locale?: Locale
   onPressPlace?: (place: PlaceItem) => void
 }
 
 export const HomePlaceSection = memo(function HomePlaceSection({
   title,
   places,
+  locale = 'ES',
   onPressPlace,
 }: Props) {
   if (places.length === 0) return null
@@ -33,6 +35,7 @@ export const HomePlaceSection = memo(function HomePlaceSection({
           <PlaceCard
             key={place.id}
             place={place}
+            locale={locale}
             onPress={onPressPlace ? () => onPressPlace(place) : undefined}
           />
         ))}

@@ -15,41 +15,19 @@ export function buildHomeSearchParams(
   locale: Locale,
   categoryId?: string,
 ): Record<string, string> {
-  const city = profile.city
-  const district = profile.district
-  const base =
-    categoryId && CATEGORY_QUERY[categoryId]
-      ? locale === 'EN'
-        ? CATEGORY_QUERY[categoryId].en
-        : CATEGORY_QUERY[categoryId].es
-      : suggestSearchQuery(city, district, locale)
-
-  return {
-    q: base,
-    city,
+  const params: Record<string, string> = {
+    city: profile.city,
     lat: String(profile.latitude),
     lng: String(profile.longitude),
     country: profile.countryCode,
   }
-}
 
-export function suggestSearchQuery(
-  city: string,
-  district: string | null | undefined,
-  locale: Locale,
-): string {
-  const key = city.toLowerCase()
-  const zone = district ?? city
+  if (categoryId && CATEGORY_QUERY[categoryId]) {
+    params.q =
+      locale === 'EN'
+        ? CATEGORY_QUERY[categoryId].en
+        : CATEGORY_QUERY[categoryId].es
+  }
 
-  if (key.includes('lima')) {
-    return locale === 'EN'
-      ? `What to visit in ${zone}`
-      : `Qué visitar en ${zone}`
-  }
-  if (key.includes('santa cruz')) {
-    return locale === 'EN' ? 'Typical food nearby' : 'Comida típica cerca'
-  }
-  return locale === 'EN'
-    ? `Events in ${city} today`
-    : `Eventos hoy en ${city}`
+  return params
 }

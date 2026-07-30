@@ -183,18 +183,21 @@ export function InicioScreen() {
         <HomePlaceSection
           title={nearbyTitle}
           places={nearby}
+          locale={locale}
           onPressPlace={onPressPlace}
         />
 
         <HomePlaceSection
           title={trendingTitle}
           places={trending}
+          locale={locale}
           onPressPlace={onPressPlace}
         />
 
         <HomePlaceSection
           title={forYouTitle}
           places={forYou}
+          locale={locale}
           onPressPlace={onPressPlace}
         />
 
@@ -208,6 +211,7 @@ export function InicioScreen() {
         <HomePlaceSection
           title={recommendedTitle}
           places={recommended}
+          locale={locale}
           onPressPlace={onPressPlace}
         />
 

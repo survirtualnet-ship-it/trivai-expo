@@ -23,64 +23,69 @@ export const InicioHeader = memo(function InicioHeader({
 }: Props) {
   return (
     <View style={styles.wrap}>
-      <View style={styles.left}>
+      <View style={styles.topRow}>
         <View style={styles.brandRow}>
           <View style={styles.logo}>
             <Image source={BrandAssets.logoMark} style={styles.logoImage} resizeMode="contain" />
           </View>
-          <View style={styles.cityBlock}>
-            <Text style={styles.brand}>Trivai</Text>
-            <Text style={styles.city}>{city}</Text>
-          </View>
+          <Text style={styles.brand}>Trivai</Text>
         </View>
-        <Text style={styles.weather}>{weather}</Text>
+
+        <View style={styles.actions}>
+          <Pressable
+            onPress={onPressNotifications}
+            style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Notificaciones"
+          >
+            <Ionicons name="notifications-outline" size={22} color={colors.text} />
+          </Pressable>
+
+          <Pressable
+            onPress={onToggleLocale}
+            style={({ pressed }) => [styles.langTrack, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Idioma"
+          >
+            <View style={[styles.langPill, locale === 'ES' && styles.langPillActive]}>
+              <Text style={[styles.langText, locale === 'ES' && styles.langTextActive]}>ES</Text>
+            </View>
+            <View style={[styles.langPill, locale === 'EN' && styles.langPillActive]}>
+              <Text style={[styles.langText, locale === 'EN' && styles.langTextActive]}>EN</Text>
+            </View>
+          </Pressable>
+        </View>
       </View>
 
-      <View style={styles.right}>
-        <Pressable
-          onPress={onPressNotifications}
-          style={({ pressed }) => [styles.iconBtn, pressed && styles.pressed]}
-          accessibilityRole="button"
-          accessibilityLabel="Notificaciones"
-        >
-          <Ionicons name="notifications-outline" size={22} color={colors.text} />
-        </Pressable>
-
-        <Pressable
-          onPress={onToggleLocale}
-          style={({ pressed }) => [styles.langTrack, pressed && styles.pressed]}
-          accessibilityRole="button"
-          accessibilityLabel="Idioma"
-        >
-          <View style={[styles.langPill, locale === 'ES' && styles.langPillActive]}>
-            <Text style={[styles.langText, locale === 'ES' && styles.langTextActive]}>ES</Text>
-          </View>
-          <View style={[styles.langPill, locale === 'EN' && styles.langPillActive]}>
-            <Text style={[styles.langText, locale === 'EN' && styles.langTextActive]}>EN</Text>
-          </View>
-        </Pressable>
-      </View>
+      <Text style={styles.city} numberOfLines={2}>
+        {city}
+      </Text>
+      <Text style={styles.weather} numberOfLines={2}>
+        {weather}
+      </Text>
     </View>
   )
 })
 
 const styles = StyleSheet.create({
   wrap: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
     paddingBottom: spacing.md,
-  },
-  left: {
-    flex: 1,
     gap: spacing.sm,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
   },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+    flexShrink: 1,
+    minWidth: 0,
   },
   logo: {
     width: 40,
@@ -96,9 +101,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
   },
-  cityBlock: {
-    gap: 2,
-  },
   brand: {
     fontSize: fontSize.caption,
     fontWeight: fontWeight.semibold,
@@ -111,17 +113,18 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semibold,
     color: colors.text,
     letterSpacing: -0.3,
+    paddingRight: spacing.sm,
   },
   weather: {
     fontSize: fontSize.body,
     fontWeight: fontWeight.regular,
     color: colors.textSecondary,
-    paddingLeft: 52,
   },
-  right: {
+  actions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+    flexShrink: 0,
   },
   iconBtn: {
     width: 40,
@@ -141,8 +144,8 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   langPill: {
-    minWidth: 36,
-    height: 30,
+    minWidth: 32,
+    height: 28,
     borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
@@ -153,7 +156,7 @@ const styles = StyleSheet.create({
     ...shadows.soft,
   },
   langText: {
-    fontSize: fontSize.captionLg,
+    fontSize: fontSize.caption,
     fontWeight: fontWeight.medium,
     color: colors.textSecondary,
   },
