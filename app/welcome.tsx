@@ -5,7 +5,7 @@ import { useAppBootstrap } from '@/hooks/useAppBootstrap'
 import { SplashScreen } from '@/components/SplashScreen'
 
 /**
- * Pre-auth welcome — Splash → Welcome → /auth
+ * Pre-auth welcome — Splash → Welcome → registro / login
  * Authenticated users with onboarding done are redirected by NavigationGuard.
  */
 export default function WelcomeRoute() {
@@ -24,7 +24,7 @@ export default function WelcomeRoute() {
 
   return (
     <WelcomeScreen
-      onContinue={() => router.push('/auth')}
+      onContinue={() => router.push('/auth/registro')}
       onLogin={() => router.push('/auth/login')}
     />
   )

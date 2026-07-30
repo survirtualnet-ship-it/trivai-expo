@@ -24,6 +24,13 @@ export function NavigationGuard() {
 
     // Public routes: welcome + auth
     if (isPublicPath(path)) {
+      if (bootstrap.isAuthenticated && !bootstrap.hasCompletedOnboarding) {
+        if (lastRedirect.current !== '/onboarding') {
+          lastRedirect.current = '/onboarding'
+          router.replace('/onboarding')
+        }
+        return
+      }
       if (bootstrap.isAuthenticated && bootstrap.hasCompletedOnboarding) {
         const dest = String(bootstrap.destination)
         if (!destinationMatchesPath(bootstrap.destination, path) && lastRedirect.current !== dest) {

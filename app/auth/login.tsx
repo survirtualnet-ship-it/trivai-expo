@@ -84,7 +84,7 @@ export default function Login() {
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
         {/* HEADER */}
-        <ScreenHeader title="Iniciar sesión" fallbackHref="/auth" />
+        <ScreenHeader title="Iniciar sesión" fallbackHref="/welcome" />
 
         <View style={styles.content}>
           <Text style={styles.title}>Bienvenido de vuelta</Text>

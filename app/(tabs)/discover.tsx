@@ -320,7 +320,7 @@ export default function Discover() {
 
   const handleSignOut = async () => {
     await signOut()
-    router.replace('/auth')
+    router.replace('/welcome')
   }
 
   return (

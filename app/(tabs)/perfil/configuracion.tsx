@@ -49,7 +49,7 @@ export default function Configuracion() {
   const cerrarSesion = () => {
     Alert.alert('Cerrar sesión', '¿Estás seguro?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Cerrar sesión', style: 'destructive', onPress: async () => { await signOut(); router.replace('/auth') } },
+      { text: 'Cerrar sesión', style: 'destructive', onPress: async () => { await signOut(); router.replace('/welcome') } },
     ])
   }
 
