@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { Image, StyleSheet, Text, View } from 'react-native'
 import { BrandAssets } from '@/lib/brandAssets'
-import { T, F, S, R, SHADOW } from '@/lib/tokens'
+import { T, F, S } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 
 type Props = {
@@ -12,15 +12,12 @@ type Props = {
 export const AuthBranding = memo(function AuthBranding({ title, subtitle }: Props) {
   return (
     <View style={styles.wrap}>
-      <View style={styles.logoWrap}>
-        <Image
-          source={BrandAssets.logoMark}
-          style={styles.logo}
-          resizeMode="contain"
-          accessibilityLabel="Trivai"
-        />
-      </View>
-      <Text style={styles.brand}>Trivai</Text>
+      <Image
+        source={BrandAssets.logoTrivai}
+        style={styles.logo}
+        resizeMode="contain"
+        accessibilityLabel="Trivai"
+      />
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
     </View>
@@ -32,28 +29,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: S.md,
     paddingBottom: S.xl,
-    gap: S.sm,
-  },
-  logoWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: R.md,
-    backgroundColor: T.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: S.xs,
-    ...SHADOW.sm,
+    gap: S.md,
   },
   logo: {
-    width: 36,
-    height: 36,
-  },
-  brand: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.xl,
-    fontWeight: F.weight.bold,
-    color: T.primary,
-    letterSpacing: -0.3,
+    width: 220,
+    height: 88,
   },
   title: {
     fontFamily: FONT.bold,
@@ -62,7 +42,7 @@ const styles = StyleSheet.create({
     color: T.fg1,
     textAlign: 'center',
     letterSpacing: -0.5,
-    marginTop: S.xs,
+    paddingHorizontal: S.lg,
   },
   subtitle: {
     fontFamily: FONT.regular,

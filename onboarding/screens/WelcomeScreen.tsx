@@ -1,8 +1,8 @@
-import { StyleSheet, Text, View } from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
+import { Image, StyleSheet, Text, View } from 'react-native'
 import { OnboardingLayout } from '../components/OnboardingLayout'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { onboardingTheme as t } from '../lib/theme'
+import { BrandAssets } from '@/lib/brandAssets'
 import type { WelcomeProps } from '../types'
 
 type Props = WelcomeProps & {
@@ -43,19 +43,17 @@ export function WelcomeScreen({ navigation, onContinue, onLogin }: Props) {
       }
     >
       <View style={styles.hero}>
-        <LinearGradient
-          colors={[t.gradientStart, t.gradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.logoBadge}
-        >
-          <Text style={styles.logoLetter}>T</Text>
-        </LinearGradient>
+        <View style={styles.logoBadge}>
+          <Image
+            source={BrandAssets.logoT}
+            style={styles.logoImage}
+            resizeMode="contain"
+            accessibilityLabel="Trivai"
+          />
+        </View>
         <Text style={styles.brand}>Trivai</Text>
         <Text style={styles.tagline}>Descubre qué hacer, aquí y ahora</Text>
-        <Text style={styles.hint}>
-          Una app basada en momentos para turistas que llegan a una ciudad nueva.
-        </Text>
+        <Text style={styles.hint}>Planifica tu próxima experiencia</Text>
       </View>
     </OnboardingLayout>
   )
@@ -73,16 +71,18 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: t.shadow,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.55)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
     elevation: 8,
   },
-  logoLetter: {
-    color: '#fff',
-    fontSize: 42,
-    fontWeight: '800',
+  logoImage: {
+    width: 72,
+    height: 72,
   },
   brand: {
     color: t.text,

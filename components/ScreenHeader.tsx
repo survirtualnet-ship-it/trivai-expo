@@ -10,6 +10,7 @@ type Props = {
   right?: ReactNode
   /** Acción personalizada para el botón Volver (por defecto: router.back) */
   onBack?: () => void
+  hideLogo?: boolean
 }
 
 export function goBack(fallbackHref = '/(tabs)/perfil') {
@@ -17,10 +18,11 @@ export function goBack(fallbackHref = '/(tabs)/perfil') {
   else router.replace(fallbackHref as any)
 }
 
-export default function ScreenHeader({ title, fallbackHref, right, onBack }: Props) {
+export default function ScreenHeader({ title, fallbackHref, right, onBack, hideLogo }: Props) {
   return (
     <TrivaiHeader
       title={title}
+      hideLogo={hideLogo}
       left={
         <TouchableOpacity
           style={styles.back}

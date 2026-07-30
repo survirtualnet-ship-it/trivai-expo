@@ -100,10 +100,10 @@ export default function Login() {
   return (
     <ScreenContainer
       centered
-      header={<ScreenHeader title="" fallbackHref="/welcome" />}
+      header={<ScreenHeader title="" fallbackHref="/welcome" hideLogo />}
     >
       <AuthBranding
-        title="Bienvenido a Trivai 👋"
+        title="Tu próxima experiencia empieza aquí"
         subtitle="Descubre lo mejor cerca de ti"
       />
 

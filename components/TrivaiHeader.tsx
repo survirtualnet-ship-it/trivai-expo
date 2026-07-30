@@ -9,6 +9,8 @@ type Props = {
   right?: ReactNode
   /** Fondo blanco para pantallas light (ej. Eventos) */
   light?: boolean
+  /** Ocultar logo centrado (p. ej. auth con branding propio) */
+  hideLogo?: boolean
 }
 
 /** Fecha actual, ej. "Viernes, 4 de julio" */
@@ -28,18 +30,20 @@ export function HeaderCityDate() {
 }
 
 /** Header estilo mockup: iconos a los lados, logo centrado y título debajo */
-export function TrivaiHeader({ title, subtitle, left, right, light }: Props) {
+export function TrivaiHeader({ title, subtitle, left, right, light, hideLogo }: Props) {
   return (
     <View style={[styles.wrap, light && styles.wrapLight]}>
       <View style={styles.row}>
         <View style={styles.side}>{left}</View>
         <View style={styles.center}>
-          <Image
-            source={BrandAssets.logoFull}
-            style={styles.logo}
-            resizeMode="contain"
-            accessibilityLabel="Trivai"
-          />
+          {!hideLogo ? (
+            <Image
+              source={BrandAssets.logoFull}
+              style={styles.logo}
+              resizeMode="contain"
+              accessibilityLabel="Trivai"
+            />
+          ) : null}
           {title ? <Text style={styles.title}>{title}</Text> : null}
           {title ? <HeaderCityDate /> : null}
         </View>

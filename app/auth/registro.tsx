@@ -233,6 +233,7 @@ export default function Registro() {
         header={
           <ScreenHeader
             title=""
+            hideLogo
             onBack={() => (step === 2 ? setStep(1) : router.back())}
             right={<Text style={styles.stepLabel}>Paso {step} de 2</Text>}
           />
