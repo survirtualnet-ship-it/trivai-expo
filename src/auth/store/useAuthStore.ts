@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { Platform } from 'react-native'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '@/lib/supabase'
 import { fetchCurrentUserSession } from '@/lib/queries/user'
+import { resolveOAuthSessionFromUrl } from '@/lib/auth/completeAuthCallback'
 import { buildAuthUser } from '../buildAuthUser'
 import type { AuthUser, LoginPayload } from '../types'
 
@@ -68,6 +70,15 @@ export const useAuthStore = create<AuthState>()(
       loadSession: async () => {
         set({ isLoading: true })
         try {
+          if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            const { search, hash } = window.location
+            const hasOAuthParams =
+              search.includes('code=') || hash.includes('access_token=')
+            if (hasOAuthParams) {
+              await resolveOAuthSessionFromUrl()
+            }
+          }
+
           const { data: { session } } = await supabase.auth.getSession()
 
           if (!session?.user) {

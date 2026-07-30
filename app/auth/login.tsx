@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Alert, Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native'
+import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { Lock, Mail } from 'lucide-react-native'
 import ScreenHeader from '@/components/ScreenHeader'
@@ -67,7 +67,6 @@ export default function Login() {
 
     try {
       await signInWithGoogle()
-      if (Platform.OS !== 'web') router.replace('/')
     } catch (err) {
       setError(mapAuthError(err, 'Error al iniciar sesión con Google.'))
     } finally {

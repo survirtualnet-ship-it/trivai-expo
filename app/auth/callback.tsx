@@ -1,13 +1,13 @@
 import { useEffect } from 'react'
 import { View, ActivityIndicator, Text } from 'react-native'
 import { router } from 'expo-router'
-import { supabase } from '@/lib/supabase'
 import { ensureProfile } from '@/lib/auth/ensureProfile'
 import { navigateAfterAuth } from '@/lib/navigateAfterAuth'
 import {
   isPasswordRecoveryCallback,
-  resolveOAuthSessionFromUrl,
+  waitForOAuthSession,
 } from '@/lib/auth/completeAuthCallback'
+import { supabase } from '@/lib/supabase'
 import { T, F } from '@/lib/tokens'
 
 export default function AuthCallback() {
@@ -44,7 +44,7 @@ export default function AuthCallback() {
           }
         }
 
-        const oauthSession = await resolveOAuthSessionFromUrl()
+        const oauthSession = await waitForOAuthSession()
         if (oauthSession?.user) {
           await goHome(oauthSession.user)
           return
@@ -57,7 +57,10 @@ export default function AuthCallback() {
           } else {
             await goHome(session.user)
           }
+          return
         }
+
+        goLogin()
       } catch (err) {
         console.warn('Auth callback:', err)
         goLogin()
@@ -67,6 +70,8 @@ export default function AuthCallback() {
     void finish()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (navigated) return
+
       if (event === 'PASSWORD_RECOVERY') {
         goResetPassword()
         return
@@ -84,7 +89,7 @@ export default function AuthCallback() {
 
     const timeout = setTimeout(() => {
       if (!navigated) goLogin()
-    }, 12_000)
+    }, 20_000)
 
     return () => {
       subscription.unsubscribe()

@@ -1,4 +1,4 @@
-import { Stack } from 'expo-router'
+import { Stack, usePathname } from 'expo-router'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
@@ -16,18 +16,23 @@ import { useAppBootstrap } from '@/hooks/useAppBootstrap'
 import { useAuthStore } from '@/src/auth/store/useAuthStore'
 
 function AppShell() {
+  const pathname = usePathname()
   const bootstrap = useAppBootstrap()
   const authLoading = useAuthStore(s => s.isLoading)
-  const showSplash = !bootstrap.ready || authLoading
+  // OAuth return must mount /auth/callback — never cover auth routes with splash
+  const isAuthRoute = (pathname ?? '').startsWith('/auth')
+  const showSplash =
+    !isAuthRoute && (!bootstrap.ready || authLoading)
 
   return (
     <>
       <AuthGuard />
+      <Stack screenOptions={{ headerShown: false }} />
       {showSplash ? (
-        <SplashScreen />
-      ) : (
-        <Stack screenOptions={{ headerShown: false }} />
-      )}
+        <View style={styles.splashOverlay}>
+          <SplashScreen />
+        </View>
+      ) : null}
     </>
   )
 }
@@ -74,4 +79,8 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   loader: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: T.bg },
+  splashOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 999,
+  },
 })
