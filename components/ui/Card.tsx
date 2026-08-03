@@ -18,6 +18,6 @@ const styles = StyleSheet.create({
     padding: S.xl,
     borderWidth: 1,
     borderColor: T.border,
-    ...SHADOW.md,
+    ...SHADOW.sm,
   },
 })

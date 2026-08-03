@@ -14,17 +14,17 @@ export const AuthErrorBanner = memo(function AuthErrorBanner({ message }: { mess
 
 const styles = StyleSheet.create({
   box: {
-    backgroundColor: T.orangeSoft,
+    backgroundColor: T.dangerSoft,
     borderWidth: 1,
-    borderColor: T.orange,
-    borderRadius: R.md,
+    borderColor: T.danger,
+    borderRadius: R.lg,
     padding: S.md,
-    marginBottom: S.md,
+    marginBottom: S.lg,
   },
   text: {
     fontFamily: FONT.medium,
     fontSize: F.size.sm,
-    color: T.orange,
+    color: T.danger,
     fontWeight: F.weight.medium,
   },
 })

@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: S.sm,
     minHeight: 52,
-    borderRadius: R.md,
+    borderRadius: R.lg,
     borderWidth: 1.5,
     borderColor: T.border,
     backgroundColor: T.surface,

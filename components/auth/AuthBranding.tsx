@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { Image, StyleSheet, Text, View } from 'react-native'
 import { BrandAssets } from '@/lib/brandAssets'
-import { T, F, S } from '@/lib/tokens'
+import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 
 type Props = {
@@ -12,12 +12,14 @@ type Props = {
 export const AuthBranding = memo(function AuthBranding({ title, subtitle }: Props) {
   return (
     <View style={styles.wrap}>
-      <Image
-        source={BrandAssets.logoTrivai}
-        style={styles.logo}
-        resizeMode="contain"
-        accessibilityLabel="Trivai"
-      />
+      <View style={styles.logoBadge}>
+        <Image
+          source={BrandAssets.logoT}
+          style={styles.logo}
+          resizeMode="contain"
+          accessibilityLabel="Trivai"
+        />
+      </View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
     </View>
@@ -27,13 +29,24 @@ export const AuthBranding = memo(function AuthBranding({ title, subtitle }: Prop
 const styles = StyleSheet.create({
   wrap: {
     alignItems: 'center',
-    paddingTop: S.md,
-    paddingBottom: S.xl,
+    paddingBottom: S.md,
     gap: S.md,
   },
+  logoBadge: {
+    width: 72,
+    height: 72,
+    borderRadius: R.lg,
+    backgroundColor: T.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: T.border,
+    ...SHADOW.sm,
+  },
   logo: {
-    width: 220,
-    height: 88,
+    width: 56,
+    height: 56,
   },
   title: {
     fontFamily: FONT.bold,
@@ -42,14 +55,15 @@ const styles = StyleSheet.create({
     color: T.fg1,
     textAlign: 'center',
     letterSpacing: -0.5,
-    paddingHorizontal: S.lg,
+    paddingHorizontal: S.sm,
   },
   subtitle: {
     fontFamily: FONT.regular,
     fontSize: F.size.md,
     color: T.fg3,
     textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: S.lg,
+    lineHeight: 22,
+    paddingHorizontal: S.sm,
+    marginTop: -S.xs,
   },
 })

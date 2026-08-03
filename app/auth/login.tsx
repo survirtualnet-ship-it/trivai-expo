@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { Lock, Mail } from 'lucide-react-native'
+import { Ionicons } from '@expo/vector-icons'
 import ScreenHeader from '@/components/ScreenHeader'
 import { ScreenContainer } from '@/components/ui/ScreenContainer'
 import { Card } from '@/components/ui/Card'
@@ -103,11 +104,11 @@ export default function Login() {
       header={<ScreenHeader title="" fallbackHref="/welcome" hideLogo />}
     >
       <AuthBranding
-        title="Tu próxima experiencia empieza aquí"
+        title="Bienvenido a Trivai 👋"
         subtitle="Descubre lo mejor cerca de ti"
       />
 
-      <Card style={styles.card}>
+      <Card>
         <AuthErrorBanner message={error} />
 
         <View style={styles.form}>
@@ -121,6 +122,7 @@ export default function Login() {
             autoCapitalize="none"
             autoCorrect={false}
             textContentType="emailAddress"
+            autoComplete="email"
           />
 
           <AppInput
@@ -132,6 +134,7 @@ export default function Login() {
             placeholder="Tu contraseña"
             onSubmitEditing={handleLogin}
             textContentType="password"
+            autoComplete="password"
           />
 
           <Pressable onPress={handleForgotPassword} style={styles.forgotWrap}>
@@ -156,7 +159,6 @@ export default function Login() {
             fullWidth
             loading={loading}
             disabled={!isFormValid || googleLoading}
-            style={styles.primaryBtn}
           />
 
           <AuthDivider />
@@ -169,6 +171,7 @@ export default function Login() {
             fullWidth
             loading={googleLoading}
             disabled={loading}
+            icon={<Ionicons name="logo-google" size={18} color={T.fg1} />}
           />
         </View>
       </Card>
@@ -183,9 +186,6 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    gap: S.md,
-  },
   form: {
     gap: S.lg,
   },
@@ -208,8 +208,5 @@ const styles = StyleSheet.create({
     fontFamily: FONT.regular,
     fontSize: F.size.sm,
     color: T.fg2,
-  },
-  primaryBtn: {
-    backgroundColor: T.primary,
   },
 })

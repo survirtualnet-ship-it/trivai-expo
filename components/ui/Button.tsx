@@ -54,7 +54,7 @@ export const Button = memo(function Button({
       activeOpacity={0.88}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={isPrimary ? '#fff' : T.accent} />
+        <ActivityIndicator size="small" color={isPrimary ? '#fff' : T.primary} />
       ) : (
         <>
           {icon}
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   primary: {
-    backgroundColor: T.accent,
+    backgroundColor: T.primary,
     ...SHADOW.sm,
   },
   secondary: {

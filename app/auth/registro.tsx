@@ -230,6 +230,7 @@ export default function Registro() {
       </Modal>
 
       <ScreenContainer
+        centered
         header={
           <ScreenHeader
             title=""
@@ -248,7 +249,7 @@ export default function Registro() {
           }
         />
 
-        <Card style={styles.card}>
+        <Card>
           <View style={styles.progress}>
             <View style={[styles.progressBar, styles.progressActive]} />
             <View
@@ -271,6 +272,7 @@ export default function Registro() {
                 placeholder="Juan Pérez"
                 autoCapitalize="words"
                 textContentType="name"
+                autoComplete="name"
               />
 
               <AppInput
@@ -283,6 +285,7 @@ export default function Registro() {
                 placeholder="juanperez"
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="username"
               />
 
               <View style={styles.phoneBlock}>
@@ -304,6 +307,8 @@ export default function Registro() {
                       placeholder="71234567"
                       keyboardType="phone-pad"
                       containerStyle={styles.phoneInput}
+                      textContentType="telephoneNumber"
+                      autoComplete="tel"
                     />
                   </View>
                 </View>
@@ -317,7 +322,6 @@ export default function Registro() {
                 fullWidth
                 loading={loading}
                 disabled={!step1Valid}
-                style={styles.primaryBtn}
               />
             </View>
           ) : (
@@ -332,6 +336,7 @@ export default function Registro() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 textContentType="emailAddress"
+                autoComplete="email"
               />
 
               <AppInput
@@ -342,6 +347,7 @@ export default function Registro() {
                 onChangeText={setPassword}
                 placeholder="Mínimo 6 caracteres"
                 textContentType="newPassword"
+                autoComplete="new-password"
               />
 
               {password.length > 0 ? (
@@ -372,7 +378,6 @@ export default function Registro() {
                 fullWidth
                 loading={loading}
                 disabled={!step2Valid}
-                style={styles.primaryBtn}
               />
             </View>
           )}
@@ -389,9 +394,6 @@ export default function Registro() {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    gap: S.lg,
-  },
   form: {
     gap: S.lg,
   },
@@ -405,6 +407,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: S.sm,
     height: 4,
+    marginBottom: S.lg,
   },
   progressBar: {
     flex: 1,
@@ -437,7 +440,7 @@ const styles = StyleSheet.create({
     gap: 4,
     height: 52,
     paddingHorizontal: S.md,
-    borderRadius: R.md,
+    borderRadius: R.lg,
     borderWidth: 1.5,
     borderColor: T.border,
     backgroundColor: T.surface,
@@ -474,9 +477,6 @@ const styles = StyleSheet.create({
     fontSize: F.size.sm,
     fontWeight: F.weight.semibold,
     width: 52,
-  },
-  primaryBtn: {
-    backgroundColor: T.primary,
   },
   modalOverlay: {
     flex: 1,

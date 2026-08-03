@@ -31,8 +31,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     flexWrap: 'wrap',
-    marginTop: S.lg,
-    gap: 4,
+    paddingVertical: S.md,
+    gap: S.xs,
   },
   prefix: {
     fontFamily: FONT.regular,
