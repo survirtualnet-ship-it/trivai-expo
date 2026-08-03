@@ -11,20 +11,18 @@ import {
 } from 'react-native'
 import { router } from 'expo-router'
 import { AtSign, ChevronDown, Lock, Mail, Phone, User } from 'lucide-react-native'
-import ScreenHeader from '@/components/ScreenHeader'
-import { ScreenContainer } from '@/components/ui/ScreenContainer'
-import { Card } from '@/components/ui/Card'
-import { AppInput } from '@/components/ui/AppInput'
-import { Button } from '@/components/ui/Button'
+import { AuthScreenLayout } from '@/components/auth/AuthScreenLayout'
+import { AuthCard } from '@/components/auth/AuthCard'
+import { AuthInput } from '@/components/auth/AuthInput'
 import { AuthBranding } from '@/components/auth/AuthBranding'
 import { AuthFooterLink } from '@/components/auth/AuthFooterLink'
 import { AuthErrorBanner } from '@/components/auth/AuthErrorBanner'
+import { PrimaryButton } from '@/onboarding/components/PrimaryButton'
+import { onboardingTheme as t } from '@/onboarding/lib/theme'
 import { supabase } from '@/lib/supabase'
 import { ensureProfile } from '@/lib/auth/ensureProfile'
 import { navigateAfterAuth } from '@/lib/navigateAfterAuth'
 import { getAuthRedirectUrl } from '@/lib/auth/redirectUrl'
-import { T, F, S, R } from '@/lib/tokens'
-import { FONT } from '@/lib/typography'
 
 const PAISES = [
   { code: '+591', flag: '🇧🇴', name: 'Bolivia' },
@@ -45,10 +43,10 @@ function passwordStrength(p: string) {
   if (/[A-Z]/.test(p)) score++
   if (/[0-9]/.test(p)) score++
   if (/[^A-Za-z0-9]/.test(p)) score++
-  if (score <= 1) return { label: 'Débil', color: T.danger, bars: 1 }
-  if (score === 2) return { label: 'Regular', color: T.warning, bars: 2 }
-  if (score === 3) return { label: 'Buena', color: T.orange, bars: 3 }
-  return { label: 'Fuerte', color: T.green, bars: 4 }
+  if (score <= 1) return { label: 'Débil', color: t.accentSecondary, bars: 1 }
+  if (score === 2) return { label: 'Regular', color: t.warning, bars: 2 }
+  if (score === 3) return { label: 'Buena', color: t.accent, bars: 3 }
+  return { label: 'Fuerte', color: t.success, bars: 4 }
 }
 
 export default function Registro() {
@@ -229,16 +227,10 @@ export default function Registro() {
         </TouchableOpacity>
       </Modal>
 
-      <ScreenContainer
+      <AuthScreenLayout
         centered
-        header={
-          <ScreenHeader
-            title=""
-            hideLogo
-            onBack={() => (step === 2 ? setStep(1) : router.back())}
-            right={<Text style={styles.stepLabel}>Paso {step} de 2</Text>}
-          />
-        }
+        onBack={() => (step === 2 ? setStep(1) : router.back())}
+        headerRight={<Text style={styles.stepLabel}>Paso {step} de 2</Text>}
       >
         <AuthBranding
           title={step === 1 ? 'Bienvenido a Trivai 👋' : 'Casi listo 🎉'}
@@ -249,7 +241,7 @@ export default function Registro() {
           }
         />
 
-        <Card>
+        <AuthCard>
           <View style={styles.progress}>
             <View style={[styles.progressBar, styles.progressActive]} />
             <View
@@ -264,7 +256,7 @@ export default function Registro() {
 
           {step === 1 ? (
             <View style={styles.form}>
-              <AppInput
+              <AuthInput
                 label="Nombre completo"
                 icon={User}
                 value={fullName}
@@ -275,12 +267,12 @@ export default function Registro() {
                 autoComplete="name"
               />
 
-              <AppInput
+              <AuthInput
                 label="Nombre de usuario"
                 icon={AtSign}
                 value={username}
-                onChangeText={t =>
-                  setUsername(t.toLowerCase().replace(/[^a-z0-9_.]/g, ''))
+                onChangeText={v =>
+                  setUsername(v.toLowerCase().replace(/[^a-z0-9_.]/g, ''))
                 }
                 placeholder="juanperez"
                 autoCapitalize="none"
@@ -297,10 +289,10 @@ export default function Registro() {
                   >
                     <Text style={styles.paisFlag}>{paisActual.flag}</Text>
                     <Text style={styles.paisBtnCode}>{paisActual.code}</Text>
-                    <ChevronDown size={14} color={T.fg3} />
+                    <ChevronDown size={14} color={t.textMuted} />
                   </Pressable>
                   <View style={styles.phoneInputWrap}>
-                    <AppInput
+                    <AuthInput
                       icon={Phone}
                       value={phone}
                       onChangeText={setPhone}
@@ -314,19 +306,16 @@ export default function Registro() {
                 </View>
               </View>
 
-              <Button
+              <PrimaryButton
                 label="Continuar"
                 onPress={handlePaso1}
-                variant="primary"
-                size="lg"
-                fullWidth
                 loading={loading}
                 disabled={!step1Valid}
               />
             </View>
           ) : (
             <View style={styles.form}>
-              <AppInput
+              <AuthInput
                 label="Email"
                 icon={Mail}
                 value={email}
@@ -339,7 +328,7 @@ export default function Registro() {
                 autoComplete="email"
               />
 
-              <AppInput
+              <AuthInput
                 label="Contraseña"
                 icon={Lock}
                 password
@@ -359,7 +348,7 @@ export default function Registro() {
                         styles.strengthSeg,
                         {
                           backgroundColor:
-                            i < strength.bars ? strength.color : T.border,
+                            i < strength.bars ? strength.color : t.border,
                         },
                       ]}
                     />
@@ -370,68 +359,63 @@ export default function Registro() {
                 </View>
               ) : null}
 
-              <Button
+              <PrimaryButton
                 label="Crear cuenta"
                 onPress={handleRegistro}
-                variant="primary"
-                size="lg"
-                fullWidth
                 loading={loading}
                 disabled={!step2Valid}
               />
             </View>
           )}
-        </Card>
+        </AuthCard>
 
         <AuthFooterLink
           prefix="¿Ya tienes cuenta?"
           linkLabel="Iniciar sesión"
           onPress={() => router.push('/auth/login')}
         />
-      </ScreenContainer>
+      </AuthScreenLayout>
     </>
   )
 }
 
 const styles = StyleSheet.create({
   form: {
-    gap: S.lg,
+    gap: t.spacing.lg,
   },
   stepLabel: {
-    fontFamily: FONT.medium,
-    fontSize: F.size.sm,
-    color: T.fg3,
-    fontWeight: F.weight.medium,
+    fontSize: t.font.caption,
+    color: t.textMuted,
+    fontWeight: '500',
   },
   progress: {
     flexDirection: 'row',
-    gap: S.sm,
+    gap: t.spacing.sm,
     height: 4,
-    marginBottom: S.lg,
+    marginTop: -t.spacing.sm,
   },
   progressBar: {
     flex: 1,
     height: 4,
-    borderRadius: R.full,
+    borderRadius: t.radius.full,
   },
   progressActive: {
-    backgroundColor: T.primary,
+    backgroundColor: t.accent,
   },
   progressInactive: {
-    backgroundColor: T.border,
+    backgroundColor: t.border,
   },
   phoneBlock: {
-    gap: S.sm,
+    gap: t.spacing.sm,
   },
   phoneLabel: {
-    fontFamily: FONT.semibold,
-    fontSize: F.size.sm,
-    fontWeight: F.weight.semibold,
-    color: T.fg1,
+    fontSize: t.font.caption,
+    fontWeight: '600',
+    color: t.text,
   },
   phoneRow: {
     flexDirection: 'row',
-    gap: S.sm,
+    gap: t.spacing.sm,
     alignItems: 'flex-start',
   },
   paisBtn: {
@@ -439,21 +423,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     height: 52,
-    paddingHorizontal: S.md,
-    borderRadius: R.lg,
-    borderWidth: 1.5,
-    borderColor: T.border,
-    backgroundColor: T.surface,
+    paddingHorizontal: t.spacing.md,
+    borderRadius: t.radius.lg,
+    borderWidth: 1,
+    borderColor: t.border,
+    backgroundColor: t.surface,
     alignSelf: 'flex-end',
   },
   paisFlag: {
     fontSize: 20,
   },
   paisBtnCode: {
-    fontFamily: FONT.medium,
-    fontSize: F.size.base,
-    color: T.fg1,
-    fontWeight: F.weight.medium,
+    fontSize: t.font.body,
+    color: t.text,
+    fontWeight: '500',
   },
   phoneInputWrap: {
     flex: 1,
@@ -464,64 +447,62 @@ const styles = StyleSheet.create({
   strengthRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: S.sm,
-    marginTop: -S.sm,
+    gap: t.spacing.sm,
+    marginTop: -t.spacing.sm,
   },
   strengthSeg: {
     flex: 1,
     height: 4,
-    borderRadius: R.full,
+    borderRadius: t.radius.full,
   },
   strengthLabel: {
-    fontFamily: FONT.semibold,
-    fontSize: F.size.sm,
-    fontWeight: F.weight.semibold,
+    fontSize: t.font.caption,
+    fontWeight: '600',
     width: 52,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: T.overlay,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    backgroundColor: T.surface,
-    borderTopLeftRadius: R.xl,
-    borderTopRightRadius: R.xl,
-    padding: S.xl,
+    backgroundColor: t.surfaceElevated,
+    borderTopLeftRadius: t.radius.xl,
+    borderTopRightRadius: t.radius.xl,
+    padding: t.spacing.xl,
     maxHeight: '70%',
+    borderWidth: 1,
+    borderColor: t.border,
   },
   modalHandle: {
     width: 40,
     height: 4,
-    borderRadius: R.full,
-    backgroundColor: T.border,
+    borderRadius: t.radius.full,
+    backgroundColor: t.border,
     alignSelf: 'center',
-    marginBottom: S.lg,
+    marginBottom: t.spacing.lg,
   },
   modalTitle: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.lg,
-    fontWeight: F.weight.bold,
-    color: T.fg1,
-    marginBottom: S.md,
+    fontSize: t.font.subtitle,
+    fontWeight: '700',
+    color: t.text,
+    marginBottom: t.spacing.md,
   },
   paisRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: S.md,
-    paddingVertical: S.md,
+    gap: t.spacing.md,
+    paddingVertical: t.spacing.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: T.border,
+    borderBottomColor: t.border,
   },
   paisName: {
     flex: 1,
-    fontFamily: FONT.regular,
-    fontSize: F.size.base,
-    color: T.fg1,
+    fontSize: t.font.body,
+    color: t.text,
   },
   paisCode: {
-    fontFamily: FONT.regular,
-    fontSize: F.size.base,
-    color: T.fg3,
+    fontSize: t.font.body,
+    color: t.textMuted,
   },
 })

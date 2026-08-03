@@ -1,7 +1,6 @@
 import { memo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
-import { T, F, S, R } from '@/lib/tokens'
-import { FONT } from '@/lib/typography'
+import { onboardingTheme as t } from '@/onboarding/lib/theme'
 
 export const AuthErrorBanner = memo(function AuthErrorBanner({ message }: { message: string }) {
   if (!message) return null
@@ -14,17 +13,16 @@ export const AuthErrorBanner = memo(function AuthErrorBanner({ message }: { mess
 
 const styles = StyleSheet.create({
   box: {
-    backgroundColor: T.dangerSoft,
+    backgroundColor: 'rgba(255, 107, 53, 0.12)',
     borderWidth: 1,
-    borderColor: T.danger,
-    borderRadius: R.lg,
-    padding: S.md,
-    marginBottom: S.lg,
+    borderColor: t.accentSecondary,
+    borderRadius: t.radius.md,
+    padding: t.spacing.md,
   },
   text: {
-    fontFamily: FONT.medium,
-    fontSize: F.size.sm,
-    color: T.danger,
-    fontWeight: F.weight.medium,
+    fontSize: t.font.caption,
+    color: t.accentSecondary,
+    fontWeight: '500',
+    lineHeight: 18,
   },
 })

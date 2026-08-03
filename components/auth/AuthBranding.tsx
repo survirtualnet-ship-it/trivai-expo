@@ -1,8 +1,7 @@
 import { memo } from 'react'
 import { Image, StyleSheet, Text, View } from 'react-native'
 import { BrandAssets } from '@/lib/brandAssets'
-import { T, F, S, R, SHADOW } from '@/lib/tokens'
-import { FONT } from '@/lib/typography'
+import { onboardingTheme as t } from '@/onboarding/lib/theme'
 
 type Props = {
   title: string
@@ -29,41 +28,41 @@ export const AuthBranding = memo(function AuthBranding({ title, subtitle }: Prop
 const styles = StyleSheet.create({
   wrap: {
     alignItems: 'center',
-    paddingBottom: S.md,
-    gap: S.md,
+    paddingBottom: t.spacing.sm,
+    gap: t.spacing.md,
   },
   logoBadge: {
     width: 72,
     height: 72,
-    borderRadius: R.lg,
-    backgroundColor: T.surface,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: T.border,
-    ...SHADOW.sm,
+    backgroundColor: '#FFFFFF',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.55)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.22,
+    shadowRadius: 16,
+    elevation: 8,
   },
   logo: {
     width: 56,
     height: 56,
   },
   title: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.h1,
-    fontWeight: F.weight.bold,
-    color: T.fg1,
+    color: t.text,
+    fontSize: t.font.title,
+    fontWeight: '800',
     textAlign: 'center',
     letterSpacing: -0.5,
-    paddingHorizontal: S.sm,
+    paddingHorizontal: t.spacing.sm,
   },
   subtitle: {
-    fontFamily: FONT.regular,
-    fontSize: F.size.md,
-    color: T.fg3,
+    color: t.textSecondary,
+    fontSize: t.font.subtitle,
     textAlign: 'center',
     lineHeight: 22,
-    paddingHorizontal: S.sm,
-    marginTop: -S.xs,
+    paddingHorizontal: t.spacing.sm,
   },
 })

@@ -3,15 +3,15 @@ import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { Lock, Mail } from 'lucide-react-native'
 import { Ionicons } from '@expo/vector-icons'
-import ScreenHeader from '@/components/ScreenHeader'
-import { ScreenContainer } from '@/components/ui/ScreenContainer'
-import { Card } from '@/components/ui/Card'
-import { AppInput } from '@/components/ui/AppInput'
-import { Button } from '@/components/ui/Button'
+import { AuthScreenLayout } from '@/components/auth/AuthScreenLayout'
+import { AuthCard } from '@/components/auth/AuthCard'
+import { AuthInput } from '@/components/auth/AuthInput'
 import { AuthBranding } from '@/components/auth/AuthBranding'
 import { AuthDivider } from '@/components/auth/AuthDivider'
 import { AuthFooterLink } from '@/components/auth/AuthFooterLink'
 import { AuthErrorBanner } from '@/components/auth/AuthErrorBanner'
+import { PrimaryButton } from '@/onboarding/components/PrimaryButton'
+import { onboardingTheme as t } from '@/onboarding/lib/theme'
 import { supabase } from '@/lib/supabase'
 import { signInWithGoogle } from '@/lib/auth/googleOAuth'
 import { ensureProfile } from '@/lib/auth/ensureProfile'
@@ -19,8 +19,6 @@ import { navigateAfterAuth } from '@/lib/navigateAfterAuth'
 import { getAuthRedirectUrl } from '@/lib/auth/redirectUrl'
 import { mapAuthError } from '@/lib/auth/authErrors'
 import { useAuthStore } from '@/src/auth/store/useAuthStore'
-import { T, F, S } from '@/lib/tokens'
-import { FONT } from '@/lib/typography'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -99,20 +97,17 @@ export default function Login() {
   }
 
   return (
-    <ScreenContainer
-      centered
-      header={<ScreenHeader title="" fallbackHref="/welcome" hideLogo />}
-    >
+    <AuthScreenLayout centered onBack={() => router.back()}>
       <AuthBranding
         title="Bienvenido a Trivai 👋"
         subtitle="Descubre lo mejor cerca de ti"
       />
 
-      <Card>
+      <AuthCard>
         <AuthErrorBanner message={error} />
 
         <View style={styles.form}>
-          <AppInput
+          <AuthInput
             label="Email"
             icon={Mail}
             value={email}
@@ -125,7 +120,7 @@ export default function Login() {
             autoComplete="email"
           />
 
-          <AppInput
+          <AuthInput
             label="Contraseña"
             icon={Lock}
             password
@@ -145,68 +140,61 @@ export default function Login() {
             <Switch
               value={rememberMe}
               onValueChange={setRememberMe}
-              trackColor={{ false: T.border, true: T.purpleSoft }}
-              thumbColor={rememberMe ? T.primary : T.surface}
+              trackColor={{ false: t.border, true: 'rgba(109, 94, 247, 0.35)' }}
+              thumbColor={rememberMe ? t.accent : t.textMuted}
             />
             <Text style={styles.rememberLabel}>Recordarme</Text>
           </View>
 
-          <Button
+          <PrimaryButton
             label="Iniciar sesión"
             onPress={handleLogin}
-            variant="primary"
-            size="lg"
-            fullWidth
             loading={loading}
             disabled={!isFormValid || googleLoading}
           />
 
           <AuthDivider />
 
-          <Button
+          <PrimaryButton
             label="Continuar con Google"
             onPress={handleGoogleLogin}
             variant="secondary"
-            size="lg"
-            fullWidth
             loading={googleLoading}
             disabled={loading}
-            icon={<Ionicons name="logo-google" size={18} color={T.fg1} />}
+            icon={<Ionicons name="logo-google" size={18} color={t.text} />}
           />
         </View>
-      </Card>
+      </AuthCard>
 
       <AuthFooterLink
         prefix="¿No tienes cuenta?"
         linkLabel="Crear cuenta"
         onPress={() => router.push('/auth/registro')}
       />
-    </ScreenContainer>
+    </AuthScreenLayout>
   )
 }
 
 const styles = StyleSheet.create({
   form: {
-    gap: S.lg,
+    gap: t.spacing.lg,
   },
   forgotWrap: {
     alignSelf: 'flex-end',
-    marginTop: -S.sm,
+    marginTop: -t.spacing.sm,
   },
   forgot: {
-    fontFamily: FONT.semibold,
-    fontSize: F.size.sm,
-    color: T.primary,
-    fontWeight: F.weight.semibold,
+    fontSize: t.font.caption,
+    fontWeight: '600',
+    color: t.accent,
   },
   rememberRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: S.sm,
+    gap: t.spacing.sm,
   },
   rememberLabel: {
-    fontFamily: FONT.regular,
-    fontSize: F.size.sm,
-    color: T.fg2,
+    fontSize: t.font.caption,
+    color: t.textSecondary,
   },
 })

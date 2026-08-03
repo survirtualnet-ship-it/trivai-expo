@@ -1,13 +1,11 @@
-import { memo, type ReactNode } from 'react'
+import { memo } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { T, F, S } from '@/lib/tokens'
-import { FONT } from '@/lib/typography'
+import { onboardingTheme as t } from '@/onboarding/lib/theme'
 
 type Props = {
   prefix: string
   linkLabel: string
   onPress: () => void
-  children?: ReactNode
 }
 
 export const AuthFooterLink = memo(function AuthFooterLink({
@@ -31,18 +29,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     flexWrap: 'wrap',
-    paddingVertical: S.md,
-    gap: S.xs,
+    paddingVertical: t.spacing.md,
+    gap: t.spacing.xs,
   },
   prefix: {
-    fontFamily: FONT.regular,
-    fontSize: F.size.base,
-    color: T.fg3,
+    fontSize: t.font.body,
+    color: t.textSecondary,
   },
   link: {
-    fontFamily: FONT.bold,
-    fontSize: F.size.base,
-    fontWeight: F.weight.bold,
-    color: T.primary,
+    fontSize: t.font.body,
+    fontWeight: '700',
+    color: t.accent,
   },
 })
