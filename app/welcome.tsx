@@ -36,8 +36,8 @@ export default function WelcomeRoute() {
       error={error}
       googleLoading={googleLoading}
       onGoogle={handleGoogle}
-      onEmail={() => router.replace('/auth/login')}
-      onRegister={() => router.replace('/auth/registro')}
+      onEmail={() => router.push('/auth/login')}
+      onRegister={() => router.push('/auth/registro')}
     />
   )
 }

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Alert, StyleSheet, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { Lock } from 'lucide-react-native'
+import { goAuthBack } from '@/lib/auth/goAuthBack'
 import { AuthScreenLayout } from '@/components/auth/AuthScreenLayout'
 import { AuthCard } from '@/components/auth/AuthCard'
 import { AuthInput } from '@/components/auth/AuthInput'
@@ -48,7 +49,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <AuthScreenLayout centered onBack={() => router.replace('/auth/login')}>
+    <AuthScreenLayout centered onBack={() => goAuthBack('/auth/login')}>
       <AuthBranding
         title="Nueva contraseña"
         subtitle="Elige una contraseña segura para tu cuenta"

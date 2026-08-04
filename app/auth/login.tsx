@@ -3,6 +3,7 @@ import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { Lock, Mail } from 'lucide-react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { goAuthBack } from '@/lib/auth/goAuthBack'
 import { AuthScreenLayout } from '@/components/auth/AuthScreenLayout'
 import { AuthCard } from '@/components/auth/AuthCard'
 import { AuthInput } from '@/components/auth/AuthInput'
@@ -97,7 +98,7 @@ export default function Login() {
   }
 
   return (
-    <AuthScreenLayout centered onBack={() => router.back()}>
+    <AuthScreenLayout centered onBack={() => goAuthBack('/welcome')}>
       <AuthBranding
         title="Bienvenido a Trivai 👋"
         subtitle="Descubre lo mejor cerca de ti"

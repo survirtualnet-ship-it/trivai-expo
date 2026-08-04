@@ -11,6 +11,7 @@ import {
 } from 'react-native'
 import { router } from 'expo-router'
 import { AtSign, ChevronDown, Lock, Mail, Phone, User } from 'lucide-react-native'
+import { goAuthBack } from '@/lib/auth/goAuthBack'
 import { AuthScreenLayout } from '@/components/auth/AuthScreenLayout'
 import { AuthCard } from '@/components/auth/AuthCard'
 import { AuthInput } from '@/components/auth/AuthInput'
@@ -229,7 +230,7 @@ export default function Registro() {
 
       <AuthScreenLayout
         centered
-        onBack={() => (step === 2 ? setStep(1) : router.back())}
+        onBack={() => (step === 2 ? setStep(1) : goAuthBack('/welcome'))}
         headerRight={<Text style={styles.stepLabel}>Paso {step} de 2</Text>}
       >
         <AuthBranding
