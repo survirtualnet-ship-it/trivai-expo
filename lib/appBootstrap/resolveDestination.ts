@@ -65,6 +65,15 @@ export function isPublicPath(pathname: string): boolean {
   )
 }
 
+/** Auth forms stay accessible even with a stale persisted session. */
+export function isAuthFormPath(pathname: string): boolean {
+  return (
+    pathname === '/auth/login' ||
+    pathname === '/auth/registro' ||
+    pathname === '/auth/reset-password'
+  )
+}
+
 export function isOnboardingPath(pathname: string): boolean {
   return (
     pathname === '/onboarding' ||

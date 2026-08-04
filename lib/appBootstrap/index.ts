@@ -4,6 +4,7 @@ export {
   resolvePostAuthDestination,
   destinationMatchesPath,
   isPublicPath,
+  isAuthFormPath,
   isOnboardingPath,
 } from './resolveDestination'
 export {

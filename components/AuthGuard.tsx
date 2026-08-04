@@ -4,6 +4,7 @@ import { useAppBootstrap } from '@/hooks/useAppBootstrap'
 import { useAuthStore } from '@/src/auth/store/useAuthStore'
 import {
   destinationMatchesPath,
+  isAuthFormPath,
   isOnboardingPath,
   isPublicPath,
 } from '@/lib/appBootstrap'
@@ -29,6 +30,9 @@ export function AuthGuard() {
     if (isAuthCallbackPath(path)) return
 
     if (isPublicPath(path)) {
+      // Keep login/register reachable (stale persisted session must not yank the form away)
+      if (isAuthFormPath(path)) return
+
       if (bootstrap.isAuthenticated && !bootstrap.hasCompletedOnboarding) {
         if (lastRedirect.current !== '/onboarding') {
           lastRedirect.current = '/onboarding'

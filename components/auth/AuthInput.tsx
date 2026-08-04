@@ -37,7 +37,7 @@ export const AuthInput = memo(function AuthInput({
   const isSecure = password ? !visible : secureTextEntry
 
   return (
-    <View style={[styles.wrap, containerStyle]}>
+    <View style={[styles.wrap, containerStyle]} pointerEvents="box-none">
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <View
         style={[
@@ -51,6 +51,7 @@ export const AuthInput = memo(function AuthInput({
         ) : null}
         <TextInput
           {...inputProps}
+          editable={inputProps.editable !== false}
           secureTextEntry={isSecure}
           style={styles.input}
           placeholderTextColor={t.textMuted}
