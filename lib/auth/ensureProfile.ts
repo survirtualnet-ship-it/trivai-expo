@@ -45,6 +45,9 @@ function profileFromAuthUser(user: User): Omit<Profile, 'created_at'> & { update
     business_phone: null,
     business_website: null,
     business_category: null,
+    legal_accepted: false,
+    legal_accepted_at: null,
+    legal_version: null,
     updated_at: new Date().toISOString(),
   }
 }

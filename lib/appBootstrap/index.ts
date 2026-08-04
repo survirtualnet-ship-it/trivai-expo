@@ -7,6 +7,8 @@ export {
   isPublicPath,
   isAuthFormPath,
   isOnboardingPath,
+  isPublicBrowsePath,
+  isLegalPath,
 } from './resolveDestination'
 export {
   syncProfileStoreFromAuth,

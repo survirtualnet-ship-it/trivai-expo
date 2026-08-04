@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { T, F, S, R } from '@/lib/tokens'
 import { setOnboardingDone, setBusinessIntent } from '@/lib/onboardingStorage'
 import { searchGooglePlaces, type GooglePlaceResult } from '@/lib/googlePlacesApi'
+import { claimBusiness } from '@/lib/places'
 
 interface Props {
   visible: boolean
@@ -59,18 +60,19 @@ export default function OnboardingModal({ visible, onDone }: Props) {
   }
 
   const vincularNegocio = async () => {
+    if (!placeData) return
     setGuardando(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        await supabase.from('profiles').update({
-          account_type:      'business',
-          business_place_id: placeData?.place_id ?? null,
-          business_name:     placeData?.name ?? null,
-          business_address:  placeData?.address ?? null,
-          business_lat:      placeData?.lat ?? null,
-          business_lng:      placeData?.lng ?? null,
-        }).eq('id', user.id)
+        await claimBusiness({
+          googlePlaceId: placeData.place_id,
+          ownerId: user.id,
+          name: placeData.name,
+          address: placeData.address,
+          lat: placeData.lat,
+          lng: placeData.lng,
+        })
       }
     } catch {}
     setGuardando(false)

@@ -10,8 +10,9 @@ import {
   roleFromProfile,
   syncProfileStoreFromAuth,
 } from '@/lib/appBootstrap'
+import { needsLegalAcceptance } from '@/lib/legal'
 
-/** Navigate after login/register/OAuth based on onboarding + role. */
+/** Navigate after login/register/OAuth based on legal + onboarding + role. */
 export async function navigateAfterAuth(
   user: User,
   profile: Profile | null,
@@ -35,6 +36,7 @@ export async function navigateAfterAuth(
   const destination = resolvePostAuthDestination({
     isAuthenticated: true,
     hasCompletedOnboarding,
+    needsLegalAcceptance: needsLegalAcceptance(true, profile),
     role,
     companyId,
   })

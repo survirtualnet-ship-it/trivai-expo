@@ -1,13 +1,25 @@
 import { memo, useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { Star, MessageSquare } from 'lucide-react-native'
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from 'react-native'
+import { Star, MessageSquare, Flag } from 'lucide-react-native'
+import { router } from 'expo-router'
 import { T, F, S, R } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import type { PlaceReview } from '@/lib/queries/placeDetail'
+import { reportReview } from '@/lib/legal'
 
 type Props = {
   reviews: PlaceReview[]
   onWriteReview?: () => void
+  /** Logged-in user id — required to report */
+  userId?: string | null
+  onReported?: () => void
 }
 
 function ReviewStars({ rating }: { rating: number }) {
@@ -25,9 +37,50 @@ function ReviewStars({ rating }: { rating: number }) {
   )
 }
 
-export const ReviewsPreview = memo(function ReviewsPreview({ reviews, onWriteReview }: Props) {
+export const ReviewsPreview = memo(function ReviewsPreview({
+  reviews,
+  onWriteReview,
+  userId,
+  onReported,
+}: Props) {
   const [showAll, setShowAll] = useState(false)
+  const [reportingId, setReportingId] = useState<string | null>(null)
   const preview = showAll ? reviews : reviews.slice(0, 3)
+
+  const handleReport = (reviewId: string) => {
+    if (!userId) {
+      router.push('/auth/login')
+      return
+    }
+
+    Alert.alert(
+      'Reportar contenido',
+      '¿Este contenido viola las normas de la comunidad?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Reportar',
+          style: 'destructive',
+          onPress: async () => {
+            setReportingId(reviewId)
+            const result = await reportReview(reviewId, userId)
+            setReportingId(null)
+            if (!result.ok) {
+              Alert.alert('No se pudo reportar', result.error ?? 'Intenta de nuevo')
+              return
+            }
+            Alert.alert(
+              result.hidden ? 'Contenido oculto' : 'Gracias',
+              result.hidden
+                ? 'Este contenido recibió suficientes reportes y se ocultó automáticamente.'
+                : 'Tu reporte fue registrado. Revisaremos el contenido de forma automática.',
+            )
+            onReported?.()
+          },
+        },
+      ],
+    )
+  }
 
   return (
     <View style={styles.wrap}>
@@ -64,7 +117,21 @@ export const ReviewsPreview = memo(function ReviewsPreview({ reviews, onWriteRev
               <View style={styles.body}>
                 <View style={styles.top}>
                   <Text style={styles.name}>{name.split(' ')[0]}</Text>
-                  <Text style={styles.date}>{fecha}</Text>
+                  <View style={styles.topRight}>
+                    <Text style={styles.date}>{fecha}</Text>
+                    <TouchableOpacity
+                      onPress={() => handleReport(r.id)}
+                      hitSlop={8}
+                      accessibilityLabel="Reportar reseña"
+                      disabled={reportingId === r.id}
+                    >
+                      {reportingId === r.id ? (
+                        <ActivityIndicator size="small" color={T.fg4} />
+                      ) : (
+                        <Flag size={14} color={T.fg4} />
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 <ReviewStars rating={r.rating} />
                 {r.text ? <Text style={styles.text}>{r.text}</Text> : null}
@@ -152,6 +219,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 4,
+  },
+  topRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: S.sm,
   },
   name: {
     fontFamily: FONT.bold,

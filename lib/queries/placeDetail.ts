@@ -18,10 +18,21 @@ export async function fetchPlaceReviews(placeId: string, limit = 20): Promise<Pl
     .from('reviews')
     .select('id, rating, text, created_at, profile:profiles(full_name, username)')
     .eq('place_id', placeId)
+    .or('is_hidden.is.null,is_hidden.eq.false')
     .order('created_at', { ascending: false })
     .limit(limit)
 
-  if (error) throw error
+  if (error) {
+    // Fallback if is_hidden column not migrated yet
+    const fallback = await supabase
+      .from('reviews')
+      .select('id, rating, text, created_at, profile:profiles(full_name, username)')
+      .eq('place_id', placeId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (fallback.error) throw fallback.error
+    return (fallback.data ?? []) as PlaceReview[]
+  }
   return (data ?? []) as PlaceReview[]
 }
 

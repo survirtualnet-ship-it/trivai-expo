@@ -5,7 +5,9 @@ import { useAuthStore } from '@/src/auth/store/useAuthStore'
 import {
   destinationMatchesPath,
   isAuthFormPath,
+  isLegalPath,
   isOnboardingPath,
+  isPublicBrowsePath,
   isPublicPath,
   normalizePath,
 } from '@/lib/appBootstrap'
@@ -13,7 +15,7 @@ import { isAuthCallbackPath } from '@/lib/auth/completeAuthCallback'
 
 /**
  * Global route protection — redirects unauthenticated users to welcome/login
- * and enforces onboarding + role-based destinations.
+ * and enforces legal consent, onboarding + role-based destinations.
  */
 export function AuthGuard() {
   const bootstrap = useAppBootstrap()
@@ -29,6 +31,49 @@ export function AuthGuard() {
 
     // Let /auth/callback finish OAuth + navigateAfterAuth without being yanked away
     if (isAuthCallbackPath(path)) return
+
+    // Legal docs always readable; accept screen is the re-consent gate
+    if (isLegalPath(path)) {
+      if (
+        path === '/legal/accept' &&
+        !bootstrap.isAuthenticated
+      ) {
+        if (lastRedirect.current !== '/welcome') {
+          lastRedirect.current = '/welcome'
+          router.replace('/welcome')
+        }
+        return
+      }
+      if (
+        bootstrap.isAuthenticated &&
+        bootstrap.needsLegalAcceptance &&
+        path !== '/legal/accept' &&
+        !path.startsWith('/legal/terms') &&
+        !path.startsWith('/legal/privacy') &&
+        !path.startsWith('/legal/content-policy')
+      ) {
+        if (lastRedirect.current !== '/legal/accept') {
+          lastRedirect.current = '/legal/accept'
+          router.replace('/legal/accept')
+        }
+      }
+      return
+    }
+
+    // Logged-in users must accept current legal version before anything else
+    if (bootstrap.isAuthenticated && bootstrap.needsLegalAcceptance) {
+      if (isAuthFormPath(path)) return
+      if (lastRedirect.current !== '/legal/accept') {
+        lastRedirect.current = '/legal/accept'
+        router.replace('/legal/accept')
+      }
+      return
+    }
+
+    // Guests can browse places, map, discover — read-only exploration
+    if (isPublicBrowsePath(path) && !isPublicPath(path)) {
+      return
+    }
 
     if (isPublicPath(path)) {
       // Keep login/register reachable (stale persisted session must not yank the form away)

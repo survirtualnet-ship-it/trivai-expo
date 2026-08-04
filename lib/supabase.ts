@@ -47,29 +47,35 @@ export interface Profile {
   business_website:  string | null
   business_category: string | null
   phone:             string | null
+  /** Legal consent (GDPR-friendly MVP) */
+  legal_accepted:    boolean
+  legal_accepted_at: string | null
+  legal_version:     string | null
   created_at:        string
   updated_at:        string
 }
 
 export interface Place {
-  id:           string
-  name:         string
-  description:  string | null
-  category:     string
-  address:      string | null
-  city:         string
-  latitude:     number | null
-  longitude:    number | null
-  phone:        string | null
-  website:      string | null
-  hours:        Record<string, string> | null
-  photos:       string[]
-  rating_avg:   number
-  rating_count: number
-  is_open:      boolean
-  is_sponsored: boolean
-  is_featured:  boolean
-  is_verified:  boolean
+  id:               string
+  name:             string
+  description:      string | null
+  category:         string
+  address:          string | null
+  city:             string
+  latitude:         number | null
+  longitude:        number | null
+  phone:            string | null
+  website:          string | null
+  hours:            Record<string, string> | null
+  photos:           string[]
+  rating_avg:       number
+  rating_count:     number
+  is_open:          boolean
+  is_sponsored:     boolean
+  is_featured:      boolean
+  is_verified:      boolean
+  /** Google Place ID — external canonical key (ChIJ…) */
+  google_place_id?: string | null
 }
 
 export interface Event {

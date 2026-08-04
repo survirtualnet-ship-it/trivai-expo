@@ -10,6 +10,7 @@ import {
   type BootstrapState,
 } from '@/lib/appBootstrap'
 import { syncAuthStoreFromSession } from '@/src/auth/syncAuthStore'
+import { needsLegalAcceptance as checkNeedsLegal } from '@/lib/legal'
 
 function useStoreHydrated(): boolean {
   const [profileHydrated, setProfileHydrated] = useState(
@@ -76,6 +77,9 @@ export function useAppBootstrap(): BootstrapState {
     profile?.account_type != null ||
     storageDone === true
 
+  const needsLegal =
+    isAuthenticated && checkNeedsLegal(true, profile)
+
   const loadingUser = storageDone === null
   const ready =
     authHydrated &&
@@ -89,6 +93,7 @@ export function useAppBootstrap(): BootstrapState {
       ? resolveAppDestination({
           isAuthenticated,
           hasCompletedOnboarding,
+          needsLegalAcceptance: needsLegal,
           role,
           companyId,
         })
@@ -101,6 +106,7 @@ export function useAppBootstrap(): BootstrapState {
       storesHydrated,
       isAuthenticated,
       hasCompletedOnboarding,
+      needsLegalAcceptance: needsLegal,
       role,
       companyId,
       phase,
@@ -113,6 +119,7 @@ export function useAppBootstrap(): BootstrapState {
     storesHydrated,
     isAuthenticated,
     hasCompletedOnboarding,
+    needsLegal,
     role,
     companyId,
   ])

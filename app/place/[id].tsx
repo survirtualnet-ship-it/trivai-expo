@@ -6,6 +6,7 @@ import {
   Linking,
   Text,
   Pressable,
+  Alert,
 } from 'react-native'
 import { useLocalSearchParams, router } from 'expo-router'
 import { PlaceHeader } from '@/components/place/PlaceHeader'
@@ -16,14 +17,19 @@ import { PlaceDescription } from '@/components/place/PlaceDescription'
 import { PlaceExtraInfo } from '@/components/place/PlaceExtraInfo'
 import { LocationPreview } from '@/components/place/LocationPreview'
 import { SimilarPlaces } from '@/components/place/SimilarPlaces'
+import { PlaceLiveSection } from '@/components/place/PlaceLiveSection'
+import { ClaimBusinessBanner } from '@/components/place/ClaimBusinessBanner'
+import { ReviewsPreview } from '@/components/place/ReviewsPreview'
 import { StickyCTA } from '@/components/place/StickyCTA'
 import { PlaceDetailSkeleton } from '@/components/place/PlaceDetailSkeleton'
 import { FadeInView } from '@/components/ui/FadeInView'
 import {
   usePlaceDetail,
   usePlaceFavorite,
+  usePlaceReviews,
   useSimilarPlaces,
 } from '@/hooks/usePlaceDetail'
+import { useHybridPlace } from '@/hooks/useHybridPlace'
 import { useLocationProfile } from '@/hooks/useLocationProfile'
 import { useUser } from '@/hooks/useUser'
 import {
@@ -43,6 +49,8 @@ export default function PlaceDetailScreen() {
   const countryCode = profile?.countryCode ?? 'BO'
 
   const { place, isLoading, isError, refetch } = usePlaceDetail(id)
+  const hybridQuery = useHybridPlace(id)
+  const reviewsQuery = usePlaceReviews(id)
   const { isFavorite, toggle, isPending: favPending } = usePlaceFavorite(id)
   const similarQuery = useSimilarPlaces(id, place?.category)
 
@@ -73,11 +81,22 @@ export default function PlaceDetailScreen() {
 
   const handleSave = useCallback(() => {
     if (!user) {
-      router.push('/auth')
+      router.push('/auth/login')
       return
     }
     toggle()
   }, [user, toggle])
+
+  const handleWriteReview = useCallback(() => {
+    if (!user) {
+      router.push('/auth/login')
+      return
+    }
+    Alert.alert(
+      'Reseñas',
+      'Pronto podrás publicar tu experiencia desde aquí.',
+    )
+  }, [user])
 
   const handleStickyPress = useCallback(() => {
     if (!place) return
@@ -87,6 +106,8 @@ export default function PlaceDetailScreen() {
 
   const tagList = useMemo(() => place?.tags ?? [], [place?.tags])
   const idealFor = useMemo(() => place?.idealFor ?? [], [place?.idealFor])
+  const hybrid = hybridQuery.data
+  const reviews = reviewsQuery.data ?? []
 
   if (isLoading) return <PlaceDetailSkeleton />
 
@@ -153,7 +174,32 @@ export default function PlaceDetailScreen() {
           />
         </FadeInView>
 
+        <FadeInView delay={80}>
+          <PlaceLiveSection
+            live={hybrid?.live ?? null}
+            claimed={hybrid?.claimed ?? false}
+          />
+        </FadeInView>
+
+        <FadeInView delay={85}>
+          <ClaimBusinessBanner
+            placeName={place.name}
+            claimed={hybrid?.claimed ?? false}
+            isOwner={hybrid?.isOwner ?? false}
+            isAuthenticated={!!user}
+          />
+        </FadeInView>
+
         <FadeInView delay={90}>
+          <ReviewsPreview
+            reviews={reviews}
+            userId={user?.id}
+            onWriteReview={user ? handleWriteReview : undefined}
+            onReported={() => reviewsQuery.refetch()}
+          />
+        </FadeInView>
+
+        <FadeInView delay={100}>
           <PlaceExtraInfo place={place} />
         </FadeInView>
 

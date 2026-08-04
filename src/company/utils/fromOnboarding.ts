@@ -14,9 +14,10 @@ export function companyIdFromPlaceId(placeId: string): string {
 export function companyFromBusinessData(
   data: BusinessData,
   email?: string,
+  placeUuid?: string,
 ): Company {
   return {
-    id: companyIdFromPlaceId(data.placeId),
+    id: placeUuid ?? companyIdFromPlaceId(data.placeId),
     name: data.name,
     category: data.category ?? 'Negocio',
     description: data.description ?? '',

@@ -29,15 +29,11 @@ export function CompanyProfileScreen({ companyId }: Props) {
   const editMode = useCompanyProfileStore(s => s.editMode)
   const draftCompany = useCompanyProfileStore(s => s.draftCompany)
   const activeTab = useCompanyProfileStore(s => s.activeTab)
-  const isCompanyOwner = useCompanyProfileStore(s => s.isCompanyOwner)
   const userCompanyId = useProfileStore(s => s.user.companyId)
   const authCompanyId = useAuthStore(s => s.user?.companyId)
-  const authRole = useAuthStore(s => s.user?.role)
   const isOwner =
-    isCompanyOwner ||
     userCompanyId === companyId ||
-    authCompanyId === companyId ||
-    (authRole === 'company' && Boolean(authCompanyId || userCompanyId))
+    authCompanyId === companyId
 
   const loadCompany = useCompanyProfileStore(s => s.loadCompany)
   const setActiveTab = useCompanyProfileStore(s => s.setActiveTab)

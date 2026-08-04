@@ -53,21 +53,9 @@ export default function Configuracion() {
     ])
   }
 
-  const abrirPrivacidad = () => {
-    Alert.alert(
-      'Privacidad',
-      'Trivai usa tu ubicación solo para mostrarte lugares cercanos. Tus datos se almacenan de forma segura en Supabase y no se venden a terceros.',
-      [{ text: 'Entendido' }],
-    )
-  }
-
-  const abrirTerminos = () => {
-    Alert.alert(
-      'Términos de uso',
-      'Al usar Trivai aceptas publicar contenido verídico y respetuoso. Nos reservamos el derecho de eliminar contenido inapropiado.',
-      [{ text: 'Entendido' }],
-    )
-  }
+  const abrirPrivacidad = () => router.push('/legal/privacy')
+  const abrirTerminos = () => router.push('/legal/terms')
+  const abrirNormas = () => router.push('/legal/content-policy')
 
   const abrirAyuda = () => {
     Linking.openURL('mailto:survirtualnet@gmail.com?subject=Soporte%20Trivai')
@@ -88,12 +76,13 @@ export default function Configuracion() {
       ],
     },
     {
-      titulo: 'Acerca de',
+      titulo: 'Legal',
       items: [
-        { icon: Shield, label: 'Privacidad',      onPress: abrirPrivacidad },
-        { icon: Info,   label: 'Términos de uso', onPress: abrirTerminos },
-        { icon: Info,   label: 'Contactar soporte', onPress: abrirAyuda },
-        { icon: Info,   label: 'Versión 1.0.0',   onPress: () => {} },
+        { icon: Shield, label: 'Privacidad',           onPress: abrirPrivacidad },
+        { icon: Info,   label: 'Términos de uso',      onPress: abrirTerminos },
+        { icon: Info,   label: 'Normas de contenido',  onPress: abrirNormas },
+        { icon: Info,   label: 'Contactar soporte',    onPress: abrirAyuda },
+        { icon: Info,   label: 'Versión 1.0.0',        onPress: () => {} },
       ],
     },
   ]

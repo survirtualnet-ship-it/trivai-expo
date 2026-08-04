@@ -5,6 +5,7 @@ export type UserRole = 'tourist' | 'company'
 export type BootstrapPhase =
   | 'loading'
   | 'welcome'
+  | 'legal-accept'
   | 'onboarding'
   | 'tourist-home'
   | 'company-dashboard'
@@ -17,6 +18,7 @@ export type BootstrapState = {
   storesHydrated: boolean
   isAuthenticated: boolean
   hasCompletedOnboarding: boolean
+  needsLegalAcceptance: boolean
   role: UserRole | null
   companyId: string | null
   phase: BootstrapPhase

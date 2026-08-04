@@ -12,6 +12,8 @@ export const placeKeys = {
   reviews: (id: string) => [...placeKeys.all, 'reviews', id] as const,
   favorite: (userId: string, placeId: string) =>
     [...placeKeys.all, 'favorite', userId, placeId] as const,
+  hybrid: (placeId: string, userId: string) =>
+    [...placeKeys.all, 'hybrid', placeId, userId] as const,
 }
 
 export const eventKeys = {

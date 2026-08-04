@@ -47,11 +47,12 @@ export default function MiNegocio() {
     if (profile.business_category) setCategoria(profile.business_category ?? '')
 
     async function cargarLugar() {
-      if (!profile?.business_name) return
+      const placeId = profile?.business_place_id
+      if (!placeId) return
       const { data } = await supabase
         .from('places')
         .select('id, description, category, phone, website, is_verified')
-        .eq('name', profile.business_name!)
+        .eq('id', placeId)
         .maybeSingle()
       if (data) {
         setPlaceUUID(data.id)

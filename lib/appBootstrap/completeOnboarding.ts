@@ -67,7 +67,7 @@ export async function completeTouristOnboarding({
   router.replace(dest)
 }
 
-/** Company: persist role, companyId, Supabase → dashboard or onboarding. */
+/** Company: claim in Supabase, persist role → dashboard. */
 export async function completeBusinessOnboarding({
   userId,
   email,
@@ -75,6 +75,7 @@ export async function completeBusinessOnboarding({
   companyId,
   businessName,
 }: CompleteBase & {
+  /** Supabase places.id UUID — must match profiles.business_place_id */
   companyId: string
   businessName?: string
 }): Promise<void> {

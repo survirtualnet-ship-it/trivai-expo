@@ -18,12 +18,14 @@ import { AuthInput } from '@/components/auth/AuthInput'
 import { AuthBranding } from '@/components/auth/AuthBranding'
 import { AuthFooterLink } from '@/components/auth/AuthFooterLink'
 import { AuthErrorBanner } from '@/components/auth/AuthErrorBanner'
+import { LegalConsentCheckbox } from '@/components/legal/LegalConsentCheckbox'
 import { PrimaryButton } from '@/onboarding/components/PrimaryButton'
 import { onboardingTheme as t } from '@/onboarding/lib/theme'
 import { supabase } from '@/lib/supabase'
 import { ensureProfile } from '@/lib/auth/ensureProfile'
 import { navigateAfterAuth } from '@/lib/navigateAfterAuth'
 import { getAuthRedirectUrl } from '@/lib/auth/redirectUrl'
+import { legalAcceptancePayload } from '@/lib/legal'
 
 const PAISES = [
   { code: '+591', flag: '🇧🇴', name: 'Bolivia' },
@@ -61,6 +63,7 @@ export default function Registro() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [legalAccepted, setLegalAccepted] = useState(false)
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -77,8 +80,8 @@ export default function Registro() {
   )
 
   const step2Valid = useMemo(
-    () => email.trim().length > 0 && password.length >= 6,
-    [email, password],
+    () => email.trim().length > 0 && password.length >= 6 && legalAccepted,
+    [email, password, legalAccepted],
   )
 
   const handlePaso1 = async () => {
@@ -133,6 +136,10 @@ export default function Registro() {
   }
 
   const handleRegistro = async () => {
+    if (!legalAccepted) {
+      setError('Debes aceptar los Términos y la Política de Privacidad')
+      return
+    }
     if (!step2Valid) {
       setError('Ingresa un email válido y una contraseña de al menos 6 caracteres')
       return
@@ -169,6 +176,7 @@ export default function Registro() {
           full_name: fullName,
           username: username.toLowerCase(),
           phone: fullPhone,
+          ...legalAcceptancePayload(),
           updated_at: new Date().toISOString(),
         })
         .eq('id', data.user.id)
@@ -359,6 +367,11 @@ export default function Registro() {
                   </Text>
                 </View>
               ) : null}
+
+              <LegalConsentCheckbox
+                checked={legalAccepted}
+                onChange={setLegalAccepted}
+              />
 
               <PrimaryButton
                 label="Crear cuenta"

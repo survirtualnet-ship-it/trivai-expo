@@ -1,4 +1,5 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import { router } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
 import { OnboardingLayout } from '../components/OnboardingLayout'
 import { PrimaryButton } from '../components/PrimaryButton'
@@ -81,6 +82,22 @@ export function WelcomeScreen({
               <Text style={styles.registerPrefix}>¿No tienes cuenta?</Text>
               <Pressable onPress={handleRegister} hitSlop={8}>
                 <Text style={styles.registerLink}>Registrarse</Text>
+              </Pressable>
+            </View>
+            <View style={styles.legalRow}>
+              <Pressable onPress={() => router.push('/legal/terms')} hitSlop={6}>
+                <Text style={styles.legalLink}>Términos</Text>
+              </Pressable>
+              <Text style={styles.legalDot}>·</Text>
+              <Pressable onPress={() => router.push('/legal/privacy')} hitSlop={6}>
+                <Text style={styles.legalLink}>Privacidad</Text>
+              </Pressable>
+              <Text style={styles.legalDot}>·</Text>
+              <Pressable
+                onPress={() => router.push('/legal/content-policy')}
+                hitSlop={6}
+              >
+                <Text style={styles.legalLink}>Normas</Text>
               </Pressable>
             </View>
           </View>
@@ -182,5 +199,21 @@ const styles = StyleSheet.create({
     color: t.accent,
     fontSize: t.font.body,
     fontWeight: '700',
+  },
+  legalRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    paddingTop: t.spacing.sm,
+  },
+  legalLink: {
+    color: t.textMuted,
+    fontSize: t.font.caption,
+  },
+  legalDot: {
+    color: t.textMuted,
+    fontSize: t.font.caption,
   },
 })
