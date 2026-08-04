@@ -127,6 +127,8 @@ export function isPublicBrowsePath(pathname: string): boolean {
     '/lugares',
     '/explore',
     '/activity',
+    '/profile',
+    '/perfil',
   ])
   if (browseTabs.has(path)) return true
 
