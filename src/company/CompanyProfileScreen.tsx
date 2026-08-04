@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
@@ -29,6 +29,8 @@ export function CompanyProfileScreen({ companyId }: Props) {
   const editMode = useCompanyProfileStore(s => s.editMode)
   const draftCompany = useCompanyProfileStore(s => s.draftCompany)
   const activeTab = useCompanyProfileStore(s => s.activeTab)
+  const loadingRemote = useCompanyProfileStore(s => s.loadingRemote)
+  const loadError = useCompanyProfileStore(s => s.loadError)
   const userCompanyId = useProfileStore(s => s.user.companyId)
   const authCompanyId = useAuthStore(s => s.user?.companyId)
   const isOwner =
@@ -46,6 +48,20 @@ export function CompanyProfileScreen({ companyId }: Props) {
   const deleteProduct = useCompanyProfileStore(s => s.deleteProduct)
   const replyToReview = useCompanyProfileStore(s => s.replyToReview)
 
+  const [storeHydrated, setStoreHydrated] = useState(
+    useCompanyProfileStore.persist.hasHydrated(),
+  )
+
+  useEffect(() => {
+    const unsub = useCompanyProfileStore.persist.onFinishHydration(() => {
+      setStoreHydrated(true)
+    })
+    if (useCompanyProfileStore.persist.hasHydrated()) {
+      setStoreHydrated(true)
+    }
+    return unsub
+  }, [])
+
   useEffect(() => {
     if (activeTab === 'dashboard' && !isOwner) {
       setActiveTab('home')
@@ -53,8 +69,9 @@ export function CompanyProfileScreen({ companyId }: Props) {
   }, [activeTab, isOwner, setActiveTab])
 
   useEffect(() => {
-    loadCompany(companyId)
-  }, [companyId, userCompanyId, authCompanyId, loadCompany])
+    if (!storeHydrated || !companyId) return
+    void loadCompany(companyId)
+  }, [companyId, userCompanyId, authCompanyId, loadCompany, storeHydrated])
 
   const featuredProducts = useMemo(
     () => products.filter(p => p.isFeatured).slice(0, 3),
@@ -67,8 +84,26 @@ export function CompanyProfileScreen({ companyId }: Props) {
   }, [cancelEdit, editMode, setEditMode])
 
   const handleSave = useCallback(() => {
-    saveProfile()
+    void saveProfile()
   }, [saveProfile])
+
+  if (!storeHydrated || loadingRemote || (!company && !loadError)) {
+    return (
+      <SafeAreaView style={styles.root} edges={['top']}>
+        <View style={styles.nav}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+            <ChevronLeft size={24} color={t.text} />
+          </Pressable>
+          <Text style={styles.navTitle}>Perfil de empresa</Text>
+          <LogoutButton variant="nav" />
+        </View>
+        <View style={styles.center}>
+          <ActivityIndicator color={t.accent} size="large" />
+          <Text style={styles.emptyText}>Cargando tu negocio...</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
 
   if (!company) {
     return (
@@ -81,10 +116,18 @@ export function CompanyProfileScreen({ companyId }: Props) {
           <LogoutButton variant="nav" />
         </View>
         <View style={styles.center}>
-          <ActivityIndicator color={t.accent} size="large" />
           <Text style={styles.emptyText}>
-            {companyId ? 'Empresa no encontrada' : 'Cargando...'}
+            {loadError ?? 'Empresa no encontrada'}
           </Text>
+          <Pressable
+            style={styles.retryBtn}
+            onPress={() => void loadCompany(companyId)}
+          >
+            <Text style={styles.retryText}>Reintentar</Text>
+          </Pressable>
+          <Pressable onPress={() => router.replace('/empresa/onboarding')}>
+            <Text style={styles.linkText}>Registrar negocio</Text>
+          </Pressable>
         </View>
       </SafeAreaView>
     )
@@ -191,9 +234,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: t.spacing.md,
+    paddingHorizontal: t.spacing.xl,
   },
   emptyText: {
     color: t.textMuted,
     fontSize: 14,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    marginTop: t.spacing.sm,
+    backgroundColor: t.accent,
+    paddingHorizontal: t.spacing.lg,
+    paddingVertical: t.spacing.sm,
+    borderRadius: 999,
+  },
+  retryText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  linkText: {
+    color: t.accent,
+    fontSize: 14,
+    fontWeight: '600',
   },
 })

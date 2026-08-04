@@ -2,20 +2,20 @@ import { useEffect } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { router } from 'expo-router'
 import { useProfileStore } from '@/src/profile/store/useProfileStore'
-import { getCompanyById } from '@/src/company/store/useCompanyProfileStore'
+import { useAuthStore } from '@/src/auth/store/useAuthStore'
 import { MyBusinessEmptyScreen } from './MyBusinessEmptyScreen'
 import { companyTheme as t } from '../theme'
 
 /** Protected entry: Profile → Mi negocio */
 export function MyBusinessScreen() {
-  const companyId = useProfileStore(s => s.user.companyId)
+  const profileCompanyId = useProfileStore(s => s.user.companyId)
+  const authCompanyId = useAuthStore(s => s.user?.companyId)
+  const companyId = profileCompanyId ?? authCompanyId ?? null
 
   useEffect(() => {
     if (!companyId) return
-    const company = getCompanyById(companyId)
-    if (company) {
-      router.replace(`/empresa/${companyId}`)
-    }
+    // Always navigate — CompanyProfileScreen hydrates from Supabase if needed
+    router.replace(`/empresa/${companyId}`)
   }, [companyId])
 
   if (!companyId) {

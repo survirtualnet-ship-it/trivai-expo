@@ -9,6 +9,9 @@ import { T, F, S, R } from '@/lib/tokens'
 import { setOnboardingDone, setBusinessIntent } from '@/lib/onboardingStorage'
 import { searchGooglePlaces, type GooglePlaceResult } from '@/lib/googlePlacesApi'
 import { claimBusiness } from '@/lib/places'
+import { fetchCompanyByPlaceId } from '@/src/company/utils/fromPlace'
+import { useCompanyProfileStore } from '@/src/company/store/useCompanyProfileStore'
+import { completeBusinessOnboarding } from '@/lib/appBootstrap'
 
 interface Props {
   visible: boolean
@@ -65,7 +68,7 @@ export default function OnboardingModal({ visible, onDone }: Props) {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        await claimBusiness({
+        const claim = await claimBusiness({
           googlePlaceId: placeData.place_id,
           ownerId: user.id,
           name: placeData.name,
@@ -73,8 +76,44 @@ export default function OnboardingModal({ visible, onDone }: Props) {
           lat: placeData.lat,
           lng: placeData.lng,
         })
+
+        const company =
+          (await fetchCompanyByPlaceId(claim.placeId, user.email)) ?? {
+            id: claim.placeId,
+            name: placeData.name,
+            category: 'Negocio',
+            description: '',
+            email: user.email ?? 'contacto@negocio.com',
+            location: {
+              latitude: placeData.lat,
+              longitude: placeData.lng,
+              address: placeData.address,
+            },
+            phone: '',
+            whatsapp: '',
+            website: '',
+            coverImage:
+              'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80',
+            profileImage:
+              'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=80',
+            rating: 0,
+            isDemoCompany: false,
+          }
+
+        useCompanyProfileStore.getState().registerCompany(company)
+        useCompanyProfileStore.getState().loadCompany(company.id)
+
+        await completeBusinessOnboarding({
+          userId: user.id,
+          email: user.email,
+          companyId: claim.placeId,
+          businessName: placeData.name,
+        })
+        return
       }
-    } catch {}
+    } catch (err) {
+      console.warn('[OnboardingModal] claim', err)
+    }
     setGuardando(false)
     await cerrar()
   }

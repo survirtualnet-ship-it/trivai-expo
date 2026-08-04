@@ -134,7 +134,18 @@ export function AuthGuard() {
     if (
       bootstrap.role === 'company' &&
       bootstrap.companyId &&
-      (path === '/' || path.startsWith('/activity') || path.startsWith('/mapa') || path.startsWith('/profile'))
+      (
+        path === '/' ||
+        path.startsWith('/activity') ||
+        path.startsWith('/mapa') ||
+        path.startsWith('/profile') ||
+        path.startsWith('/perfil') ||
+        path.startsWith('/discover') ||
+        path.startsWith('/eventos') ||
+        path.startsWith('/amigos') ||
+        path.startsWith('/lugares') ||
+        path.startsWith('/explore')
+      )
     ) {
       const dest = `/empresa/${bootstrap.companyId}`
       if (path !== dest && lastRedirect.current !== dest) {

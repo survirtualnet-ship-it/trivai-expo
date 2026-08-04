@@ -10,6 +10,10 @@ import {
   getCompanyCatalog as selectCatalog,
   type CompanyCatalog,
 } from './companySelectors'
+import {
+  fetchCompanyByPlaceId,
+  updatePlaceFromCompany,
+} from '../utils/fromPlace'
 import type {
   Company,
   CompanyTab,
@@ -27,11 +31,8 @@ const EMPTY_STATS: DashboardStats = {
 }
 
 type CompanyProfileStore = {
-  /** Normalized company entities — single source of truth */
   companies: Record<string, Company>
-  /** Products, reviews, stats, gallery keyed by company id */
   catalog: Record<string, CompanyCatalog>
-  /** Currently viewed company id */
   activeCompanyId: string | null
   company: Company | null
   products: Product[]
@@ -42,12 +43,14 @@ type CompanyProfileStore = {
   isCompanyOwner: boolean
   activeTab: CompanyTab
   draftCompany: Partial<Company> | null
+  loadingRemote: boolean
+  loadError: string | null
   registerCompany: (company: Company) => string
-  loadCompany: (companyId: string) => void
+  loadCompany: (companyId: string) => Promise<void>
   setActiveTab: (tab: CompanyTab) => void
   setEditMode: (value: boolean) => void
   updateDraft: (patch: Partial<Company>) => void
-  saveProfile: () => void
+  saveProfile: () => Promise<void>
   cancelEdit: () => void
   addProduct: (product: Omit<Product, 'id' | 'companyId'>) => void
   updateProduct: (id: string, patch: Partial<Product>) => void
@@ -69,6 +72,15 @@ function mergeCatalog(
   persisted: Record<string, CompanyCatalog>,
 ): Record<string, CompanyCatalog> {
   return { ...buildInitialCatalog(), ...persisted }
+}
+
+function resolveIsOwner(companyId: string): boolean {
+  const profileCompanyId = useProfileStore.getState().user.companyId
+  const authUser = useAuthStore.getState().user
+  return (
+    profileCompanyId === companyId ||
+    authUser?.companyId === companyId
+  )
 }
 
 function syncActiveView(
@@ -107,6 +119,15 @@ function syncActiveView(
   }
 }
 
+function emptyCatalogFor(company: Company): CompanyCatalog {
+  return {
+    products: [],
+    reviews: [],
+    stats: { ...EMPTY_STATS, rating: company.rating },
+    gallery: [company.coverImage, company.profileImage].filter(Boolean),
+  }
+}
+
 function patchCatalog(
   catalog: Record<string, CompanyCatalog>,
   companyId: string,
@@ -135,15 +156,12 @@ export const useCompanyProfileStore = create<CompanyProfileStore>()(
       isCompanyOwner: false,
       activeTab: 'home',
       draftCompany: null,
+      loadingRemote: false,
+      loadError: null,
 
       registerCompany: company => {
         const normalized: Company = { ...company, isDemoCompany: false }
-        const bundle: CompanyCatalog = {
-          products: [],
-          reviews: [],
-          stats: { ...EMPTY_STATS, rating: normalized.rating },
-          gallery: [normalized.coverImage, normalized.profileImage],
-        }
+        const bundle = emptyCatalogFor(normalized)
         set(state => ({
           companies: { ...state.companies, [normalized.id]: normalized },
           catalog: { ...state.catalog, [normalized.id]: bundle },
@@ -151,17 +169,68 @@ export const useCompanyProfileStore = create<CompanyProfileStore>()(
         return normalized.id
       },
 
-      loadCompany: companyId => {
-        const profileCompanyId = useProfileStore.getState().user.companyId
-        const authUser = useAuthStore.getState().user
-        const isOwner =
-          profileCompanyId === companyId ||
-          authUser?.companyId === companyId ||
-          (authUser?.role === 'company' &&
-            Boolean(authUser.companyId || profileCompanyId) &&
-            (authUser.companyId ?? profileCompanyId) === companyId)
+      loadCompany: async companyId => {
+        if (!companyId) {
+          set({
+            company: null,
+            loadError: null,
+            loadingRemote: false,
+            activeCompanyId: null,
+          })
+          return
+        }
+
+        const isOwner = resolveIsOwner(companyId)
         const { companies, catalog } = get()
-        set(syncActiveView(companyId, companies, catalog, isOwner))
+        const local = selectCompanyById(companies, companyId)
+
+        if (local) {
+          set({
+            ...syncActiveView(companyId, companies, catalog, isOwner),
+            loadingRemote: false,
+            loadError: null,
+          })
+          return
+        }
+
+        set({
+          loadingRemote: true,
+          loadError: null,
+          activeCompanyId: companyId,
+          company: null,
+          isCompanyOwner: isOwner,
+        })
+
+        const email =
+          useAuthStore.getState().user?.email ??
+          useProfileStore.getState().user.email
+        const remote = await fetchCompanyByPlaceId(companyId, email)
+
+        if (!remote) {
+          set({
+            loadingRemote: false,
+            loadError: 'Empresa no encontrada',
+            company: null,
+            products: [],
+            reviews: [],
+            stats: null,
+            gallery: [],
+            isCompanyOwner: isOwner,
+          })
+          return
+        }
+
+        const bundle = emptyCatalogFor(remote)
+        const nextCompanies = { ...get().companies, [remote.id]: remote }
+        const nextCatalog = { ...get().catalog, [remote.id]: bundle }
+
+        set({
+          companies: nextCompanies,
+          catalog: nextCatalog,
+          loadingRemote: false,
+          loadError: null,
+          ...syncActiveView(companyId, nextCompanies, nextCatalog, isOwner),
+        })
       },
 
       setActiveTab: activeTab => set({ activeTab }),
@@ -183,17 +252,21 @@ export const useCompanyProfileStore = create<CompanyProfileStore>()(
         set({ draftCompany: { ...draft, ...patch } })
       },
 
-      saveProfile: () => {
+      saveProfile: async () => {
         if (!get().isCompanyOwner) return
-        const { draftCompany, company, companies, catalog } = get()
+        const { draftCompany, company, companies } = get()
         if (!draftCompany || !company) return
 
-        const { email, location, ...editable } = draftCompany
+        const { email: _email, location, ...editable } = draftCompany
         const updated: Company = {
           ...company,
           ...editable,
           email: company.email,
-          location: company.location,
+          location: {
+            ...company.location,
+            ...(location ?? {}),
+            address: location?.address ?? company.location.address,
+          },
         }
 
         set({
@@ -202,6 +275,10 @@ export const useCompanyProfileStore = create<CompanyProfileStore>()(
           editMode: false,
           draftCompany: null,
         })
+
+        if (!updated.id.startsWith('co-')) {
+          await updatePlaceFromCompany(updated)
+        }
       },
 
       cancelEdit: () => set({ editMode: false, draftCompany: null }),
@@ -278,12 +355,10 @@ export const useCompanyProfileStore = create<CompanyProfileStore>()(
   ),
 )
 
-/** Selector — company entity by id */
 export function getCompanyById(companyId: string): Company | undefined {
   return selectCompanyById(useCompanyProfileStore.getState().companies, companyId)
 }
 
-/** Selector — full catalog entry by company id */
 export function getCompanyCatalogEntry(
   companyId: string,
 ): CompanyCatalog | undefined {

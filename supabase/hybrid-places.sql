@@ -79,3 +79,37 @@ create policy "place_live_content_owner_write"
         and b.claimed = true
     )
   );
+
+-- Allow authenticated users to create/update places when claiming a business
+-- (self-service; no admin approval)
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'places' and policyname = 'places_claim_insert'
+  ) then
+    create policy "places_claim_insert"
+      on public.places for insert
+      to authenticated
+      with check (true);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'places' and policyname = 'places_owner_update'
+  ) then
+    create policy "places_owner_update"
+      on public.places for update
+      to authenticated
+      using (
+        exists (
+          select 1 from public.trivai_business b
+          where b.place_id = places.id
+            and b.owner_id = auth.uid()
+        )
+        or not exists (
+          select 1 from public.trivai_business b where b.place_id = places.id
+        )
+      );
+  end if;
+end $$;
