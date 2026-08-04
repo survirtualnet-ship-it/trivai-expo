@@ -7,6 +7,7 @@ import {
   isAuthFormPath,
   isOnboardingPath,
   isPublicPath,
+  normalizePath,
 } from '@/lib/appBootstrap'
 import { isAuthCallbackPath } from '@/lib/auth/completeAuthCallback'
 
@@ -24,7 +25,7 @@ export function AuthGuard() {
   useEffect(() => {
     if (!bootstrap.ready || authLoading) return
 
-    const path = pathname || '/'
+    const path = normalizePath(pathname || '/')
 
     // Let /auth/callback finish OAuth + navigateAfterAuth without being yanked away
     if (isAuthCallbackPath(path)) return

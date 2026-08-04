@@ -58,26 +58,30 @@ export function destinationMatchesPath(destination: Href, pathname: string): boo
   return false
 }
 
+export function normalizePath(pathname: string): string {
+  return pathname.replace(/\/$/, '') || '/'
+}
+
 export function isPublicPath(pathname: string): boolean {
-  return (
-    pathname === '/welcome' ||
-    pathname.startsWith('/auth')
-  )
+  const path = normalizePath(pathname)
+  return path === '/welcome' || path.startsWith('/auth')
 }
 
 /** Auth forms stay accessible even with a stale persisted session. */
 export function isAuthFormPath(pathname: string): boolean {
+  const path = normalizePath(pathname)
   return (
-    pathname === '/auth/login' ||
-    pathname === '/auth/registro' ||
-    pathname === '/auth/reset-password'
+    path === '/auth/login' ||
+    path === '/auth/registro' ||
+    path === '/auth/reset-password'
   )
 }
 
 export function isOnboardingPath(pathname: string): boolean {
+  const path = normalizePath(pathname)
   return (
-    pathname === '/onboarding' ||
-    pathname.startsWith('/onboarding/') ||
-    pathname === '/empresa/onboarding'
+    path === '/onboarding' ||
+    path.startsWith('/onboarding/') ||
+    path === '/empresa/onboarding'
   )
 }

@@ -3,6 +3,7 @@ export {
   resolveAppDestination,
   resolvePostAuthDestination,
   destinationMatchesPath,
+  normalizePath,
   isPublicPath,
   isAuthFormPath,
   isOnboardingPath,

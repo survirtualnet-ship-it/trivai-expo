@@ -1,7 +1,7 @@
 import { StatusBar } from 'expo-status-bar'
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
-import { StyleSheet } from 'react-native'
+import { Platform, StyleSheet } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { OnboardingNavigator } from './navigation/OnboardingNavigator'
 import { onboardingTheme as t } from './lib/theme'
@@ -49,5 +49,6 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: t.bg,
+    minHeight: Platform.OS === 'web' ? ('100vh' as unknown as number) : undefined,
   },
 })

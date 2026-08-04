@@ -26,7 +26,7 @@ export const InicioHeader = memo(function InicioHeader({
       <View style={styles.topRow}>
         <View style={styles.brandRow}>
           <View style={styles.logo}>
-            <Image source={BrandAssets.logoTrivai} style={styles.logoImage} resizeMode="contain" />
+            <Image source={BrandAssets.logoT} style={styles.logoImage} resizeMode="contain" />
           </View>
           <Text style={styles.brand}>Trivai</Text>
         </View>

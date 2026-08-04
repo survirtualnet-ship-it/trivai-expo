@@ -1,45 +1,99 @@
-import { Image, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { OnboardingLayout } from '../components/OnboardingLayout'
 import { PrimaryButton } from '../components/PrimaryButton'
 import { onboardingTheme as t } from '../lib/theme'
 import { BrandAssets } from '@/lib/brandAssets'
 import type { WelcomeProps } from '../types'
 
-type Props = WelcomeProps & {
-  /** Expo Router — skip React Navigation */
-  onContinue?: () => void
+type Props = Partial<WelcomeProps> & {
+  /** Expo Router entry */
+  onGoogle?: () => void
+  onEmail?: () => void
+  onRegister?: () => void
+  googleLoading?: boolean
+  error?: string
+  /** Legacy handlers */
   onLogin?: () => void
+  onContinue?: () => void
 }
 
-export function WelcomeScreen({ navigation, onContinue, onLogin }: Props) {
-  const handleContinue = () => {
-    if (onContinue) {
-      onContinue()
+export function WelcomeScreen({
+  navigation,
+  onGoogle,
+  onEmail,
+  onRegister,
+  googleLoading = false,
+  error,
+  onLogin,
+  onContinue,
+}: Props) {
+  const isExpoEntry = !!(onGoogle || onEmail || onRegister)
+
+  const handleEmail = () => {
+    if (onEmail) {
+      onEmail()
       return
     }
-    navigation.navigate('UserType')
-  }
-
-  const handleLogin = () => {
     if (onLogin) {
       onLogin()
       return
     }
-    navigation.navigate('UserType')
+    navigation?.navigate('UserType')
+  }
+
+  const handleRegister = () => {
+    if (onRegister) {
+      onRegister()
+      return
+    }
+    if (onContinue) {
+      onContinue()
+      return
+    }
+    navigation?.navigate('UserType')
   }
 
   return (
     <OnboardingLayout
       centered
       footer={
-        <>
-          <PrimaryButton label="Continuar" onPress={handleContinue} />
-          <PrimaryButton
-            label="Ya tengo cuenta"
-            variant="ghost"
-            onPress={handleLogin}
-          />
-        </>
+        isExpoEntry ? (
+          <View style={styles.footer}>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            {onGoogle ? (
+              <PrimaryButton
+                label="Continuar con Google"
+                variant="secondary"
+                onPress={onGoogle}
+                loading={googleLoading}
+                disabled={googleLoading}
+                icon={<Ionicons name="logo-google" size={18} color={t.text} />}
+              />
+            ) : null}
+            <PrimaryButton
+              label="Continuar con correo electrónico"
+              variant="secondary"
+              onPress={handleEmail}
+              disabled={googleLoading}
+            />
+            <View style={styles.registerRow}>
+              <Text style={styles.registerPrefix}>¿No tienes cuenta?</Text>
+              <Pressable onPress={handleRegister} hitSlop={8}>
+                <Text style={styles.registerLink}>Registrarse</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <>
+            <PrimaryButton label="Continuar" onPress={handleRegister} />
+            <PrimaryButton
+              label="Ya tengo cuenta"
+              variant="ghost"
+              onPress={handleEmail}
+            />
+          </>
+        )
       }
     >
       <View style={styles.hero}>
@@ -102,5 +156,31 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
     marginTop: t.spacing.sm,
+  },
+  footer: {
+    gap: t.spacing.md,
+  },
+  error: {
+    color: t.accentSecondary,
+    fontSize: t.font.caption,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  registerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: t.spacing.xs,
+    paddingTop: t.spacing.sm,
+  },
+  registerPrefix: {
+    color: t.textSecondary,
+    fontSize: t.font.body,
+  },
+  registerLink: {
+    color: t.accent,
+    fontSize: t.font.body,
+    fontWeight: '700',
   },
 })
