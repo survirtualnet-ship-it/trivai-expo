@@ -5,6 +5,7 @@ import { colors, spacing, radius, fontSize, fontWeight, shadows } from '../theme
 import type { Locale } from '../data/mock'
 import { AppModeToggle } from '@/components/AppModeToggle'
 import { useIsBusinessMode } from '@/src/appMode'
+import { useProfileStore } from '@/src/profile/store/useProfileStore'
 import { BrandAssets } from '@/lib/brandAssets'
 
 type Props = {
@@ -23,6 +24,7 @@ export const InicioHeader = memo(function InicioHeader({
   onPressNotifications,
 }: Props) {
   const businessMode = useIsBusinessMode()
+  const companyId = useProfileStore(s => s.user.companyId)
 
   return (
     <View style={styles.wrap}>
@@ -62,7 +64,7 @@ export const InicioHeader = memo(function InicioHeader({
 
       <AppModeToggle compact />
 
-      {businessMode ? (
+      {companyId && businessMode ? (
         <View style={styles.modeChip}>
           <Text style={styles.modeChipText}>Modo empresa activo</Text>
         </View>
