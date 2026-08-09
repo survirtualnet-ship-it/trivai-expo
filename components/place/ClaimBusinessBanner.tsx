@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { View, Text, Pressable, StyleSheet } from 'react-native'
-import { Building2, CheckCircle2, Sparkles, BarChart3 } from 'lucide-react-native'
+import { Building2 } from 'lucide-react-native'
 import { router } from 'expo-router'
 import { T, F, S, R } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
@@ -11,12 +11,6 @@ type Props = {
   isOwner: boolean
   isAuthenticated: boolean
 }
-
-const BENEFITS = [
-  { icon: Sparkles, text: 'Perfil vivo con tips y horarios' },
-  { icon: BarChart3, text: 'Panel con visitas y reseñas' },
-  { icon: CheckCircle2, text: 'Gratis · sin aprobación manual' },
-]
 
 export const ClaimBusinessBanner = memo(function ClaimBusinessBanner({
   placeName,
@@ -41,24 +35,17 @@ export const ClaimBusinessBanner = memo(function ClaimBusinessBanner({
           <Building2 size={22} color={T.surface} />
         </View>
         <View style={styles.headerText}>
-          <Text style={styles.eyebrow}>¿Es tu negocio?</Text>
-          <Text style={styles.title}>Reclama {placeName}</Text>
+          <Text style={styles.eyebrow}>Sin gestión en Trivai</Text>
+          <Text style={styles.title}>
+            Este negocio aún no está gestionado en Trivai
+          </Text>
         </View>
       </View>
 
       <Text style={styles.sub}>
-        Solo si eres el dueño o administrador de este local. Los viajeros
-        exploran igual; tú puedes reclamarlo para editar info y responder.
+        {placeName} ya aparece por Google Maps. Si es tuyo, reclámalo para
+        responder reseñas y dar vida al perfil.
       </Text>
-
-      <View style={styles.benefits}>
-        {BENEFITS.map(b => (
-          <View key={b.text} style={styles.benefitRow}>
-            <b.icon size={16} color={T.primary} />
-            <Text style={styles.benefitText}>{b.text}</Text>
-          </View>
-        ))}
-      </View>
 
       <Pressable
         style={styles.btn}
@@ -116,17 +103,6 @@ const styles = StyleSheet.create({
     fontSize: F.size.sm,
     color: T.fg2,
     lineHeight: 20,
-  },
-  benefits: { gap: S.sm },
-  benefitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: S.sm,
-  },
-  benefitText: {
-    fontFamily: FONT.regular,
-    fontSize: F.size.sm,
-    color: T.fg1,
   },
   btn: {
     marginTop: S.xs,

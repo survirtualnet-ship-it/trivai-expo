@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import {
   View,
   ScrollView,
@@ -7,8 +7,12 @@ import {
   Text,
   Pressable,
   Alert,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native'
 import { useLocalSearchParams, router } from 'expo-router'
+import { useQueryClient } from '@tanstack/react-query'
+import * as Haptics from 'expo-haptics'
 import { PlaceHeader } from '@/components/place/PlaceHeader'
 import { PlaceInfo } from '@/components/place/PlaceInfo'
 import { PlaceTags } from '@/components/place/Tags'
@@ -21,6 +25,9 @@ import { PlaceLiveSection } from '@/components/place/PlaceLiveSection'
 import { ClaimBusinessBanner } from '@/components/place/ClaimBusinessBanner'
 import { OwnerBusinessPanel } from '@/components/place/OwnerBusinessPanel'
 import { ReviewsPreview } from '@/components/place/ReviewsPreview'
+import { WriteReviewModal } from '@/components/place/WriteReviewModal'
+import { PlaceLifeBadges } from '@/components/place/PlaceLifeBadges'
+import { OwnerPendingReviewsBanner } from '@/components/place/OwnerPendingReviewsBanner'
 import { StickyCTA } from '@/components/place/StickyCTA'
 import { PlaceDetailSkeleton } from '@/components/place/PlaceDetailSkeleton'
 import { FadeInView } from '@/components/ui/FadeInView'
@@ -41,23 +48,128 @@ import {
   hasDirections,
 } from '@/lib/placeDetail'
 import { sharePlace } from '@/lib/sharePlace'
+import {
+  computePlaceLifeBadges,
+  createPlaceReview,
+  createReviewResponse,
+  unansweredReviewCount,
+} from '@/lib/reviews'
+import type { PlaceReview } from '@/lib/queries/placeDetail'
+import { placeKeys } from '@/lib/queries/keys'
 import { T, F, S } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 
 export default function PlaceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
-  const { user } = useUser()
+  const { user, displayName } = useUser()
   const { profile } = useLocationProfile()
   const countryCode = profile?.countryCode || ''
   const businessModeActive = useIsBusinessMode()
+  const queryClient = useQueryClient()
+  const scrollRef = useRef<ScrollView>(null)
+  const reviewsY = useRef(0)
+
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [submittingReview, setSubmittingReview] = useState(false)
+  const [replySubmittingId, setReplySubmittingId] = useState<string | null>(null)
 
   const { place, raw, isLoading, isError, refetch } = usePlaceDetail(id)
-  // Hybrid/claim meta must use Supabase UUID — Google ChIJ ids never match trivai_business.place_id
   const resolvedPlaceId = raw?.id ?? place?.id
   const hybridQuery = useHybridPlace(resolvedPlaceId)
   const reviewsQuery = usePlaceReviews(resolvedPlaceId)
   const { isFavorite, toggle, isPending: favPending } = usePlaceFavorite(resolvedPlaceId)
   const similarQuery = useSimilarPlaces(resolvedPlaceId, place?.category)
+
+  const reviews = reviewsQuery.data ?? []
+  const hybrid = hybridQuery.data
+  const pendingCount = unansweredReviewCount(reviews)
+  const lifeBadges = useMemo(
+    () =>
+      computePlaceLifeBadges({
+        claimed: hybrid?.claimed ?? false,
+        reviews,
+        placeCreatedAt: (raw as { created_at?: string } | undefined)?.created_at,
+      }),
+    [hybrid?.claimed, reviews, raw],
+  )
+
+  const scrollToReviews = useCallback(() => {
+    scrollRef.current?.scrollTo({ y: Math.max(reviewsY.current - 24, 0), animated: true })
+  }, [])
+
+  const openWriteReview = useCallback(() => {
+    if (!user) {
+      router.push('/auth/login')
+      return
+    }
+    setReviewOpen(true)
+  }, [user])
+
+  const handlePublishReview = useCallback(
+    async ({ rating, text }: { rating: number; text: string }) => {
+      if (!user?.id || !resolvedPlaceId) return
+      setSubmittingReview(true)
+      try {
+        const result = await createPlaceReview({
+          placeId: resolvedPlaceId,
+          userId: user.id,
+          rating,
+          text,
+          authorName: displayName,
+        })
+        if (!result.ok) {
+          Alert.alert('No se pudo publicar', result.error)
+          return
+        }
+
+        // Immediate UI update — no full reload
+        queryClient.setQueryData<PlaceReview[]>(
+          placeKeys.reviews(resolvedPlaceId),
+          old => [result.review, ...(old ?? [])],
+        )
+        void queryClient.invalidateQueries({ queryKey: placeKeys.detail(id ?? '') })
+        void queryClient.invalidateQueries({
+          queryKey: placeKeys.detail(resolvedPlaceId),
+        })
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+        setReviewOpen(false)
+        setTimeout(scrollToReviews, 200)
+      } finally {
+        setSubmittingReview(false)
+      }
+    },
+    [user?.id, resolvedPlaceId, displayName, queryClient, id, scrollToReviews],
+  )
+
+  const handleReply = useCallback(
+    async (reviewId: string, text: string) => {
+      if (!user?.id || !resolvedPlaceId) return false
+      setReplySubmittingId(reviewId)
+      try {
+        const result = await createReviewResponse({
+          reviewId,
+          businessId: resolvedPlaceId,
+          ownerId: user.id,
+          text,
+        })
+        if (!result.ok) {
+          Alert.alert('No se pudo responder', result.error)
+          return false
+        }
+        queryClient.setQueryData<PlaceReview[]>(
+          placeKeys.reviews(resolvedPlaceId),
+          old =>
+            (old ?? []).map(r =>
+              r.id === reviewId ? { ...r, response: result.response } : r,
+            ),
+        )
+        return true
+      } finally {
+        setReplySubmittingId(null)
+      }
+    },
+    [user?.id, resolvedPlaceId, queryClient],
+  )
 
   const openMaps = useCallback(() => {
     if (!place || !hasDirections(place)) return
@@ -92,17 +204,6 @@ export default function PlaceDetailScreen() {
     toggle()
   }, [user, toggle])
 
-  const handleWriteReview = useCallback(() => {
-    if (!user) {
-      router.push('/auth/login')
-      return
-    }
-    Alert.alert(
-      'Reseñas',
-      'Pronto podrás publicar tu experiencia desde aquí.',
-    )
-  }, [user])
-
   const handleStickyPress = useCallback(() => {
     if (!place) return
     if (hasDirections(place)) openMaps()
@@ -111,8 +212,6 @@ export default function PlaceDetailScreen() {
 
   const tagList = useMemo(() => place?.tags ?? [], [place?.tags])
   const idealFor = useMemo(() => place?.idealFor ?? [], [place?.idealFor])
-  const hybrid = hybridQuery.data
-  const reviews = reviewsQuery.data ?? []
 
   if (isLoading) return <PlaceDetailSkeleton />
 
@@ -134,13 +233,30 @@ export default function PlaceDetailScreen() {
   const canContact = hasContact(place)
   const showSticky = canGo || canContact
   const stickyMode = canGo ? 'go' as const : 'contact' as const
+  const canOwnerReply = !!(hybrid?.isOwner && businessModeActive && user)
+
+  // Prefer live review count in header when enrichment exists
+  const placeForInfo = {
+    ...place,
+    reviewCount: Math.max(place.reviewCount, reviews.length),
+    rating:
+      reviews.length > 0
+        ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
+        : place.rating,
+  }
 
   return (
     <View style={styles.root}>
       <ScrollView
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         decelerationRate="fast"
         contentContainerStyle={[styles.scroll, !showSticky && styles.scrollNoSticky]}
+        onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
+          // keep scroll position helpers warm
+          void e
+        }}
+        scrollEventThrottle={16}
       >
         <PlaceHeader
           category={place.category}
@@ -154,8 +270,17 @@ export default function PlaceDetailScreen() {
         />
 
         <FadeInView>
-          <PlaceInfo place={place} countryCode={countryCode} />
+          <PlaceInfo place={placeForInfo} countryCode={countryCode} />
         </FadeInView>
+
+        <PlaceLifeBadges badges={lifeBadges} />
+
+        {hybrid?.isOwner && businessModeActive ? (
+          <OwnerPendingReviewsBanner
+            count={pendingCount}
+            onPress={scrollToReviews}
+          />
+        ) : null}
 
         <FadeInView delay={30}>
           <PlaceTags tags={tagList} idealFor={idealFor} />
@@ -199,6 +324,8 @@ export default function PlaceDetailScreen() {
               latitude={place.coordinates?.lat}
               longitude={place.coordinates?.lng}
               businessModeActive={businessModeActive}
+              unansweredReviews={pendingCount}
+              onRespondReviews={scrollToReviews}
             />
           </FadeInView>
         ) : (
@@ -212,24 +339,33 @@ export default function PlaceDetailScreen() {
           </FadeInView>
         )}
 
-        <FadeInView delay={90}>
-          <ReviewsPreview
-            reviews={reviews}
-            userId={user?.id}
-            onWriteReview={user ? handleWriteReview : undefined}
-            onReported={() => reviewsQuery.refetch()}
-          />
-        </FadeInView>
+        <View
+          onLayout={e => {
+            reviewsY.current = e.nativeEvent.layout.y
+          }}
+        >
+          <FadeInView delay={90}>
+            <ReviewsPreview
+              reviews={reviews}
+              userId={user?.id}
+              onWriteReview={openWriteReview}
+              onReported={() => reviewsQuery.refetch()}
+              canReply={canOwnerReply}
+              onReply={handleReply}
+              replySubmittingId={replySubmittingId}
+            />
+          </FadeInView>
+        </View>
 
         <FadeInView delay={100}>
           <PlaceExtraInfo place={place} />
         </FadeInView>
 
-        {canGo && (
+        {canGo ? (
           <FadeInView delay={110}>
             <LocationPreview place={place} onOpenMaps={openMaps} />
           </FadeInView>
-        )}
+        ) : null}
 
         <FadeInView delay={130}>
           <SimilarPlaces
@@ -239,9 +375,17 @@ export default function PlaceDetailScreen() {
         </FadeInView>
       </ScrollView>
 
-      {showSticky && (
+      {showSticky ? (
         <StickyCTA mode={stickyMode} onPress={handleStickyPress} />
-      )}
+      ) : null}
+
+      <WriteReviewModal
+        visible={reviewOpen}
+        placeName={place.name}
+        submitting={submittingReview}
+        onClose={() => setReviewOpen(false)}
+        onSubmit={input => void handlePublishReview(input)}
+      />
     </View>
   )
 }
