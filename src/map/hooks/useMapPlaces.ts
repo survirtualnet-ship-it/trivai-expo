@@ -15,7 +15,12 @@ import { placeCardsToMapPlaces } from '../utils/placeFromSupabase'
 async function loadMapPlaces(coords: Coords | null, search: string) {
   const q = search.trim()
   if (q.length >= 2) {
-    const places = await searchPlacesLive(q)
+    const places = await searchPlacesLive(
+      q,
+      coords
+        ? { latitude: coords.lat, longitude: coords.lng }
+        : null,
+    )
     return placesToCardData(places)
   }
   if (!coords) return []

@@ -47,8 +47,8 @@ export const ClaimBusinessBanner = memo(function ClaimBusinessBanner({
       </View>
 
       <Text style={styles.sub}>
-        Activa tu panel en Trivai y diferencia tu local con contenido en tiempo
-        real aportado por la comunidad.
+        Solo si eres el dueño o administrador de este local. Los viajeros
+        exploran igual; tú puedes reclamarlo para editar info y responder.
       </Text>
 
       <View style={styles.benefits}>

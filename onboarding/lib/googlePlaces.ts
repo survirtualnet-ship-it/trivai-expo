@@ -66,7 +66,9 @@ export async function fetchPlaceAutocomplete(
   const q = query.trim()
   if (q.length < 2) return []
 
-  const data = await fetchPlacesProxy(`q=${encodeURIComponent(q)}`)
+  const data = await fetchPlacesProxy(
+    `q=${encodeURIComponent(q)}&mode=text`,
+  )
   const results = (data?.results ?? []) as {
     place_id: string
     name: string

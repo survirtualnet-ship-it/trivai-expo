@@ -79,7 +79,8 @@ export const discoverKeys = {
 
 export const searchKeys = {
   all: ['search'] as const,
-  results: (query: string) => [...searchKeys.all, 'results', query] as const,
+  results: (query: string, locKey = 'noloc') =>
+    [...searchKeys.all, 'results', query, locKey] as const,
   recent: () => [...searchKeys.all, 'recent'] as const,
 }
 

@@ -17,12 +17,21 @@ import { searchPlacesLive } from '@/services/places.service'
 
 const DEBOUNCE_MS = 160
 
-async function fetchSearchPlaces(query: string): Promise<PlaceCardData[]> {
+async function fetchSearchPlaces(
+  query: string,
+  coords?: Coords | null,
+): Promise<PlaceCardData[]> {
   const q = query.trim()
   if (!q) return []
 
-  // Live Google search — no local DB dependency
-  const live = await searchPlacesLive(q)
+  // Live Google search — bias to user location so chains (Hipermaxi, etc.)
+  // resolve to the nearby branch, not a random city.
+  const live = await searchPlacesLive(
+    q,
+    coords
+      ? { latitude: coords.lat, longitude: coords.lng }
+      : null,
+  )
   return live.slice(0, 24).map(p => ({
     id: p.id,
     name: p.name,
@@ -64,8 +73,13 @@ export function useSearchScreen() {
   })
 
   const resultsQuery = useQuery({
-    queryKey: searchKeys.results(debounced),
-    queryFn: () => fetchSearchPlaces(debounced),
+    queryKey: searchKeys.results(
+      debounced,
+      coordsQuery.data
+        ? `${coordsQuery.data.lat.toFixed(3)},${coordsQuery.data.lng.toFixed(3)}`
+        : 'noloc',
+    ),
+    queryFn: () => fetchSearchPlaces(debounced, coordsQuery.data),
     enabled: debounced.length > 0,
     staleTime: STALE.places,
   })

@@ -12,6 +12,9 @@ export type GooglePlaceResult = {
   open_now?: boolean | null
   types?: string[]
   photo_ref?: string | null
+  /** Ready-to-use Place Photo URL(s) from the server proxy */
+  photo_url?: string | null
+  photos?: string[]
 }
 
 /** Prefer same-origin Expo API, then appUrl, then webApiUrl. */
@@ -39,12 +42,45 @@ async function fetchGooglePlacesJson(pathQuery: string): Promise<any | null> {
   return null
 }
 
+function normalizeResult(r: GooglePlaceResult): GooglePlaceResult {
+  const photos =
+    r.photos?.length
+      ? r.photos
+      : r.photo_url
+        ? [r.photo_url]
+        : []
+  return {
+    ...r,
+    photo_url: r.photo_url ?? photos[0] ?? null,
+    photos,
+  }
+}
+
 /** Live text search — does NOT read local DB. */
-export async function searchPlaces(query: string): Promise<GooglePlaceResult[]> {
+export async function searchPlaces(
+  query: string,
+  opts?: { lat?: number; lng?: number; radiusMeters?: number },
+): Promise<GooglePlaceResult[]> {
   const q = query.trim()
   if (!q) return []
-  const data = await fetchGooglePlacesJson(`q=${encodeURIComponent(q)}`)
-  return (data?.results ?? []) as GooglePlaceResult[]
+
+  const params = new URLSearchParams({
+    q,
+    mode: 'text',
+  })
+  if (
+    opts?.lat != null &&
+    opts?.lng != null &&
+    Number.isFinite(opts.lat) &&
+    Number.isFinite(opts.lng)
+  ) {
+    params.set('lat', String(opts.lat))
+    params.set('lng', String(opts.lng))
+    params.set('radius', String(opts.radiusMeters ?? 30000))
+  }
+
+  const data = await fetchGooglePlacesJson(params.toString())
+  return ((data?.results ?? []) as GooglePlaceResult[]).map(normalizeResult)
 }
 
 /** @deprecated alias — use searchPlaces */
@@ -67,7 +103,7 @@ export async function getNearbyPlacesFromGoogle(
   if (opts?.type) params.set('type', opts.type)
 
   const data = await fetchGooglePlacesJson(params.toString())
-  return (data?.results ?? []) as GooglePlaceResult[]
+  return ((data?.results ?? []) as GooglePlaceResult[]).map(normalizeResult)
 }
 
 export async function getGooglePlaceDetails(
@@ -76,5 +112,14 @@ export async function getGooglePlaceDetails(
   const data = await fetchGooglePlacesJson(
     `place_id=${encodeURIComponent(placeId)}`,
   )
-  return (data?.result as GooglePlaceResult) ?? null
+  if (!data?.result) return null
+  return normalizeResult(data.result as GooglePlaceResult)
+}
+
+/** Collect usable photo URLs from a Google result. */
+export function googleResultPhotos(result: GooglePlaceResult | null | undefined): string[] {
+  if (!result) return []
+  if (result.photos?.length) return result.photos
+  if (result.photo_url) return [result.photo_url]
+  return []
 }

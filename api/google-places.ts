@@ -14,6 +14,7 @@ type VercelResponse = {
   status: (code: number) => VercelResponse
   json: (body: unknown) => void
   end: () => void
+  redirect?: (code: number, url: string) => void
 }
 
 const CORS = {
@@ -38,7 +39,22 @@ function placesKey(): string {
   )
 }
 
+function photoUrl(ref: string | null | undefined, maxWidth = 1200): string | null {
+  if (!ref) return null
+  const key = placesKey()
+  if (!key) return null
+  return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${maxWidth}&photo_reference=${encodeURIComponent(ref)}&key=${key}`
+}
+
 function mapResult(p: any) {
+  const refs = ((p.photos as { photo_reference?: string }[] | undefined) ?? [])
+    .map(ph => ph.photo_reference)
+    .filter((r): r is string => !!r)
+  const photos = refs
+    .map(r => photoUrl(r))
+    .filter((u): u is string => !!u)
+    .slice(0, 6)
+
   return {
     place_id: p.place_id,
     name: p.name,
@@ -49,7 +65,9 @@ function mapResult(p: any) {
     lat: p.geometry?.location?.lat,
     lng: p.geometry?.location?.lng,
     types: p.types ?? [],
-    photo_ref: p.photos?.[0]?.photo_reference ?? null,
+    photo_ref: refs[0] ?? null,
+    photo_url: photos[0] ?? null,
+    photos,
   }
 }
 
@@ -68,7 +86,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === 'POST') {
-    // Sync is handled by Next.js web admin client; Expo claim uses Supabase directly.
     res.status(501).json({ error: 'POST sync usa el backend web; en Expo usa claimBusiness' })
     return
   }
@@ -85,6 +102,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const lng = queryParam(req.query.lng)
     const radius = queryParam(req.query.radius) ?? '3000'
     const type = queryParam(req.query.type)
+    const mode = queryParam(req.query.mode)
+    const photoRef = queryParam(req.query.photo_ref)
+
+    if (photoRef) {
+      const url = photoUrl(photoRef, 1200)
+      if (!url) {
+        res.status(400).json({ error: 'photo_ref inválido' })
+        return
+      }
+      res.setHeader('Location', url)
+      res.status(302).end()
+      return
+    }
 
     if (placeId) {
       const fields =
@@ -97,6 +127,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return
       }
       res.status(200).json({ result: mapResult(data.result) })
+      return
+    }
+
+    // Explicit text search (optional location bias) — used by claim/search
+    if (q && mode === 'text') {
+      const textParams = new URLSearchParams({
+        query: q,
+        language: 'es',
+        key,
+      })
+      if (lat && lng) {
+        textParams.set('location', `${lat},${lng}`)
+        textParams.set('radius', radius)
+      }
+      const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?${textParams}`
+      const googleRes = await fetch(url)
+      const data = await googleRes.json()
+      if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+        res.status(502).json({ error: data.status, detail: data.error_message })
+        return
+      }
+      res.status(200).json({
+        results: (data.results ?? []).slice(0, 12).map(mapResult),
+        mode: 'text',
+      })
       return
     }
 

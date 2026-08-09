@@ -51,11 +51,13 @@ export default function PlaceDetailScreen() {
   const countryCode = profile?.countryCode || ''
   const businessModeActive = useIsBusinessMode()
 
-  const { place, isLoading, isError, refetch } = usePlaceDetail(id)
-  const hybridQuery = useHybridPlace(id)
-  const reviewsQuery = usePlaceReviews(id)
-  const { isFavorite, toggle, isPending: favPending } = usePlaceFavorite(id)
-  const similarQuery = useSimilarPlaces(id, place?.category)
+  const { place, raw, isLoading, isError, refetch } = usePlaceDetail(id)
+  // Hybrid/claim meta must use Supabase UUID — Google ChIJ ids never match trivai_business.place_id
+  const resolvedPlaceId = raw?.id ?? place?.id
+  const hybridQuery = useHybridPlace(resolvedPlaceId)
+  const reviewsQuery = usePlaceReviews(resolvedPlaceId)
+  const { isFavorite, toggle, isPending: favPending } = usePlaceFavorite(resolvedPlaceId)
+  const similarQuery = useSimilarPlaces(resolvedPlaceId, place?.category)
 
   const openMaps = useCallback(() => {
     if (!place || !hasDirections(place)) return
@@ -184,7 +186,7 @@ export default function PlaceDetailScreen() {
           />
         </FadeInView>
 
-        {hybrid?.isOwner ? (
+        {hybridQuery.isLoading ? null : hybrid?.isOwner ? (
           <FadeInView delay={85}>
             <OwnerBusinessPanel
               placeId={place.id}
