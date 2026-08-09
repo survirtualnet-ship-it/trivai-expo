@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   ScrollView,
@@ -56,6 +56,7 @@ import {
 } from '@/lib/reviews'
 import type { PlaceReview } from '@/lib/queries/placeDetail'
 import { placeKeys } from '@/lib/queries/keys'
+import { logPlaceView } from '@/lib/userActivity'
 import { T, F, S } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 
@@ -79,6 +80,12 @@ export default function PlaceDetailScreen() {
   const reviewsQuery = usePlaceReviews(resolvedPlaceId)
   const { isFavorite, toggle, isPending: favPending } = usePlaceFavorite(resolvedPlaceId)
   const similarQuery = useSimilarPlaces(resolvedPlaceId, place?.category)
+
+  // Log explore signal once we have a Supabase place UUID (not a Google ChIJ id).
+  useEffect(() => {
+    if (!user?.id || !raw?.id) return
+    logPlaceView(user.id, raw.id)
+  }, [user?.id, raw?.id])
 
   const reviews = reviewsQuery.data ?? []
   const hybrid = hybridQuery.data
@@ -131,6 +138,7 @@ export default function PlaceDetailScreen() {
         void queryClient.invalidateQueries({
           queryKey: placeKeys.detail(resolvedPlaceId),
         })
+        void queryClient.invalidateQueries({ queryKey: ['activity'] })
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
         setReviewOpen(false)
         setTimeout(scrollToReviews, 200)

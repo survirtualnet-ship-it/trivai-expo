@@ -71,18 +71,26 @@ drop policy if exists "places_cache_public_read" on public.places_cache;
 create policy "places_cache_public_read"
   on public.places_cache for select using (true);
 
--- Authenticated users can upsert cache rows from the app
+-- Authenticated cache writes only (must look like a Google Place row)
 drop policy if exists "places_cache_auth_upsert" on public.places_cache;
 create policy "places_cache_auth_upsert"
   on public.places_cache for insert
   to authenticated
-  with check (true);
+  with check (
+    google_place_id is not null
+    and char_length(trim(google_place_id)) > 10
+    and name is not null
+  );
 
 drop policy if exists "places_cache_auth_update" on public.places_cache;
 create policy "places_cache_auth_update"
   on public.places_cache for update
   to authenticated
-  using (true);
+  using (true)
+  with check (
+    google_place_id is not null
+    and char_length(trim(google_place_id)) > 10
+  );
 
 drop policy if exists "place_live_content_public_read" on public.place_live_content;
 create policy "place_live_content_public_read"
@@ -100,24 +108,34 @@ create policy "place_live_content_owner_write"
     )
   );
 
--- Claim: authenticated users can insert/update places
+-- Enrichment insert: only rows linked to a Google Place ID
 drop policy if exists "places_claim_insert" on public.places;
-create policy "places_claim_insert"
+drop policy if exists "places_enrichment_insert" on public.places;
+create policy "places_enrichment_insert"
   on public.places for insert
   to authenticated
-  with check (true);
+  with check (
+    google_place_id is not null
+    and char_length(trim(google_place_id)) > 10
+  );
 
+-- Claimed places: owner only. Unclaimed shells: any authenticated (refresh sync).
 drop policy if exists "places_owner_update" on public.places;
-create policy "places_owner_update"
+drop policy if exists "places_owner_or_unclaimed_update" on public.places;
+create policy "places_owner_or_unclaimed_update"
   on public.places for update
   to authenticated
   using (
     exists (
       select 1 from public.trivai_business b
       where b.place_id = places.id
+        and b.claimed = true
         and b.owner_id = auth.uid()
     )
     or not exists (
-      select 1 from public.trivai_business b where b.place_id = places.id
+      select 1 from public.trivai_business b
+      where b.place_id = places.id
+        and b.claimed = true
     )
-  );
+  )
+  with check (true);

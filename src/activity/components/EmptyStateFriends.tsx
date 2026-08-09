@@ -27,7 +27,7 @@ export const EmptyStateFriends = memo(function EmptyStateFriends({
         }}
         style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
       >
-        <Text style={styles.primaryText}>Conectar contactos</Text>
+        <Text style={styles.primaryText}>Ver amigos</Text>
       </Pressable>
       <Pressable
         onPress={() => {

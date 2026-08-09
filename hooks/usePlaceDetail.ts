@@ -96,6 +96,7 @@ export function usePlaceFavorite(placeId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: favoriteKeys.all })
       if (userId) {
         queryClient.invalidateQueries({ queryKey: favoriteKeys.count(userId) })
+        queryClient.invalidateQueries({ queryKey: ['activity'] })
       }
     },
   })
