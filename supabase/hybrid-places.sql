@@ -1,5 +1,5 @@
 -- Hybrid places model: Google base + Trivai enrichment only.
--- Run in Supabase SQL editor.
+-- Safe to re-run (idempotent).
 
 -- Link Supabase place UUID ↔ Google Place ID
 alter table public.places
@@ -47,28 +47,48 @@ create table if not exists public.place_live_content (
   updated_at timestamptz not null default now()
 );
 
--- RLS: public read enrichment; owners write live content
+-- RLS
 alter table public.trivai_business enable row level security;
 alter table public.places_cache enable row level security;
 alter table public.place_live_content enable row level security;
 
+-- Drop + recreate so re-runs don't fail with 42710
+drop policy if exists "trivai_business_public_read" on public.trivai_business;
 create policy "trivai_business_public_read"
   on public.trivai_business for select using (true);
 
+drop policy if exists "trivai_business_owner_claim" on public.trivai_business;
 create policy "trivai_business_owner_claim"
   on public.trivai_business for insert
   with check (auth.uid() = owner_id);
 
+drop policy if exists "trivai_business_owner_update" on public.trivai_business;
 create policy "trivai_business_owner_update"
   on public.trivai_business for update
   using (auth.uid() = owner_id);
 
+drop policy if exists "places_cache_public_read" on public.places_cache;
 create policy "places_cache_public_read"
   on public.places_cache for select using (true);
 
+-- Authenticated users can upsert cache rows from the app
+drop policy if exists "places_cache_auth_upsert" on public.places_cache;
+create policy "places_cache_auth_upsert"
+  on public.places_cache for insert
+  to authenticated
+  with check (true);
+
+drop policy if exists "places_cache_auth_update" on public.places_cache;
+create policy "places_cache_auth_update"
+  on public.places_cache for update
+  to authenticated
+  using (true);
+
+drop policy if exists "place_live_content_public_read" on public.place_live_content;
 create policy "place_live_content_public_read"
   on public.place_live_content for select using (true);
 
+drop policy if exists "place_live_content_owner_write" on public.place_live_content;
 create policy "place_live_content_owner_write"
   on public.place_live_content for all
   using (
@@ -80,36 +100,24 @@ create policy "place_live_content_owner_write"
     )
   );
 
--- Allow authenticated users to create/update places when claiming a business
--- (self-service; no admin approval)
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies
-    where schemaname = 'public' and tablename = 'places' and policyname = 'places_claim_insert'
-  ) then
-    create policy "places_claim_insert"
-      on public.places for insert
-      to authenticated
-      with check (true);
-  end if;
+-- Claim: authenticated users can insert/update places
+drop policy if exists "places_claim_insert" on public.places;
+create policy "places_claim_insert"
+  on public.places for insert
+  to authenticated
+  with check (true);
 
-  if not exists (
-    select 1 from pg_policies
-    where schemaname = 'public' and tablename = 'places' and policyname = 'places_owner_update'
-  ) then
-    create policy "places_owner_update"
-      on public.places for update
-      to authenticated
-      using (
-        exists (
-          select 1 from public.trivai_business b
-          where b.place_id = places.id
-            and b.owner_id = auth.uid()
-        )
-        or not exists (
-          select 1 from public.trivai_business b where b.place_id = places.id
-        )
-      );
-  end if;
-end $$;
+drop policy if exists "places_owner_update" on public.places;
+create policy "places_owner_update"
+  on public.places for update
+  to authenticated
+  using (
+    exists (
+      select 1 from public.trivai_business b
+      where b.place_id = places.id
+        and b.owner_id = auth.uid()
+    )
+    or not exists (
+      select 1 from public.trivai_business b where b.place_id = places.id
+    )
+  );
