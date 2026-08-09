@@ -1,4 +1,5 @@
-import { ONBOARDING_CONFIG } from './config'
+import { Platform } from 'react-native'
+import { ENV } from '@/lib/env'
 
 export type PlaceAutocompleteResult = {
   placeId: string
@@ -14,87 +15,96 @@ export type PlaceDetails = {
   lng: number
 }
 
+/**
+ * Prefer same-origin Expo API, then appUrl, then webApiUrl.
+ * Never call maps.googleapis.com from the client (CORS + key restrictions).
+ */
+function apiBases(): string[] {
+  const bases: string[] = []
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    bases.push(window.location.origin)
+  }
+  if (ENV.appUrl) bases.push(ENV.appUrl)
+  if (ENV.webApiUrl) bases.push(ENV.webApiUrl)
+  return bases.filter((url, i, list) => url && list.indexOf(url) === i)
+}
+
+async function fetchPlacesProxy(pathQuery: string): Promise<any> {
+  let lastError = 'No se pudo conectar con Google Places'
+
+  for (const base of apiBases()) {
+    try {
+      const res = await fetch(
+        `${base.replace(/\/$/, '')}/api/google-places?${pathQuery}`,
+      )
+      const contentType = res.headers.get('content-type') ?? ''
+      if (!contentType.includes('json')) {
+        lastError = 'Respuesta inválida del servidor'
+        continue
+      }
+      const json = await res.json()
+      if (!res.ok) {
+        lastError =
+          typeof json?.error === 'string'
+            ? json.error
+            : `Error ${res.status}`
+        continue
+      }
+      return json
+    } catch {
+      // try next base
+    }
+  }
+
+  throw new Error(lastError)
+}
+
+/** Text search via server proxy (same path as map / discover). */
 export async function fetchPlaceAutocomplete(
   query: string,
 ): Promise<PlaceAutocompleteResult[]> {
   const q = query.trim()
   if (q.length < 2) return []
 
-  const key = ONBOARDING_CONFIG.googleMapsKey
-  if (!key || key === 'YOUR_GOOGLE_PLACES_API_KEY') {
-    return []
-  }
+  const data = await fetchPlacesProxy(`q=${encodeURIComponent(q)}`)
+  const results = (data?.results ?? []) as {
+    place_id: string
+    name: string
+    address?: string
+  }[]
 
-  try {
-    const params = new URLSearchParams({
-      input: q,
-      key,
-      types: 'establishment',
-      language: 'es',
-    })
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params}`,
-    )
-    const json = (await res.json()) as {
-      status: string
-      predictions?: {
-        place_id: string
-        structured_formatting: { main_text: string; secondary_text: string }
-      }[]
-    }
-
-    if (json.status !== 'OK' || !json.predictions?.length) {
-      return []
-    }
-
-    return json.predictions.map(p => ({
-      placeId: p.place_id,
-      name: p.structured_formatting.main_text,
-      address: p.structured_formatting.secondary_text,
-    }))
-  } catch {
-    return []
-  }
+  return results.map(r => ({
+    placeId: r.place_id,
+    name: r.name,
+    address: r.address ?? '',
+  }))
 }
 
-export async function fetchPlaceDetails(placeId: string): Promise<PlaceDetails | null> {
-  if (placeId.startsWith('mock-')) {
-    return null
-  }
+export async function fetchPlaceDetails(
+  placeId: string,
+): Promise<PlaceDetails | null> {
+  if (!placeId || placeId.startsWith('mock-')) return null
 
-  const key = ONBOARDING_CONFIG.googleMapsKey
-  if (!key || key === 'YOUR_GOOGLE_PLACES_API_KEY') return null
-
-  try {
-    const params = new URLSearchParams({
-      place_id: placeId,
-      key,
-      fields: 'place_id,name,formatted_address,geometry',
-      language: 'es',
-    })
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/place/details/json?${params}`,
-    )
-    const json = (await res.json()) as {
-      status: string
-      result?: {
+  const data = await fetchPlacesProxy(
+    `place_id=${encodeURIComponent(placeId)}`,
+  )
+  const r = data?.result as
+    | {
         place_id: string
         name: string
-        formatted_address: string
-        geometry: { location: { lat: number; lng: number } }
+        address?: string
+        lat?: number
+        lng?: number
       }
-    }
+    | undefined
 
-    if (json.status !== 'OK' || !json.result) return null
+  if (!r?.place_id || r.lat == null || r.lng == null) return null
 
-    return {
-      placeId: json.result.place_id,
-      name: json.result.name,
-      address: json.result.formatted_address,
-      lat: json.result.geometry.location.lat,
-      lng: json.result.geometry.location.lng,
-    }
-  } catch {
-    return null
+  return {
+    placeId: r.place_id,
+    name: r.name,
+    address: r.address ?? '',
+    lat: r.lat,
+    lng: r.lng,
   }
 }
