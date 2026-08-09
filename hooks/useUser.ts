@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { fetchCurrentUserSession } from '@/lib/queries/user'
 import { userKeys, STALE } from '@/lib/queries/keys'
 import { getOnboardingDone } from '@/lib/onboardingStorage'
+import { clearLocalSessionArtifacts } from '@/lib/appBootstrap/clearLocalSession'
 import { useAuthStore } from '@/src/auth/store/useAuthStore'
 
 export function useUser() {
@@ -57,6 +58,7 @@ export function useUser() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated) || !!user
 
   const signOut = useCallback(async () => {
+    clearLocalSessionArtifacts()
     await useAuthStore.getState().logout()
     queryClient.setQueryData(userKeys.session(), { user: null, profile: null })
     queryClient.invalidateQueries({ queryKey: userKeys.all })

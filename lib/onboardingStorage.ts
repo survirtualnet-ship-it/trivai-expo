@@ -30,3 +30,10 @@ export async function isBusinessIntent(): Promise<boolean> {
     return false
   }
 }
+
+/** Clear device-level onboarding flags (must run on logout / account switch). */
+export async function clearOnboardingFlags(): Promise<void> {
+  try {
+    await AsyncStorage.multiRemove([KEY_DONE, KEY_BUSINESS])
+  } catch {}
+}

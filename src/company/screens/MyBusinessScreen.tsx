@@ -1,16 +1,14 @@
 import { useEffect } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { router } from 'expo-router'
-import { useProfileStore } from '@/src/profile/store/useProfileStore'
-import { useAuthStore } from '@/src/auth/store/useAuthStore'
+import { useUser } from '@/hooks/useUser'
 import { MyBusinessEmptyScreen } from './MyBusinessEmptyScreen'
 import { companyTheme as t } from '../theme'
 
 /** Protected entry: Profile → Mi negocio */
 export function MyBusinessScreen() {
-  const profileCompanyId = useProfileStore(s => s.user.companyId)
-  const authCompanyId = useAuthStore(s => s.user?.companyId)
-  const companyId = profileCompanyId ?? authCompanyId ?? null
+  const { profile } = useUser()
+  const companyId = profile?.business_place_id ?? null
 
   useEffect(() => {
     if (!companyId) return

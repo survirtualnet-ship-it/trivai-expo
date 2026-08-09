@@ -2,7 +2,6 @@ import type { User } from '@supabase/supabase-js'
 import type { Profile } from '@/lib/supabase'
 import type { AuthUser } from './types'
 import { roleFromProfile } from '@/lib/appBootstrap/syncProfile'
-import { useProfileStore } from '@/src/profile/store/useProfileStore'
 
 export function buildAuthUser(
   user: User,
@@ -16,17 +15,15 @@ export function buildAuthUser(
     user.email?.split('@')[0] ??
     'Explorador'
 
-  const localRole = useProfileStore.getState().user.role
-  const role = roleFromProfile(profile) ?? localRole ?? 'tourist'
+  // Only trust Supabase profile — never leak companyId from a prior local user.
+  const role = roleFromProfile(profile) ?? 'tourist'
+  const companyId = profile?.business_place_id ?? undefined
 
   return {
     id: user.id,
     name,
     email: user.email ?? '',
     role,
-    companyId:
-      profile?.business_place_id ??
-      useProfileStore.getState().user.companyId ??
-      undefined,
+    companyId,
   }
 }

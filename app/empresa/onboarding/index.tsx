@@ -15,10 +15,8 @@ export default function BusinessOnboardingIndex() {
   const bootstrap = useAppBootstrap()
   const { user, profile } = useUser()
   const setGoogleUser = useOnboardingStore(s => s.setGoogleUser)
-  const companyId =
-    profile?.business_place_id
-    ?? bootstrap.companyId
-    ?? null
+  // Only trust Supabase — bootstrap.companyId can be stale local state.
+  const companyId = profile?.business_place_id ?? null
 
   useEffect(() => {
     if (!bootstrap.ready || !bootstrap.isAuthenticated) return

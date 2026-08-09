@@ -3,12 +3,14 @@ import { useProfileStore } from '@/src/profile/store/useProfileStore'
 
 /** Profile → My Business (protected hub) or claim flow */
 export function navigateToMyBusiness() {
-  const companyId = useProfileStore.getState().user.companyId
+  // Prefer synced store only when role is company; otherwise claim flow.
+  const user = useProfileStore.getState().user
+  const companyId = user.role === 'company' ? user.companyId : undefined
   if (companyId) {
     router.push(`/empresa/${companyId}`)
     return
   }
-  router.push('/empresa/mi-negocio')
+  router.push('/empresa/onboarding')
 }
 
 /** Redirect to onboarding when no company is linked */

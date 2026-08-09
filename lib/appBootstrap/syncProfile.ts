@@ -28,6 +28,9 @@ export function syncProfileStoreFromAuth(
   user: User,
   profile: Profile | null,
 ): void {
+  const prev = useProfileStore.getState().user
+  const sameUser = !!prev.id && prev.id === user.id
+
   const name =
     profile?.full_name ??
     (user.user_metadata?.full_name as string | undefined) ??
@@ -41,10 +44,23 @@ export function syncProfileStoreFromAuth(
     (user.user_metadata?.picture as string | undefined) ??
     ''
 
-  const role = roleFromProfile(profile) ?? useProfileStore.getState().user.role
+  // Supabase profile is source of truth. Never inherit companyId/role from
+  // another account left in AsyncStorage / localStorage.
+  const roleFromDb = roleFromProfile(profile)
+  const role: UserRole =
+    roleFromDb ??
+    (profile ? 'tourist' : sameUser ? prev.role : 'tourist')
+
+  const companyId =
+    profile != null
+      ? profile.business_place_id ?? undefined
+      : sameUser
+        ? prev.companyId
+        : undefined
+
   const onboardingCompleted =
     isOnboardingCompleteFromProfile(profile) ||
-    useProfileStore.getState().user.onboardingCompleted
+    (sameUser && prev.onboardingCompleted)
 
   useProfileStore.getState().setUser({
     id: user.id,
@@ -53,9 +69,9 @@ export function syncProfileStoreFromAuth(
     avatarUrl,
     photo: avatarUrl || undefined,
     initials: initialsFromName(name),
-    city: profile?.city?.trim() || '',
+    city: profile?.city?.trim() || (sameUser ? prev.city : ''),
     role,
-    companyId: profile?.business_place_id ?? useProfileStore.getState().user.companyId,
+    companyId,
     onboardingCompleted,
   })
 }
