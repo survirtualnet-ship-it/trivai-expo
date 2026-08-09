@@ -69,7 +69,7 @@ export function CompanyProfileScreen({ companyId }: Props) {
   }, [activeTab, isOwner, setActiveTab])
 
   useEffect(() => {
-    if (!storeHydrated || !companyId) return
+    if (!storeHydrated) return
     void loadCompany(companyId)
   }, [companyId, userCompanyId, authCompanyId, loadCompany, storeHydrated])
 
