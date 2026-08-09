@@ -1,20 +1,24 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchNearbyPlaces, fetchPlaceById } from '@/services/places.service'
 import {
-  fetchPlacesList,
+  fetchNearbyPlaces,
+  fetchPlaceById,
+  searchPlacesLive,
+} from '@/services/places.service'
+import {
   fetchPlaceById as fetchDbPlaceById,
   fetchPlacesMapMarkers,
   type PlacesListFilters,
 } from '@/lib/queries/places'
 import { placeKeys, STALE } from '@/lib/queries/keys'
 import { PLACES_STALE_MS, QUERY_KEYS } from '@/lib/constants'
+import { placesToCardData } from '@/lib/places/toCardData'
 import type { Place, PlaceFilters } from '@/types/place'
 import type { PlaceCardData } from '@/components/ui/PlaceCard'
 import { useLocation } from '@/hooks/useLocation'
 
 export interface UsePlacesOptions extends PlacesListFilters {
   enabled?: boolean
-  /** Use product nearby pipeline (distance-sorted). Default false for legacy callers. */
+  /** Use product Place[] pipeline. Default false → PlaceCardData[] for list UIs. */
   nearby?: boolean
   radiusKm?: number
   latitude?: number
@@ -22,9 +26,8 @@ export interface UsePlacesOptions extends PlacesListFilters {
 }
 
 /**
- * Places data layer.
- * - Legacy: category/limit/search → PlaceCardData[] (lugares tab)
- * - Product: nearby:true → Place[] sorted by distance (Explore / Home)
+ * Places data layer — Google nearby/search + Trivai merge.
+ * Does not use a global owned places catalog.
  */
 export function usePlaces(options: UsePlacesOptions = {}) {
   const {
@@ -33,51 +36,69 @@ export function usePlaces(options: UsePlacesOptions = {}) {
     category,
     limit,
     search,
-    withCoords,
     radiusKm,
     latitude,
     longitude,
   } = options
 
-  const location = useLocation({ watch: nearby, enabled: nearby })
-  const lat = latitude ?? (nearby ? location.latitude : undefined)
-  const lng = longitude ?? (nearby ? location.longitude : undefined)
+  const needsGps = !search?.trim()
+  const location = useLocation({
+    watch: nearby,
+    enabled: enabled && needsGps,
+  })
+
+  const lat = latitude ?? location.coords?.lat
+  const lng = longitude ?? location.coords?.lng
+  const q = search?.trim() || undefined
 
   const nearbyFilters: PlaceFilters = {
     category,
-    search,
+    search: q,
     latitude: lat,
     longitude: lng,
     radiusKm,
     limit,
   }
 
-  const nearbyQuery = useQuery({
+  const productQuery = useQuery({
     queryKey: [...QUERY_KEYS.places, 'nearby', nearbyFilters],
     queryFn: () => fetchNearbyPlaces(nearbyFilters),
-    enabled: enabled && nearby,
+    enabled: enabled && nearby && lat != null && lng != null,
     staleTime: PLACES_STALE_MS,
   })
 
-  const legacyQuery = useQuery({
-    queryKey: placeKeys.list({ category, limit, search }),
-    queryFn: () => fetchPlacesList({ category, limit, search, withCoords }),
-    enabled: enabled && !nearby,
+  const cardQuery = useQuery({
+    queryKey: placeKeys.list({ category, limit, search: q, lat, lng }),
+    queryFn: async (): Promise<PlaceCardData[]> => {
+      if (q) {
+        const places = await searchPlacesLive(q)
+        return placesToCardData(places).slice(0, limit ?? 40)
+      }
+      if (lat == null || lng == null) return []
+      const places = await fetchNearbyPlaces({
+        category,
+        latitude: lat,
+        longitude: lng,
+        radiusKm,
+        limit,
+      })
+      return placesToCardData(places)
+    },
+    enabled: enabled && !nearby && (!!q || (lat != null && lng != null)),
     staleTime: STALE.places,
-    select: (data): PlaceCardData[] => data,
   })
 
   if (nearby) {
     return {
-      ...nearbyQuery,
-      places: (nearbyQuery.data ?? []) as Place[],
+      ...productQuery,
+      places: (productQuery.data ?? []) as Place[],
       location,
     }
   }
 
   return {
-    ...legacyQuery,
-    places: (legacyQuery.data ?? []) as PlaceCardData[],
+    ...cardQuery,
+    places: (cardQuery.data ?? []) as PlaceCardData[],
     location,
   }
 }

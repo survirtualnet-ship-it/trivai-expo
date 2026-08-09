@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useUser } from '@/hooks/useUser'
-import { fetchPlacesList } from '@/lib/queries/places'
 import { discoverKeys, explorerKeys, STALE } from '@/lib/queries/keys'
 import { getCurrentCoords, type Coords } from '@/lib/geolocation'
 import { loadDiscoverPreferences } from '@/lib/discoverPreferences'
@@ -14,8 +13,39 @@ import type { ExplorerChipId } from '@/lib/explorerCategories'
 import { explorerChipCategory } from '@/lib/explorerCategories'
 import type { ExplorerLocationId } from '@/lib/explorerCategories'
 import { EXPLORER_LOCATIONS } from '@/lib/explorerCategories'
+import { fetchNearbyPlaces, searchPlacesLive } from '@/services/places.service'
+import { placesToCardData } from '@/lib/places/toCardData'
+import { PLACES_DEFAULT_LIMIT, PLACES_DEFAULT_RADIUS_KM } from '@/lib/constants'
 
-const PAGE_SIZE = 40
+const CHIP_KEYWORDS: Partial<Record<ExplorerChipId, string>> = {
+  restaurants: 'restaurant',
+  cafes: 'cafe coffee',
+  nightlife: 'bar nightlife',
+  culture: 'museum culture',
+  shopping: 'shopping mall',
+}
+
+async function loadExplorerPlaces(
+  origin: Coords,
+  chipId: ExplorerChipId,
+  search: string,
+) {
+  const q = search.trim()
+  if (q.length >= 2) {
+    const places = await searchPlacesLive(q)
+    return placesToCardData(places)
+  }
+
+  const keyword = CHIP_KEYWORDS[chipId]
+  const places = await fetchNearbyPlaces({
+    latitude: origin.lat,
+    longitude: origin.lng,
+    radiusKm: PLACES_DEFAULT_RADIUS_KM,
+    limit: PLACES_DEFAULT_LIMIT,
+    search: keyword,
+  })
+  return placesToCardData(places)
+}
 
 export interface UseExplorerPlacesOptions {
   chipId: ExplorerChipId
@@ -48,29 +78,28 @@ export function useExplorerPlaces({
     enabled: !!userId,
   })
 
-  const placesQuery = useInfiniteQuery({
-    queryKey: explorerKeys.list({ category: chipCategory, search, userId }),
-    queryFn: ({ pageParam }) =>
-      fetchPlacesList({
-        category: chipCategory ?? undefined,
-        withCoords: true,
-        from: pageParam,
-        to: pageParam + PAGE_SIZE - 1,
-      }),
-    initialPageParam: 0,
-    getNextPageParam: (lastPage, _pages, lastParam) =>
-      lastPage.length >= PAGE_SIZE ? lastParam + PAGE_SIZE : undefined,
+  const origin = useMemo((): Coords | null => {
+    if (locationId === 'near_me') return userCoords
+    return EXPLORER_LOCATIONS.find(l => l.id === locationId)?.center
+      ?? userCoords
+  }, [locationId, userCoords])
+
+  const placesQuery = useQuery({
+    queryKey: explorerKeys.list({
+      category: chipCategory,
+      search,
+      userId,
+      lat: origin?.lat,
+      lng: origin?.lng,
+    }),
+    queryFn: () => loadExplorerPlaces(origin!, chipId, search),
+    enabled: origin != null,
     staleTime: STALE.places,
   })
 
-  const origin = useMemo((): Coords => {
-    if (locationId === 'near_me' && userCoords) return userCoords
-    return EXPLORER_LOCATIONS.find(l => l.id === locationId)?.center
-      ?? EXPLORER_LOCATIONS[0].center
-  }, [locationId, userCoords])
-
   const rankedPlaces = useMemo((): ExplorerPlace[] => {
-    const flat = placesQuery.data?.pages.flat() ?? []
+    const flat = placesQuery.data ?? []
+    if (!origin) return []
     return rankExplorerPlaces(
       flat,
       origin,
@@ -80,7 +109,7 @@ export function useExplorerPlaces({
       search,
     )
   }, [
-    placesQuery.data?.pages,
+    placesQuery.data,
     origin,
     prefsQuery.data,
     activityQuery.data,
@@ -90,11 +119,11 @@ export function useExplorerPlaces({
 
   return {
     places: rankedPlaces,
-    origin,
-    loading: placesQuery.isLoading,
-    isFetchingNextPage: placesQuery.isFetchingNextPage,
-    hasNextPage: placesQuery.hasNextPage,
-    fetchNextPage: placesQuery.fetchNextPage,
+    origin: origin ?? (userCoords ?? { lat: 0, lng: 0 }),
+    loading: placesQuery.isLoading || origin == null,
+    isFetchingNextPage: false,
+    hasNextPage: false,
+    fetchNextPage: async () => undefined,
     refetch: placesQuery.refetch,
     isError: placesQuery.isError,
   }

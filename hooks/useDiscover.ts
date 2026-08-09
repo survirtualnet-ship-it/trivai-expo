@@ -144,7 +144,12 @@ async function fetchDiscoverFeedPage(
   const userCoords = queryClient.getQueryData<Coords | null>(discoverKeys.coords()) ?? null
 
   const pool = await queryClient.fetchQuery({
-    queryKey: discoverKeys.rankedPool({ rankingMode, userId }),
+    queryKey: discoverKeys.rankedPool({
+      rankingMode,
+      userId,
+      lat: userCoords?.lat,
+      lng: userCoords?.lng,
+    }),
     queryFn: () => fetchDiscoverRankedPool({ mode: rankingMode, userId, userCoords }),
     staleTime: STALE.places,
   })
@@ -254,7 +259,12 @@ export function useDiscover(searchQueryOrOptions: string | UseDiscoverOptions = 
   const userCoords = coordsQuery.data ?? null
 
   const poolQuery = useQuery({
-    queryKey: discoverKeys.rankedPool({ rankingMode, userId }),
+    queryKey: discoverKeys.rankedPool({
+      rankingMode,
+      userId,
+      lat: userCoords?.lat,
+      lng: userCoords?.lng,
+    }),
     queryFn: () => fetchDiscoverRankedPool({
       mode: rankingMode,
       userId,

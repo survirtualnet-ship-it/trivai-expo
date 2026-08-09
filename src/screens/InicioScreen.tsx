@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import {
   CategoryCard,
@@ -55,10 +55,8 @@ export function InicioScreen() {
     locale,
   )
 
-  const { nearby, trending, forYou, recommended } = useNearbyPlaces(
-    profile,
-    zone,
-  )
+  const { nearby, trending, forYou, recommended, isEmpty, isLoading: isPlacesLoading } =
+    useNearbyPlaces(profile, zone)
 
   const {
     items: newsItems,
@@ -163,26 +161,41 @@ export function InicioScreen() {
 
         <ZoneFilter locale={locale} selected={zone} onSelect={setZone} />
 
-        <HomePlaceSection
-          title={nearbyTitle}
-          places={nearby}
-          locale={locale}
-          onPressPlace={onPressPlace}
-        />
+        {!isPlacesLoading && !isLocationLoading && isEmpty ? (
+          <View style={styles.emptyPlaces}>
+            <Text style={styles.emptyTitle}>
+              {locale === 'EN' ? 'No places nearby yet' : 'Aún no hay lugares cerca'}
+            </Text>
+            <Text style={styles.emptyBody}>
+              {locale === 'EN'
+                ? 'Allow location or search to discover places around you.'
+                : 'Activa la ubicación o busca para descubrir lugares a tu alrededor.'}
+            </Text>
+          </View>
+        ) : (
+          <>
+            <HomePlaceSection
+              title={nearbyTitle}
+              places={nearby}
+              locale={locale}
+              onPressPlace={onPressPlace}
+            />
 
-        <HomePlaceSection
-          title={trendingTitle}
-          places={trending}
-          locale={locale}
-          onPressPlace={onPressPlace}
-        />
+            <HomePlaceSection
+              title={trendingTitle}
+              places={trending}
+              locale={locale}
+              onPressPlace={onPressPlace}
+            />
 
-        <HomePlaceSection
-          title={forYouTitle}
-          places={forYou}
-          locale={locale}
-          onPressPlace={onPressPlace}
-        />
+            <HomePlaceSection
+              title={forYouTitle}
+              places={forYou}
+              locale={locale}
+              onPressPlace={onPressPlace}
+            />
+          </>
+        )}
 
         <PlanRapidoSection
           title={planTitle}
@@ -191,12 +204,14 @@ export function InicioScreen() {
           onPressPlan={onPressPlan}
         />
 
-        <HomePlaceSection
-          title={recommendedTitle}
-          places={recommended}
-          locale={locale}
-          onPressPlace={onPressPlace}
-        />
+        {!isPlacesLoading && !isEmpty ? (
+          <HomePlaceSection
+            title={recommendedTitle}
+            places={recommended}
+            locale={locale}
+            onPressPlace={onPressPlace}
+          />
+        ) : null}
 
         <CountryNewsSection
           title={newsTitle}
@@ -231,5 +246,20 @@ const styles = StyleSheet.create({
   },
   bottom: {
     height: spacing.xl,
+  },
+  emptyPlaces: {
+    marginTop: spacing.xxl,
+    marginHorizontal: spacing.lg,
+    gap: spacing.sm,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  emptyBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textSecondary,
   },
 })

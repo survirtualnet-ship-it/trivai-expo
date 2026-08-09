@@ -26,6 +26,10 @@ export interface PlaceMapMarker {
   lng: number
 }
 
+/**
+ * @deprecated Prefer Google hybrid (`fetchNearbyPlaces` / `searchPlacesLive`).
+ * Kept for enrichment-only / admin paths that already have local rows.
+ */
 export async function fetchPlacesList(filters: PlacesListFilters = {}): Promise<PlaceCardData[]> {
   const { category, limit = 200, from, to, search, withCoords = true } = filters
 

@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase'
 import { dedupePlaces } from '@/lib/places'
+import { placesToCardData } from '@/lib/places/toCardData'
 import { getCatEmoji } from '@/lib/tokens'
+import { searchPlacesLive } from '@/services/places.service'
 import type { PlaceCardData } from '@/components/ui/PlaceCard'
 import type { EventCardData } from '@/components/ui/EventCard'
 
@@ -103,12 +105,8 @@ export async function fetchSmartSearchResults(query: string): Promise<{
   const q = query.trim()
   if (!q) return { lugares: [], eventos: [], personas: [] }
 
-  const [{ data: lug }, { data: evt }, { data: per }] = await Promise.all([
-    supabase
-      .from('places')
-      .select('id,name,category,address,rating_avg,is_open,hours,latitude,longitude')
-      .or(`name.ilike.%${q}%,category.ilike.%${q}%,address.ilike.%${q}%`)
-      .limit(12),
+  const [googlePlaces, evtRes, perRes] = await Promise.all([
+    searchPlacesLive(q).then(places => placesToCardData(places).slice(0, 12)),
     supabase
       .from('events')
       .select('id,name,category,start_datetime,is_free,price,attendees_count,place:places(name,address,latitude,longitude)')
@@ -123,8 +121,11 @@ export async function fetchSmartSearchResults(query: string): Promise<{
       .limit(8),
   ])
 
+  const evt = evtRes.data
+  const per = perRes.data
+
   return {
-    lugares: dedupePlaces(lug ?? []),
+    lugares: dedupePlaces(googlePlaces),
     eventos: (evt ?? []).map((e: any) => ({ ...e, attendees_count: e.attendees_count ?? 0 })),
     personas: (per ?? []).map((p: any) => ({
       id: p.id,

@@ -1,6 +1,4 @@
 import { supabase } from '@/lib/supabase'
-import { dedupePlaces } from '@/lib/places'
-import { PLACE_CARD_SELECT } from '@/lib/queries/places'
 import { EVENT_CARD_SELECT } from '@/lib/queries/events'
 import {
   computeEventDiscoverScore,
@@ -16,8 +14,10 @@ import { fetchActivityCategoryProfile } from '@/lib/userActivity'
 import type { Coords } from '@/lib/geolocation'
 import type { PlaceCardData } from '@/components/ui/PlaceCard'
 import type { EventCardData } from '@/components/ui/EventCard'
+import { fetchNearbyPlaces } from '@/services/places.service'
+import { placesToCardData } from '@/lib/places/toCardData'
+import { PLACES_DEFAULT_LIMIT, PLACES_DEFAULT_RADIUS_KM } from '@/lib/constants'
 
-export const DISCOVER_PLACE_SELECT = `${PLACE_CARD_SELECT},created_at`
 export const DISCOVER_EVENT_SELECT = `${EVENT_CARD_SELECT},created_at,is_featured`
 
 /** Max candidates scored per feed refresh (pagination slices this sorted pool). */
@@ -82,16 +82,20 @@ async function fetchRecentEventRsvpCounts(): Promise<Map<string, number>> {
   return counts
 }
 
-async function fetchDiscoverPlaceCandidates(): Promise<DiscoverPlaceRow[]> {
-  const { data, error } = await supabase
-    .from('places')
-    .select(DISCOVER_PLACE_SELECT)
-    .not('latitude', 'is', null)
-    .not('longitude', 'is', null)
-    .limit(DISCOVER_POOL_SIZE)
+/** Google nearby + Trivai merge — no global owned places catalog. */
+async function fetchDiscoverPlaceCandidates(
+  userCoords: Coords | null,
+): Promise<DiscoverPlaceRow[]> {
+  if (!userCoords) return []
 
-  if (error) throw error
-  return dedupePlaces((data ?? []) as DiscoverPlaceRow[])
+  const places = await fetchNearbyPlaces({
+    latitude: userCoords.lat,
+    longitude: userCoords.lng,
+    radiusKm: PLACES_DEFAULT_RADIUS_KM,
+    limit: Math.min(DISCOVER_POOL_SIZE, PLACES_DEFAULT_LIMIT * 2),
+  })
+
+  return placesToCardData(places) as DiscoverPlaceRow[]
 }
 
 async function fetchDiscoverEventCandidates(): Promise<DiscoverEventRow[]> {
@@ -116,7 +120,7 @@ export async function fetchDiscoverRankedPool(
 
   const [lugaresRaw, eventosRaw, placeActivity, eventActivity, preferences, activityProfile] =
     await Promise.all([
-      fetchDiscoverPlaceCandidates(),
+      fetchDiscoverPlaceCandidates(userCoords),
       fetchDiscoverEventCandidates(),
       fetchRecentPlaceReviewCounts(),
       fetchRecentEventRsvpCounts(),

@@ -47,10 +47,22 @@ export default function ExploreScreen() {
     staleTime: STALE.coords,
   })
 
+  const userCoords = coordsQuery.data
+    ? { latitude: coordsQuery.data.lat, longitude: coordsQuery.data.lng }
+    : null
+
   const placesQuery = useQuery({
-    queryKey: ['explore', 'places', selectedCategory, debouncedSearch],
-    queryFn: () => fetchExplorePlaces(selectedCategory, debouncedSearch),
+    queryKey: [
+      'explore',
+      'places',
+      selectedCategory,
+      debouncedSearch,
+      userCoords?.latitude,
+      userCoords?.longitude,
+    ],
+    queryFn: () => fetchExplorePlaces(selectedCategory, debouncedSearch, userCoords),
     staleTime: 60_000,
+    enabled: !!userCoords || debouncedSearch.trim().length >= 2,
   })
 
   const places = placesQuery.data ?? []
@@ -58,10 +70,6 @@ export default function ExploreScreen() {
     () => places.find(p => p.id === selectedPlaceId) ?? null,
     [places, selectedPlaceId],
   )
-
-  const userCoords = coordsQuery.data
-    ? { latitude: coordsQuery.data.lat, longitude: coordsQuery.data.lng }
-    : null
 
   const switchMode = useCallback((mode: ExploreViewMode) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)

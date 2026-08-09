@@ -3,7 +3,13 @@
 export const placeKeys = {
   all: ['places'] as const,
   lists: () => [...placeKeys.all, 'list'] as const,
-  list: (filters: { category?: string; limit?: number; search?: string } = {}) =>
+  list: (filters: {
+    category?: string
+    limit?: number
+    search?: string
+    lat?: number
+    lng?: number
+  } = {}) =>
     [...placeKeys.lists(), filters] as const,
   map: () => [...placeKeys.all, 'map'] as const,
   details: () => [...placeKeys.all, 'detail'] as const,
@@ -42,6 +48,8 @@ export interface DiscoverFeedFilters {
 export interface DiscoverRankedPoolFilters {
   rankingMode?: 'default' | 'trending'
   userId?: string | null
+  lat?: number | null
+  lng?: number | null
 }
 
 export interface DiscoverSearchFilters {
@@ -54,6 +62,8 @@ export const discoverKeys = {
     [...discoverKeys.all, 'ranked-pool', {
       rankingMode: filters.rankingMode ?? 'default',
       userId: filters.userId ?? 'anon',
+      lat: filters.lat ?? null,
+      lng: filters.lng ?? null,
     }] as const,
   feed: (filters: DiscoverFeedFilters) =>
     [...discoverKeys.all, 'feed', {
@@ -101,9 +111,13 @@ export const explorerKeys = {
     category?: string | null
     search?: string
     userId?: string | null
+    lat?: number
+    lng?: number
   } = {}) => [...explorerKeys.all, 'list', {
     category: filters.category ?? 'all',
     search: filters.search ?? '',
     userId: filters.userId ?? 'anon',
+    lat: filters.lat ?? null,
+    lng: filters.lng ?? null,
   }] as const,
 }

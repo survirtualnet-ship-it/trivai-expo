@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { MOCK_MAP_PLACES, MAP_CITY_CENTER } from '../data/mockPlaces'
+import { MAP_CITY_CENTER } from '../data/mockPlaces'
 import { filterMapPlaces } from '../utils/filterPlaces'
 import { getIndexById, normalizeMapPlace } from '../utils/placeHelpers'
 
@@ -87,8 +87,6 @@ function buildDisplayPlaces(state: {
   )
 }
 
-const INITIAL_PLACES = MOCK_MAP_PLACES.map(normalizeMapPlace)
-
 export const DEFAULT_REGION: MapRegionState = {
   lat: MAP_CITY_CENTER.lat,
   lng: MAP_CITY_CENTER.lng,
@@ -97,13 +95,8 @@ export const DEFAULT_REGION: MapRegionState = {
 }
 
 export const useMapStore = create<MapStore>((set, get) => ({
-  places: INITIAL_PLACES,
-  displayPlaces: buildDisplayPlaces({
-    places: INITIAL_PLACES,
-    activeFilter: 'cerca',
-    searchQuery: '',
-    userLocation: null,
-  }),
+  places: [],
+  displayPlaces: [],
   selectedPlaceId: null,
   activeFilter: 'cerca',
   searchQuery: '',
