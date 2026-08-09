@@ -88,6 +88,7 @@ export const useAuthStore = create<AuthState>()(
           const { data: { session } } = await supabase.auth.getSession()
 
           if (!session?.user) {
+            clearLocalSessionArtifacts()
             set({
               user: null,
               token: null,

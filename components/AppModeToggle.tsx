@@ -3,7 +3,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { useAppMode } from '@/src/appMode'
 import { useProfileStore } from '@/src/profile/store/useProfileStore'
-import { useAuthStore } from '@/src/auth/store/useAuthStore'
 import { T, F, S, R } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 
@@ -13,13 +12,13 @@ type Props = {
 }
 
 /**
- * Explore / Business mode switch — only for users with a claimed companyId.
+ * Explore / Business mode switch — only for claimed company accounts.
  * Changes global state only; does not navigate.
  */
 export const AppModeToggle = memo(function AppModeToggle({ compact }: Props) {
-  const profileCompanyId = useProfileStore(s => s.user.companyId)
-  const authCompanyId = useAuthStore(s => s.user?.companyId)
-  const isCompany = !!(profileCompanyId || authCompanyId)
+  const role = useProfileStore(s => s.user.role)
+  const companyId = useProfileStore(s => s.user.companyId)
+  const isCompany = role === 'company' && !!companyId
   const { mode, setMode } = useAppMode()
 
   if (!isCompany) return null
