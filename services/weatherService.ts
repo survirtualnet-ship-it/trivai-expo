@@ -1,7 +1,5 @@
 import {
   CACHE_KEYS,
-  CACHE_TTL,
-  isFresh,
   readCacheEntry,
   writeCache,
 } from '@/lib/homeCache'
@@ -35,14 +33,12 @@ function mapCode(code: number) {
   return WMO[code] ?? WMO[3]
 }
 
+/** Always hits the network; AsyncStorage is offline fallback only. */
 export async function fetchWeather(
   latitude: number,
   longitude: number,
 ): Promise<WeatherSnapshot> {
   const cached = await readCacheEntry<WeatherSnapshot>(CACHE_KEYS.weather)
-  if (cached && isFresh(cached.savedAt, CACHE_TTL.weather)) {
-    return cached.data
-  }
 
   try {
     const url =

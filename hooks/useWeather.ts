@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { CACHE_TTL, QUERY_KEYS } from '@/lib/constants'
+import { QUERY_KEYS } from '@/lib/constants'
 import {
   fetchWeather,
   formatWeatherLine,
@@ -7,6 +7,7 @@ import {
 } from '@/services/weatherService'
 import type { Locale } from '@/src/data/mock'
 
+/** Refresh weather every time Inicio mounts / app opens. */
 export function useWeather(
   latitude: number | undefined,
   longitude: number | undefined,
@@ -17,7 +18,11 @@ export function useWeather(
     queryKey: [...QUERY_KEYS.home.weather, latitude, longitude],
     queryFn: () => fetchWeather(latitude!, longitude!),
     enabled: latitude != null && longitude != null,
-    staleTime: CACHE_TTL.weather,
+    staleTime: 0,
+    gcTime: 30 * 60_000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   })
 
   const weather = query.data

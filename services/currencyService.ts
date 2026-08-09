@@ -1,6 +1,5 @@
 import {
   CACHE_KEYS,
-  isSameLocalDay,
   localDateKey,
   readCacheEntry,
   writeCache,
@@ -135,16 +134,11 @@ async function resolveRate(
   return null
 }
 
-/** Fetch USD→local rate. Cache is valid only for the local calendar day. */
+/** Always hits the network on open; cache is offline fallback only. */
 export async function fetchCurrency(countryCode: string): Promise<CurrencySnapshot> {
   const cacheKey = currencyCacheKey(countryCode)
   const today = localDateKey()
   const cached = await readCacheEntry<CurrencySnapshot>(cacheKey)
-
-  // Fresh only within the same local calendar day
-  if (cached && isSameLocalDay(cached.savedAt)) {
-    return withSourceLabels(cached.data)
-  }
 
   const local = getLocalCurrency(countryCode)
   const pairLabel = `USD → ${local.code}`

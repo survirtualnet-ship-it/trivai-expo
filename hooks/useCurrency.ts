@@ -1,27 +1,23 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { QUERY_KEYS } from '@/lib/constants'
-import {
-  localDateKey,
-  msUntilNextLocalMidnight,
-} from '@/lib/homeCache'
+import { localDateKey } from '@/lib/homeCache'
 import { fetchCurrency, type CurrencySnapshot } from '@/services/currencyService'
 import type { Locale } from '@/src/data/mock'
 
+/** Refresh USD rate every time Inicio mounts / app opens. */
 export function useCurrency(countryCode: string | undefined, locale: Locale) {
   const dayKey = localDateKey()
-  const staleUntilMidnight = useMemo(() => msUntilNextLocalMidnight(), [dayKey])
 
   const query = useQuery({
-    // dayKey forces a new fetch when the calendar day changes
     queryKey: [...QUERY_KEYS.home.currency, countryCode, dayKey],
     queryFn: () => fetchCurrency(countryCode!),
     enabled: !!countryCode,
-    staleTime: staleUntilMidnight,
+    staleTime: 0,
     gcTime: 36 * 60 * 60_000,
-    refetchOnMount: true,
+    refetchOnMount: 'always',
     refetchOnWindowFocus: true,
-    refetchInterval: staleUntilMidnight,
+    refetchOnReconnect: true,
   })
 
   const currency = query.data
