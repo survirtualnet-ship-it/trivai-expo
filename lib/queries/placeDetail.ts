@@ -1,9 +1,11 @@
 import { supabase } from '@/lib/supabase'
 import { PLACE_CARD_SELECT, fetchPlacesList } from '@/lib/queries/places'
 import { dedupePlaces } from '@/lib/places'
+import { fetchPlaceReviewsWithReplies } from '@/lib/reviews'
 
 export interface PlaceReview {
   id: string
+  user_id?: string | null
   rating: number
   text: string | null
   created_at: string
@@ -11,29 +13,19 @@ export interface PlaceReview {
     full_name: string | null
     username: string | null
   } | null
+  response?: {
+    id: string
+    text: string
+    created_at: string
+    business_id: string
+  } | null
 }
 
-export async function fetchPlaceReviews(placeId: string, limit = 20): Promise<PlaceReview[]> {
-  const { data, error } = await supabase
-    .from('reviews')
-    .select('id, rating, text, created_at, profile:profiles(full_name, username)')
-    .eq('place_id', placeId)
-    .or('is_hidden.is.null,is_hidden.eq.false')
-    .order('created_at', { ascending: false })
-    .limit(limit)
-
-  if (error) {
-    // Fallback if is_hidden column not migrated yet
-    const fallback = await supabase
-      .from('reviews')
-      .select('id, rating, text, created_at, profile:profiles(full_name, username)')
-      .eq('place_id', placeId)
-      .order('created_at', { ascending: false })
-      .limit(limit)
-    if (fallback.error) throw fallback.error
-    return (fallback.data ?? []) as PlaceReview[]
-  }
-  return (data ?? []) as PlaceReview[]
+export async function fetchPlaceReviews(
+  placeId: string,
+  limit = 20,
+): Promise<PlaceReview[]> {
+  return fetchPlaceReviewsWithReplies(placeId, limit)
 }
 
 export async function fetchSimilarPlaces(

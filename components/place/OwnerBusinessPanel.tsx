@@ -27,6 +27,8 @@ type Props = {
   latitude?: number | null
   longitude?: number | null
   businessModeActive: boolean
+  unansweredReviews?: number
+  onRespondReviews?: () => void
 }
 
 /**
@@ -43,6 +45,8 @@ export const OwnerBusinessPanel = memo(function OwnerBusinessPanel({
   latitude,
   longitude,
   businessModeActive,
+  unansweredReviews = 0,
+  onRespondReviews,
 }: Props) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(description)
@@ -178,16 +182,23 @@ export const OwnerBusinessPanel = memo(function OwnerBusinessPanel({
 
       {businessModeActive ? (
         <Pressable
-          onPress={() =>
-            Alert.alert(
-              'Responder reseñas',
-              'Desplázate a la sección de reseñas abajo para ver comentarios de la comunidad.',
-            )
-          }
+          onPress={() => {
+            if (onRespondReviews) onRespondReviews()
+            else {
+              Alert.alert(
+                'Responder reseñas',
+                'Desplázate a la sección de actividad reciente para responder.',
+              )
+            }
+          }}
           style={styles.actionRow}
         >
           <MessageCircle size={18} color={T.primary} />
-          <Text style={styles.actionLabel}>Responder reseñas</Text>
+          <Text style={styles.actionLabel}>
+            {unansweredReviews > 0
+              ? `Responder reseñas (${unansweredReviews})`
+              : 'Responder reseñas'}
+          </Text>
         </Pressable>
       ) : null}
 
