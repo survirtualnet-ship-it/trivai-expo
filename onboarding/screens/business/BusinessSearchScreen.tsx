@@ -10,7 +10,6 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { OnboardingLayout } from '../../components/OnboardingLayout'
-import { PrimaryButton } from '../../components/PrimaryButton'
 import { useOnboardingStore } from '../../store/onboardingStore'
 import {
   fetchPlaceAutocomplete,
@@ -31,6 +30,7 @@ export function BusinessSearchScreen({ navigation }: BusinessSearchProps) {
   useEffect(() => {
     if (query.trim().length < 2) {
       setResults([])
+      setError(null)
       return
     }
 
@@ -40,8 +40,13 @@ export function BusinessSearchScreen({ navigation }: BusinessSearchProps) {
       try {
         const list = await fetchPlaceAutocomplete(query)
         setResults(list)
-      } catch {
-        setError('Error al buscar. Mostrando resultados de ejemplo.')
+        if (list.length === 0) {
+          setError(null)
+        }
+      } catch (e) {
+        const message =
+          e instanceof Error ? e.message : 'Error al buscar negocios'
+        setError(message)
         setResults([])
       } finally {
         setLoading(false)
@@ -105,10 +110,16 @@ export function BusinessSearchScreen({ navigation }: BusinessSearchProps) {
         contentContainerStyle={results.length === 0 ? styles.listEmpty : undefined}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
-          query.length >= 2 && !loading ? (
-            <Text style={styles.empty}>No hay resultados. Prueba otro nombre.</Text>
+          query.trim().length >= 2 && !loading ? (
+            <Text style={styles.empty}>
+              {error
+                ? 'No pudimos buscar ahora. Revisa tu conexión e intenta de nuevo.'
+                : 'No hay resultados. Prueba el nombre exacto como en Google Maps.'}
+            </Text>
           ) : (
-            <Text style={styles.empty}>Escribe al menos 2 caracteres para buscar.</Text>
+            <Text style={styles.empty}>
+              Escribe al menos 2 caracteres para buscar en Google.
+            </Text>
           )
         }
         renderItem={({ item }) => (
