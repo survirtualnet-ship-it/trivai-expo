@@ -1,7 +1,7 @@
 import {
   CACHE_KEYS,
-  CACHE_TTL,
-  isFresh,
+  isSameLocalDay,
+  localDateKey,
   readCacheEntry,
   writeCache,
 } from '@/lib/homeCache'
@@ -20,6 +20,8 @@ export type CurrencySnapshot = {
   localCode: string
   rate: number
   source: CurrencySource
+  /** Local calendar day the rate was fetched for (YYYY-M-D). */
+  asOfDate: string
 }
 
 type LocalCurrency = { code: string; symbol: string }
@@ -75,11 +77,20 @@ function resolveStatusLabels(
 
 function withSourceLabels(snapshot: CurrencySnapshot): CurrencySnapshot {
   const labels = resolveStatusLabels(snapshot.source, snapshot.status)
-  return { ...snapshot, statusLabelEs: labels.es, statusLabelEn: labels.en }
+  return {
+    ...snapshot,
+    statusLabelEs: labels.es,
+    statusLabelEn: labels.en,
+    asOfDate: snapshot.asOfDate || localDateKey(),
+  }
 }
 
 function formatRateLabel(symbol: string, rate: number): string {
   return `1 USD = ${symbol} ${rate.toFixed(2)}`
+}
+
+function currencyCacheKey(countryCode: string): string {
+  return `${CACHE_KEYS.currency}:${countryCode.toUpperCase()}`
 }
 
 /**
@@ -95,7 +106,7 @@ async function fetchExchangeRateApi(toCode: string): Promise<number | null> {
   try {
     const res = await fetch(url)
     if (!res.ok) return null
-    const json = await res.json() as ExchangeRateApiResponse
+    const json = (await res.json()) as ExchangeRateApiResponse
     if (json.result !== 'success') return null
     const rates = json.rates ?? json.conversion_rates
     const rate = rates?.[toCode]
@@ -124,9 +135,14 @@ async function resolveRate(
   return null
 }
 
+/** Fetch USD→local rate. Cache is valid only for the local calendar day. */
 export async function fetchCurrency(countryCode: string): Promise<CurrencySnapshot> {
-  const cached = await readCacheEntry<CurrencySnapshot>(CACHE_KEYS.currency)
-  if (cached && isFresh(cached.savedAt, CACHE_TTL.currency)) {
+  const cacheKey = currencyCacheKey(countryCode)
+  const today = localDateKey()
+  const cached = await readCacheEntry<CurrencySnapshot>(cacheKey)
+
+  // Fresh only within the same local calendar day
+  if (cached && isSameLocalDay(cached.savedAt)) {
     return withSourceLabels(cached.data)
   }
 
@@ -151,8 +167,9 @@ export async function fetchCurrency(countryCode: string): Promise<CurrencySnapsh
       localCode: local.code,
       rate: resolved.rate,
       source: resolved.source,
+      asOfDate: today,
     }
-    await writeCache(CACHE_KEYS.currency, snapshot)
+    await writeCache(cacheKey, snapshot)
     return snapshot
   }
 
@@ -170,5 +187,6 @@ export async function fetchCurrency(countryCode: string): Promise<CurrencySnapsh
     localCode: local.code,
     rate: 0,
     source: 'cache',
+    asOfDate: today,
   }
 }

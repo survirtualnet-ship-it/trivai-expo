@@ -50,7 +50,7 @@ export function InicioScreen() {
     isLocationLoading,
   )
 
-  const { pairLabel, rateLabel } = useCurrency(
+  const { pairLabel, rateLabel, dateLabel } = useCurrency(
     profile?.countryCode,
     locale,
   )
@@ -118,14 +118,6 @@ export function InicioScreen() {
 
   const categoryRows = useMemo(() => chunk(CATEGORIES, 2), [])
 
-  const todayLabel = useMemo(() => {
-    const formatted = new Date().toLocaleDateString(
-      locale === 'EN' ? 'en-US' : 'es-BO',
-      { weekday: 'short', day: 'numeric', month: 'short' },
-    )
-    return formatted.charAt(0).toUpperCase() + formatted.slice(1)
-  }, [locale])
-
   const quickPlans = useMemo(
     () => filterQuickPlansByZone(QUICK_PLANS, zone),
     [zone],
@@ -150,7 +142,7 @@ export function InicioScreen() {
         <ExchangeRateCard
           pair={pairLabel}
           rate={rateLabel}
-          dateLabel={todayLabel}
+          dateLabel={dateLabel}
         />
 
         <View style={styles.categories}>
