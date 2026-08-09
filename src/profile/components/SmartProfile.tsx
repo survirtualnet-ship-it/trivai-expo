@@ -2,41 +2,56 @@ import { memo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeInDown } from 'react-native-reanimated'
 import { profileTheme } from '../theme'
-import {
-  budgetLabel,
-  preferredTimeLabel,
-  useProfileStore,
-} from '../store/useProfileStore'
 
-export const SmartProfile = memo(function SmartProfile() {
-  const preferences = useProfileStore(s => s.preferences)
+type Props = {
+  categories: string[]
+  savesCount: number
+  viewsCount: number
+  loading?: boolean
+}
+
+export const SmartProfile = memo(function SmartProfile({
+  categories,
+  savesCount,
+  viewsCount,
+  loading,
+}: Props) {
+  const hasSignal = categories.length > 0 || savesCount > 0 || viewsCount > 0
 
   return (
     <Animated.View entering={FadeInDown.delay(80).duration(420).springify()} style={styles.card}>
-      <Text style={styles.title}>Perfil inteligente</Text>
-      <Text style={styles.subtitle}>Insights basados en tu comportamiento</Text>
+      <Text style={styles.title}>Tu gusto</Text>
+      <Text style={styles.subtitle}>
+        Se arma solo con lo que explorás y guardás — sin inventar preferencias.
+      </Text>
 
-      <View style={styles.tags}>
-        {preferences.smartTags.map(tag => (
-          <View key={tag} style={styles.tag}>
-            <Text style={styles.tagText}>{tag}</Text>
+      {loading ? (
+        <Text style={styles.empty}>Leyendo tu actividad…</Text>
+      ) : !hasSignal ? (
+        <Text style={styles.empty}>
+          Todavía no hay señales. Guardá o visitá lugares y acá aparecen tus categorías.
+        </Text>
+      ) : (
+        <>
+          <View style={styles.metaGrid}>
+            <MetaItem label="Guardados" value={String(savesCount)} />
+            <MetaItem label="Explorados" value={String(viewsCount)} />
           </View>
-        ))}
-      </View>
 
-      <View style={styles.metaGrid}>
-        <MetaItem label="Presupuesto" value={budgetLabel(preferences.budgetLevel)} />
-        <MetaItem label="Horario favorito" value={preferredTimeLabel(preferences.preferredTime)} />
-      </View>
-
-      <Text style={styles.categoriesLabel}>Categorías favoritas</Text>
-      <View style={styles.categories}>
-        {preferences.favoriteCategories.map(cat => (
-          <View key={cat} style={styles.categoryChip}>
-            <Text style={styles.categoryText}>{cat}</Text>
-          </View>
-        ))}
-      </View>
+          {categories.length > 0 ? (
+            <>
+              <Text style={styles.categoriesLabel}>Categorías que más te interesan</Text>
+              <View style={styles.categories}>
+                {categories.map(cat => (
+                  <View key={cat} style={styles.categoryChip}>
+                    <Text style={styles.categoryText}>{cat}</Text>
+                  </View>
+                ))}
+              </View>
+            </>
+          ) : null}
+        </>
+      )}
     </Animated.View>
   )
 })
@@ -70,24 +85,12 @@ const styles = StyleSheet.create({
     color: profileTheme.textSecondary,
     fontSize: 13,
     marginTop: -profileTheme.spacing.sm,
+    lineHeight: 18,
   },
-  tags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: profileTheme.spacing.sm,
-  },
-  tag: {
-    paddingHorizontal: profileTheme.spacing.md,
-    paddingVertical: 8,
-    borderRadius: profileTheme.radius.full,
-    backgroundColor: profileTheme.accentSoft,
-    borderWidth: 1,
-    borderColor: 'rgba(109,94,247,0.35)',
-  },
-  tagText: {
-    color: profileTheme.text,
-    fontSize: 12,
-    fontWeight: '600',
+  empty: {
+    color: profileTheme.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
   },
   metaGrid: {
     flexDirection: 'row',
@@ -126,13 +129,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: profileTheme.spacing.md,
     paddingVertical: 6,
     borderRadius: profileTheme.radius.full,
-    backgroundColor: profileTheme.surfaceElevated,
+    backgroundColor: profileTheme.accentSoft,
     borderWidth: 1,
-    borderColor: profileTheme.border,
+    borderColor: 'rgba(109,94,247,0.35)',
   },
   categoryText: {
-    color: profileTheme.textSecondary,
+    color: profileTheme.text,
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 })

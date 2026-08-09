@@ -1,37 +1,84 @@
-import { memo } from 'react'
-import { Image, StyleSheet, Text, View } from 'react-native'
+import { memo, useMemo } from 'react'
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeInDown } from 'react-native-reanimated'
+import { router } from 'expo-router'
 import { profileTheme } from '../theme'
 import { useProfileStore } from '../store/useProfileStore'
 import { ModeIndicator } from './ModeIndicator'
 import { AppModeToggle } from '@/components/AppModeToggle'
+import { useUser } from '@/hooks/useUser'
 
-export const ProfileHeader = memo(function ProfileHeader() {
-  const user = useProfileStore(s => s.user)
+type Props = {
+  /** Top behavioral signal — e.g. liked category. Hidden when empty. */
+  signalLabel?: string | null
+}
+
+export const ProfileHeader = memo(function ProfileHeader({ signalLabel }: Props) {
+  const storeUser = useProfileStore(s => s.user)
+  const { isAuthenticated, displayName, avatarUrl, initials, user, profile } = useUser()
+
+  const name = useMemo(() => {
+    if (!isAuthenticated) return 'Invitado'
+    return (
+      storeUser.name?.trim() ||
+      profile?.full_name?.trim() ||
+      displayName ||
+      'Explorador'
+    )
+  }, [isAuthenticated, storeUser.name, profile?.full_name, displayName])
+
+  const city =
+    storeUser.city?.trim() ||
+    profile?.city?.trim() ||
+    (isAuthenticated ? 'Ubicación no definida' : 'Inicia sesión para personalizar')
+
+  const photo =
+    (isAuthenticated && (storeUser.avatarUrl || avatarUrl)) ||
+    `https://api.dicebear.com/7.x/initials/png?seed=${encodeURIComponent(
+      initials || name || 'T',
+    )}`
 
   return (
     <Animated.View entering={FadeInDown.duration(420).springify()} style={styles.wrap}>
       <View style={styles.avatarRing}>
-        <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+        <Image source={{ uri: photo }} style={styles.avatar} />
       </View>
-      <Text style={styles.name}>{user.name}</Text>
+      <Text style={styles.name}>{name}</Text>
       <View style={styles.cityRow}>
         <Text style={styles.cityIcon}>📍</Text>
-        <Text style={styles.city}>{user.city}</Text>
+        <Text style={styles.city}>{city}</Text>
       </View>
-      <ModeIndicator role={user.role} companyId={user.companyId} />
-      {user.companyId ? (
-        <View style={styles.toggleWrap}>
-          <AppModeToggle />
-        </View>
-      ) : null}
-      <View style={styles.typePill}>
-        <Text style={styles.typeText}>{user.travelerType}</Text>
-      </View>
-      {user.companyId ? (
-        <View style={styles.companyBadge}>
-          <Text style={styles.companyBadgeText}>Empresa verificada ✔️</Text>
-        </View>
+
+      {isAuthenticated ? (
+        <>
+          <ModeIndicator role={storeUser.role} companyId={storeUser.companyId} />
+          {storeUser.companyId ? (
+            <View style={styles.toggleWrap}>
+              <AppModeToggle />
+            </View>
+          ) : null}
+          {signalLabel ? (
+            <View style={styles.typePill}>
+              <Text style={styles.typeText}>{signalLabel}</Text>
+            </View>
+          ) : null}
+          {storeUser.companyId ? (
+            <View style={styles.companyBadge}>
+              <Text style={styles.companyBadgeText}>Negocio reclamado</Text>
+            </View>
+          ) : null}
+        </>
+      ) : (
+        <Pressable
+          style={styles.loginBtn}
+          onPress={() => router.push('/auth/login')}
+        >
+          <Text style={styles.loginBtnText}>Iniciar sesión</Text>
+        </Pressable>
+      )}
+
+      {isAuthenticated && user?.email ? (
+        <Text style={styles.email}>{user.email}</Text>
       ) : null}
     </Animated.View>
   )
@@ -118,5 +165,22 @@ const styles = StyleSheet.create({
     color: profileTheme.success,
     fontSize: 12,
     fontWeight: '700',
+  },
+  loginBtn: {
+    marginTop: profileTheme.spacing.sm,
+    backgroundColor: profileTheme.accent,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: profileTheme.radius.full,
+  },
+  loginBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  email: {
+    color: profileTheme.textMuted,
+    fontSize: 12,
+    marginTop: 4,
   },
 })
