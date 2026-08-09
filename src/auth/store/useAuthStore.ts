@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { supabase } from '@/lib/supabase'
 import { fetchCurrentUserSession } from '@/lib/queries/user'
 import { resolveOAuthSessionFromUrl } from '@/lib/auth/completeAuthCallback'
+import { clearLocalSessionArtifacts } from '@/lib/appBootstrap/clearLocalSession'
 import { buildAuthUser } from '../buildAuthUser'
 import type { AuthUser, LoginPayload } from '../types'
 
@@ -58,6 +59,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           await supabase.auth.signOut()
         } finally {
+          clearLocalSessionArtifacts()
           set({
             user: null,
             token: null,
@@ -86,6 +88,7 @@ export const useAuthStore = create<AuthState>()(
           const { data: { session } } = await supabase.auth.getSession()
 
           if (!session?.user) {
+            clearLocalSessionArtifacts()
             set({
               user: null,
               token: null,

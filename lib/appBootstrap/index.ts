@@ -15,6 +15,7 @@ export {
   roleFromProfile,
   isOnboardingCompleteFromProfile,
 } from './syncProfile'
+export { clearLocalSessionArtifacts } from './clearLocalSession'
 export {
   completeTouristOnboarding,
   completeBusinessOnboarding,

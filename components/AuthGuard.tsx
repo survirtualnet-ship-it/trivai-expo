@@ -74,6 +74,25 @@ export function AuthGuard() {
     // Company users share the same explore experience as tourists.
     // Mode (explore | business) is global UI state — never force /empresa/{id}.
 
+    // Regular users (no claimed business) must not stay on /empresa/{id}
+    // after a previous company session left that URL in history/PWA state.
+    if (
+      bootstrap.isAuthenticated &&
+      bootstrap.hasCompletedOnboarding &&
+      !bootstrap.needsLegalAcceptance &&
+      path.startsWith('/empresa/') &&
+      !path.startsWith('/empresa/onboarding') &&
+      path !== '/empresa/mi-negocio' &&
+      !bootstrap.companyId
+    ) {
+      const dest = '/(tabs)/'
+      if (lastRedirect.current !== dest) {
+        lastRedirect.current = dest
+        router.replace(dest)
+      }
+      return
+    }
+
     // Guests can browse places, map, discover — read-only exploration
     if (isPublicBrowsePath(path) && !isPublicPath(path)) {
       return

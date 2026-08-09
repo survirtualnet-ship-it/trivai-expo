@@ -6,6 +6,7 @@ import { useAuthHydrated, useAuthStore } from '@/src/auth/store/useAuthStore'
 import { getOnboardingDone } from '@/lib/onboardingStorage'
 import {
   resolveAppDestination,
+  roleFromProfile,
   syncProfileStoreFromAuth,
   type BootstrapState,
 } from '@/lib/appBootstrap'
@@ -64,18 +65,24 @@ export function useAppBootstrap(): BootstrapState {
   }, [user, profile])
 
   const isAuthenticated = authAuthenticated || !!user
-  const role = authUser?.role ?? profileUser.role ?? null
-  const companyId =
-    authUser?.companyId ??
-    profileUser.companyId ??
-    profile?.business_place_id ??
-    null
 
+  // Live Supabase profile wins. Stale auth/profile zustand must not revive
+  // a previous account's company identity for a regular user.
+  const roleFromDb = roleFromProfile(profile)
+  const role =
+    roleFromDb ??
+    (profile ? 'tourist' : authUser?.role ?? profileUser.role ?? null)
+  const companyId =
+    profile != null
+      ? profile.business_place_id ?? null
+      : authUser?.companyId ?? profileUser.companyId ?? null
+
+  const sameUserLocal = !!user?.id && profileUser.id === user.id
   const hasCompletedOnboarding =
-    profileUser.onboardingCompleted ||
-    onboardingCompletedStore ||
     profile?.account_type != null ||
-    storageDone === true
+    (sameUserLocal && profileUser.onboardingCompleted) ||
+    (sameUserLocal && onboardingCompletedStore) ||
+    (sameUserLocal && storageDone === true)
 
   const needsLegal =
     isAuthenticated && checkNeedsLegal(true, profile)

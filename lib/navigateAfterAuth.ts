@@ -6,6 +6,7 @@ import { useOnboardingStore } from '@/onboarding/store/onboardingStore'
 import { useProfileStore } from '@/src/profile/store/useProfileStore'
 import { syncAuthStoreFromSession } from '@/src/auth/syncAuthStore'
 import {
+  isOnboardingCompleteFromProfile,
   resolvePostAuthDestination,
   roleFromProfile,
   syncProfileStoreFromAuth,
@@ -24,14 +25,16 @@ export async function navigateAfterAuth(
   const localUser = useProfileStore.getState().user
   const onboardingStoreDone = useOnboardingStore.getState().onboardingCompleted
 
+  // Only count device onboarding flags when they belong to this user id.
+  const sameUserLocal = localUser.id === user.id
   const hasCompletedOnboarding =
-    localUser.onboardingCompleted ||
-    onboardingStoreDone ||
-    profile?.account_type != null ||
-    storageDone
+    isOnboardingCompleteFromProfile(profile) ||
+    (sameUserLocal && localUser.onboardingCompleted) ||
+    (sameUserLocal && onboardingStoreDone) ||
+    (sameUserLocal && storageDone)
 
-  const role = roleFromProfile(profile) ?? localUser.role
-  const companyId = profile?.business_place_id ?? localUser.companyId ?? null
+  const role = roleFromProfile(profile) ?? 'tourist'
+  const companyId = profile?.business_place_id ?? null
 
   const destination = resolvePostAuthDestination({
     isAuthenticated: true,
