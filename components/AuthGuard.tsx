@@ -88,7 +88,8 @@ export function AuthGuard() {
         path.startsWith('/amigos') ||
         path.startsWith('/lugares') ||
         path.startsWith('/explore') ||
-        path === '/empresa/onboarding'
+        path === '/empresa/onboarding' ||
+        path.startsWith('/empresa/onboarding/')
       )
     ) {
       const dest = `/empresa/${bootstrap.companyId}`
@@ -162,12 +163,12 @@ export function AuthGuard() {
 
     if (
       bootstrap.role === 'tourist' &&
-      path === '/empresa/onboarding'
+      (path === '/empresa/onboarding' || path.startsWith('/empresa/onboarding/'))
     ) {
-      if (lastRedirect.current !== '/(tabs)/') {
-        lastRedirect.current = '/(tabs)/'
-        router.replace('/(tabs)/')
-      }
+      // Tourists may register a business from Profile — allow the flow.
+      // Only bounce if they somehow landed here without intent while already
+      // fully set as tourist with no company AND not mid-claim: keep accessible.
+      return
     }
   }, [bootstrap, authLoading, pathname, router])
 
