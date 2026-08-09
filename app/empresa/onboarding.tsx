@@ -24,7 +24,10 @@ export default function CompanyOnboardingRoute() {
     return <SplashScreen />
   }
 
-  if (companyId) return null
+  // Keep splash visible while redirecting to the company dashboard
+  if (companyId) {
+    return <SplashScreen />
+  }
 
   return <BusinessOnboardingRoot />
 }
