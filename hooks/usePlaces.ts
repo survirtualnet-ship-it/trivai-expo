@@ -71,7 +71,10 @@ export function usePlaces(options: UsePlacesOptions = {}) {
     queryKey: placeKeys.list({ category, limit, search: q, lat, lng }),
     queryFn: async (): Promise<PlaceCardData[]> => {
       if (q) {
-        const places = await searchPlacesLive(q)
+        const places = await searchPlacesLive(
+          q,
+          lat != null && lng != null ? { latitude: lat, longitude: lng } : null,
+        )
         return placesToCardData(places).slice(0, limit ?? 40)
       }
       if (lat == null || lng == null) return []

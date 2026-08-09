@@ -121,6 +121,11 @@ export async function mergeTrivaiData(
         longitude: p.lng,
         rating_avg: p.rating,
         rating_count: p.total,
+        photos: p.photos?.length
+          ? p.photos
+          : p.photo_url
+            ? [p.photo_url]
+            : undefined,
       }),
     ),
   ).catch(() => undefined)
@@ -162,7 +167,11 @@ export function hybridToProductPlace(
 
   const trivai = hybrid.trivai
   const rating = trivai?.ratingAvg ?? hybrid.rating ?? 0
-  const photo = trivai?.photos?.[0] ?? ''
+  const photo =
+    trivai?.photos?.[0] ||
+    hybrid.photo_url ||
+    hybrid.photos?.[0] ||
+    ''
 
   return {
     id: hybrid.id,

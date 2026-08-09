@@ -61,12 +61,24 @@ export async function fetchNearbyPlaces(filters: PlaceFilters = {}): Promise<Pla
   return places.slice(0, limit)
 }
 
-/** Live Google text search + Trivai merge */
-export async function searchPlacesLive(query: string): Promise<Place[]> {
-  const google = await searchPlaces(query)
+/** Live Google text search + Trivai merge (biased to user location when known). */
+export async function searchPlacesLive(
+  query: string,
+  origin?: { latitude: number; longitude: number } | null,
+): Promise<Place[]> {
+  const google = await searchPlaces(query, {
+    lat: origin?.latitude,
+    lng: origin?.longitude,
+    radiusMeters: 40000,
+  })
   if (google.length === 0) return []
   const hybrid = await mergeTrivaiData(google)
-  return hybrid.map(h => hybridToProductPlace(h, null))
+  return hybrid.map(h =>
+    hybridToProductPlace(
+      h,
+      origin ? { latitude: origin.latitude, longitude: origin.longitude } : null,
+    ),
+  )
 }
 
 function haversineKm(

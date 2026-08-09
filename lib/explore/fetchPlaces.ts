@@ -62,7 +62,7 @@ export async function fetchExplorePlaces(
 
   let places: Place[]
   if (q.length >= 2) {
-    places = await searchPlacesLive(q)
+    places = await searchPlacesLive(q, coords)
   } else if (coords) {
     places = await fetchNearbyPlaces({
       latitude: coords.latitude,

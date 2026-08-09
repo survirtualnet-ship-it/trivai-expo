@@ -1,27 +1,16 @@
-import { ENV } from '@/lib/env'
 import { supabase } from '@/lib/supabase'
+import { refreshPlaceFromGoogle } from './resolvePlace'
 import type { GooglePlaceId, PlaceUuid } from './types'
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000
 
-/** Sync Google base fields into places row via Next.js proxy (keeps API key server-side). */
+/** Sync Google base fields into places enrichment row (Expo-side). */
 export async function syncGooglePlaceToSupabase(
   placeUuid: PlaceUuid,
   googlePlaceId: GooglePlaceId,
 ): Promise<void> {
   try {
-    const res = await fetch(`${ENV.webApiUrl}/api/google-places`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        place_uuid: placeUuid,
-        google_place_id: googlePlaceId,
-        sync_data: true,
-      }),
-    })
-    if (!res.ok) {
-      console.warn('[places] Google sync failed', await res.text())
-    }
+    await refreshPlaceFromGoogle(placeUuid, googlePlaceId)
   } catch (err) {
     console.warn('[places] Google sync error', err)
   }
