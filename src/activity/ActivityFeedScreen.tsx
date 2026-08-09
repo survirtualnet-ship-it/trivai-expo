@@ -60,7 +60,7 @@ export function ActivityFeedScreen() {
   const handleInvite = useCallback(async () => {
     try {
       await Share.share({
-        message: 'Únete a TRIVAI y descubre Santa Cruz conmigo → https://trivai-expo.vercel.app',
+        message: 'Únete a TRIVAI y descubre planes cerca conmigo → https://trivai-expo.vercel.app',
       })
     } catch {
       Alert.alert('Invitar amigos', 'Comparte el link de TRIVAI con tus contactos.')

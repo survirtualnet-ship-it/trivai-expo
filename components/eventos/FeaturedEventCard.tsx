@@ -18,7 +18,7 @@ export type FeaturedEvent = {
 
 function formatFechaLarga(dt: string) {
   const d = new Date(dt)
-  return d.toLocaleDateString('es-BO', {
+  return d.toLocaleDateString('es', {
     weekday: 'long',
     day: 'numeric',
     month: 'short',

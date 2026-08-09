@@ -25,6 +25,7 @@ export function enrichAllPlaces(
       }
       return p
     }),
+    origin,
   )
 }
 
@@ -43,27 +44,34 @@ export function enrichAllEvents(
       }
       return ev
     }),
+    origin,
   )
 }
 
-export function enrichPlacesWithZone(places: PlaceCardData[]): EnrichedPlace[] {
+export function enrichPlacesWithZone(
+  places: PlaceCardData[],
+  origin?: { lat: number; lng: number } | null,
+): EnrichedPlace[] {
   return places.map(p => ({
     ...p,
     _zone:
       p.latitude != null && p.longitude != null
-        ? getCityZone(p.latitude, p.longitude)
+        ? getCityZone(p.latitude, p.longitude, origin)
         : null,
   }))
 }
 
-export function enrichEventsWithZone(events: EventCardData[]): EnrichedEvent[] {
+export function enrichEventsWithZone(
+  events: EventCardData[],
+  origin?: { lat: number; lng: number } | null,
+): EnrichedEvent[] {
   return events.map(ev => {
     const pl = ev.place as EventCardData['place'] & { latitude?: number; longitude?: number }
     return {
       ...ev,
       _zone:
         pl?.latitude != null && pl?.longitude != null
-          ? getCityZone(pl.latitude, pl.longitude)
+          ? getCityZone(pl.latitude, pl.longitude, origin)
           : null,
     }
   })

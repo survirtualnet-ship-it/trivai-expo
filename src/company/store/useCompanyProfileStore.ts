@@ -173,7 +173,7 @@ export const useCompanyProfileStore = create<CompanyProfileStore>()(
         if (!companyId) {
           set({
             company: null,
-            loadError: null,
+            loadError: 'Empresa no encontrada',
             loadingRemote: false,
             activeCompanyId: null,
           })
@@ -184,12 +184,45 @@ export const useCompanyProfileStore = create<CompanyProfileStore>()(
         const { companies, catalog } = get()
         const local = selectCompanyById(companies, companyId)
 
+        // Heal orphan local company without catalog (avoids infinite spinner)
         if (local) {
+          const entry = selectCatalog(catalog, companyId) ?? emptyCatalogFor(local)
+          const nextCatalog = { ...catalog, [companyId]: entry }
           set({
-            ...syncActiveView(companyId, companies, catalog, isOwner),
+            catalog: nextCatalog,
+            ...syncActiveView(companyId, companies, nextCatalog, isOwner),
             loadingRemote: false,
             loadError: null,
           })
+
+          // Refresh claimed places from Supabase without blanking the UI
+          if (!companyId.startsWith('co-')) {
+            const email =
+              useAuthStore.getState().user?.email ??
+              useProfileStore.getState().user.email
+            const remote = await fetchCompanyByPlaceId(companyId, email)
+            if (remote) {
+              const nextCompanies = { ...get().companies, [remote.id]: remote }
+              const remoteCatalog =
+                get().catalog[remote.id] ?? emptyCatalogFor(remote)
+              const mergedCatalog = {
+                ...get().catalog,
+                [remote.id]: remoteCatalog,
+              }
+              set({
+                companies: nextCompanies,
+                catalog: mergedCatalog,
+                ...syncActiveView(
+                  companyId,
+                  nextCompanies,
+                  mergedCatalog,
+                  resolveIsOwner(companyId),
+                ),
+                loadingRemote: false,
+                loadError: null,
+              })
+            }
+          }
           return
         }
 

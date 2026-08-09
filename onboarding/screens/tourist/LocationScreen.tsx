@@ -5,7 +5,6 @@ import { OnboardingLayout } from '../../components/OnboardingLayout'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { useOnboardingStore } from '../../store/onboardingStore'
 import { useProfileStore } from '@/src/profile/store/useProfileStore'
-import { ONBOARDING_CONFIG } from '../../lib/config'
 import { onboardingTheme as t } from '../../lib/theme'
 import type { TouristLocationProps } from '../types'
 
@@ -43,14 +42,32 @@ export function LocationScreen({ navigation }: TouristLocationProps) {
     }
   }
 
-  const useManual = () => {
-    const city = manualCity.trim() || ONBOARDING_CONFIG.defaultCity
-    setLocation({
-      lat: -17.7833,
-      lng: -63.1821,
-      label: city,
-    })
-    navigation.navigate('TouristSocial')
+  const useManual = async () => {
+    const city = manualCity.trim()
+    if (!city) {
+      setError('Ingresa tu ciudad')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const results = await Location.geocodeAsync(city)
+      const hit = results[0]
+      if (!hit) {
+        setError('No encontramos esa ciudad. Prueba otro nombre.')
+        return
+      }
+      setLocation({
+        lat: hit.latitude,
+        lng: hit.longitude,
+        label: city,
+      })
+      navigation.navigate('TouristSocial')
+    } catch {
+      setError('No pudimos ubicar esa ciudad. Intenta de nuevo.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const skip = () => {
@@ -84,7 +101,7 @@ export function LocationScreen({ navigation }: TouristLocationProps) {
           <PrimaryButton
             label="Continuar con ciudad manual"
             variant="secondary"
-            onPress={useManual}
+            onPress={() => void useManual()}
           />
           <PrimaryButton label="Omitir por ahora" variant="ghost" onPress={skip} />
         </>
@@ -95,7 +112,7 @@ export function LocationScreen({ navigation }: TouristLocationProps) {
         <TextInput
           value={manualCity}
           onChangeText={setManualCity}
-          placeholder={ONBOARDING_CONFIG.defaultCity}
+          placeholder="Tu ciudad"
           placeholderTextColor={t.textMuted}
           style={styles.input}
         />

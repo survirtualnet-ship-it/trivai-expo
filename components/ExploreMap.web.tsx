@@ -10,20 +10,16 @@ type Props = {
   onMarkerPress: (id: string) => void
 }
 
-const FALLBACK = {
-  latitude: -17.7833,
-  longitude: -63.1821,
-}
-
 function ExploreMapWeb({
   places,
   selectedId,
   userCoords,
   onMarkerPress,
 }: Props) {
+  const first = places[0]
   const center = {
-    lat: userCoords?.latitude ?? FALLBACK.latitude,
-    lng: userCoords?.longitude ?? FALLBACK.longitude,
+    lat: userCoords?.latitude ?? first?.latitude ?? 0,
+    lng: userCoords?.longitude ?? first?.longitude ?? 0,
   }
 
   const markers = places.map(p => ({

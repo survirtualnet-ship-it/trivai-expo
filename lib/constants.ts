@@ -2,14 +2,23 @@
 
 export const APP_NAME = 'TRIVAI'
 
-export const DEFAULT_CITY = 'Santa Cruz de la Sierra'
-export const DEFAULT_COUNTRY = 'Bolivia'
+/** Neutral labels when city is unknown — never a specific country. */
+export const UNKNOWN_CITY_ES = 'Tu ciudad'
+export const UNKNOWN_CITY_EN = 'Your city'
 
-/** Fallback map center — Santa Cruz */
+/**
+ * @deprecated Do not use as GPS substitute. Prefer real coords or null.
+ * Kept only for rare type-compat call sites that must pass a number pair.
+ */
 export const DEFAULT_COORDS = {
-  latitude: -17.7833,
-  longitude: -63.1821,
+  latitude: 0,
+  longitude: 0,
 } as const
+
+/** @deprecated Prefer profile/GPS city — empty means unknown. */
+export const DEFAULT_CITY = ''
+/** @deprecated Prefer reverse-geocoded country — empty means unknown. */
+export const DEFAULT_COUNTRY = ''
 
 export const LOCATION_WATCH_INTERVAL_MS = 60_000
 export const PLACES_STALE_MS = 60_000

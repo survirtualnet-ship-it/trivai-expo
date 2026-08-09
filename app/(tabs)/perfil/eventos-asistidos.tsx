@@ -44,7 +44,7 @@ export default function EventosAsistidos() {
               nombre:    d.event.name,
               categoria: d.event.category ?? '',
               fecha:     d.event.start_datetime
-                ? new Date(d.event.start_datetime).toLocaleDateString('es-BO', { weekday: 'short', day: 'numeric', month: 'short' })
+                ? new Date(d.event.start_datetime).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' })
                 : '',
               lugar: d.event.place?.name ?? '',
               emoji: getCatEmoji(d.event.category ?? ''),

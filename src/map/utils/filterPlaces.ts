@@ -1,5 +1,4 @@
 import { haversineKm } from './geo'
-import { MAP_CITY_CENTER } from '../data/mockPlaces'
 import type { MapFilterId, MapPlace, MapCoords } from '../store/useMapStore'
 import { placeLatitude, placeLongitude } from './placeHelpers'
 
@@ -28,8 +27,14 @@ function matchesSearch(place: MapPlace, query: string): boolean {
   )
 }
 
-function originCoords(userLocation: MapCoords | null): MapCoords {
-  return userLocation ?? MAP_CITY_CENTER
+function originCoords(
+  userLocation: MapCoords | null,
+  places: MapPlace[] = [],
+): MapCoords | null {
+  if (userLocation) return userLocation
+  const first = places[0]
+  if (first) return { lat: placeLatitude(first), lng: placeLongitude(first) }
+  return null
 }
 
 function sortByDistance(places: MapPlace[], origin: MapCoords): MapPlace[] {
@@ -46,14 +51,15 @@ export function filterMapPlaces(
   searchQuery: string,
   userLocation: MapCoords | null,
 ): MapPlace[] {
-  const origin = originCoords(userLocation)
-  const cityOrigin = MAP_CITY_CENTER
+  const origin = originCoords(userLocation, places)
 
   const base = places.filter(place => {
     if (!matchesSearch(place, searchQuery)) return false
     if (!matchesFilter(place, filter)) return false
     return true
   })
+
+  if (!origin) return base
 
   if (filter === 'cerca') {
     const nearby = base.filter(
@@ -62,7 +68,7 @@ export function filterMapPlaces(
         <= NEARBY_KM,
     )
     const pool = nearby.length > 0 ? nearby : base
-    return sortByDistance(pool, nearby.length > 0 ? origin : cityOrigin)
+    return sortByDistance(pool, origin)
   }
 
   return sortByDistance(base, origin)

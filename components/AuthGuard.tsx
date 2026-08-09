@@ -15,7 +15,8 @@ import { isAuthCallbackPath } from '@/lib/auth/completeAuthCallback'
 
 /**
  * Global route protection — redirects unauthenticated users to welcome/login
- * and enforces legal consent, onboarding + role-based destinations.
+ * and enforces legal consent + onboarding. Company users are not siloed:
+ * they share explore tabs; business tools use AppMode, not forced redirects.
  */
 export function AuthGuard() {
   const bootstrap = useAppBootstrap()
@@ -70,6 +71,9 @@ export function AuthGuard() {
       return
     }
 
+    // Company users share the same explore experience as tourists.
+    // Mode (explore | business) is global UI state — never force /empresa/{id}.
+
     // Guests can browse places, map, discover — read-only exploration
     if (isPublicBrowsePath(path) && !isPublicPath(path)) {
       return
@@ -104,7 +108,11 @@ export function AuthGuard() {
         }
         return
       }
-      if (bootstrap.hasCompletedOnboarding) {
+      // Allow /empresa/onboarding/* for already-onboarded users claiming a business
+      if (
+        bootstrap.hasCompletedOnboarding
+        && !(path === '/empresa/onboarding' || path.startsWith('/empresa/onboarding/'))
+      ) {
         const dest = String(bootstrap.destination)
         if (lastRedirect.current !== dest) {
           lastRedirect.current = dest
@@ -132,37 +140,13 @@ export function AuthGuard() {
     }
 
     if (
-      bootstrap.role === 'company' &&
-      bootstrap.companyId &&
-      (
-        path === '/' ||
-        path.startsWith('/activity') ||
-        path.startsWith('/mapa') ||
-        path.startsWith('/profile') ||
-        path.startsWith('/perfil') ||
-        path.startsWith('/discover') ||
-        path.startsWith('/eventos') ||
-        path.startsWith('/amigos') ||
-        path.startsWith('/lugares') ||
-        path.startsWith('/explore')
-      )
-    ) {
-      const dest = `/empresa/${bootstrap.companyId}`
-      if (path !== dest && lastRedirect.current !== dest) {
-        lastRedirect.current = dest
-        router.replace(dest as `/empresa/${string}`)
-      }
-      return
-    }
-
-    if (
       bootstrap.role === 'tourist' &&
-      path === '/empresa/onboarding'
+      (path === '/empresa/onboarding' || path.startsWith('/empresa/onboarding/'))
     ) {
-      if (lastRedirect.current !== '/(tabs)/') {
-        lastRedirect.current = '/(tabs)/'
-        router.replace('/(tabs)/')
-      }
+      // Tourists may register a business from Profile — allow the flow.
+      // Only bounce if they somehow landed here without intent while already
+      // fully set as tourist with no company AND not mid-claim: keep accessible.
+      return
     }
   }, [bootstrap, authLoading, pathname, router])
 

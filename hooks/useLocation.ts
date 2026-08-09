@@ -2,12 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import * as Location from 'expo-location'
 import { Platform } from 'react-native'
 import { getCurrentCoords, requestLocationPermission, type Coords } from '@/lib/geolocation'
-import { DEFAULT_COORDS, LOCATION_WATCH_INTERVAL_MS } from '@/lib/constants'
+import { LOCATION_WATCH_INTERVAL_MS } from '@/lib/constants'
 
 export type LocationState = {
   coords: Coords | null
-  latitude: number
-  longitude: number
+  latitude: number | null
+  longitude: number | null
   permission: 'undetermined' | 'granted' | 'denied'
   isLoading: boolean
   error: string | null
@@ -107,8 +107,8 @@ export function useLocation(options?: {
     }
   }, [enabled, watch, intervalMs])
 
-  const latitude = coords?.lat ?? DEFAULT_COORDS.latitude
-  const longitude = coords?.lng ?? DEFAULT_COORDS.longitude
+  const latitude = coords?.lat ?? null
+  const longitude = coords?.lng ?? null
 
   return {
     coords,

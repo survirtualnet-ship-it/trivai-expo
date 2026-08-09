@@ -32,7 +32,7 @@ function profileFromAuthUser(user: User): Omit<Profile, 'created_at'> & { update
     username: slugUsername(baseUsername),
     avatar_url: avatarUrl,
     bio: null,
-    city: 'Santa Cruz',
+    city: '',
     plan: 'free',
     xp_points: 0,
     account_type: null,

@@ -362,7 +362,7 @@ export function mergeUserProfiles(...profiles: UserProfile[]): UserProfile {
   }
 }
 
-/** Cold-start profile — popular categories in Santa Cruz. */
+/** Cold-start profile — popular categories when no history yet. */
 export function coldStartUserProfile(): UserProfile {
   return {
     likedCategories: ['Gastronomía', 'Entretenimiento'],

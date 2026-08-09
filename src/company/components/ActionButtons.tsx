@@ -9,36 +9,54 @@ type Props = {
   company: Company
 }
 
+function openSafe(url: string | null) {
+  if (!url) return
+  void Linking.openURL(url)
+}
+
 export const ActionButtons = memo(function ActionButtons({ company }: Props) {
+  const phone = company.phone?.trim() || ''
+  const whatsapp = company.whatsapp?.trim() || phone
+  const website = company.website?.trim() || ''
+
   const actions = [
     {
       key: 'call',
       label: 'Llamar',
       icon: Phone,
-      onPress: () => Linking.openURL(`tel:${company.phone.replace(/\s/g, '')}`),
+      onPress: () => {
+        if (!phone) return
+        openSafe(`tel:${phone.replace(/\s/g, '')}`)
+      },
     },
     {
       key: 'wa',
       label: 'WhatsApp',
       icon: MessageCircle,
       onPress: () => {
-        const digits = company.whatsapp.replace(/\D/g, '')
-        Linking.openURL(`https://wa.me/${digits}`)
+        const digits = whatsapp.replace(/\D/g, '')
+        if (!digits) return
+        openSafe(`https://wa.me/${digits}`)
       },
     },
     {
       key: 'web',
       label: 'Web',
       icon: Globe,
-      onPress: () => Linking.openURL(company.website),
+      onPress: () => {
+        if (!website) return
+        const href = /^https?:\/\//i.test(website) ? website : `https://${website}`
+        openSafe(href)
+      },
     },
     {
       key: 'dir',
       label: 'Cómo llegar',
       icon: MapPin,
       onPress: () => {
-        const { latitude, longitude } = company.location
-        Linking.openURL(
+        const { latitude, longitude } = company.location ?? { latitude: 0, longitude: 0 }
+        if (!latitude && !longitude) return
+        openSafe(
           `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`,
         )
       },

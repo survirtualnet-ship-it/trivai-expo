@@ -14,34 +14,6 @@ export type PlaceDetails = {
   lng: number
 }
 
-const MOCK_PLACES: PlaceAutocompleteResult[] = [
-  {
-    placeId: 'mock-001',
-    name: 'Mercado Gourmet 360',
-    address: 'Av. Roca y Coronado 360, Equipetrol, Santa Cruz',
-  },
-  {
-    placeId: 'mock-002',
-    name: 'Cine Center VIP',
-    address: 'Av. San Martín, Equipetrol, Santa Cruz',
-  },
-  {
-    placeId: 'mock-003',
-    name: 'Los Tajibos Hotel',
-    address: 'Av. San Martín 400, Equipetrol, Santa Cruz',
-  },
-  {
-    placeId: 'mock-004',
-    name: 'Casa del Camba',
-    address: 'Calle Potosí 145, Centro, Santa Cruz',
-  },
-  {
-    placeId: 'mock-005',
-    name: 'Hospital San Juan de Dios',
-    address: 'Av. Busch 1000, Santa Cruz',
-  },
-]
-
 export async function fetchPlaceAutocomplete(
   query: string,
 ): Promise<PlaceAutocompleteResult[]> {
@@ -50,11 +22,7 @@ export async function fetchPlaceAutocomplete(
 
   const key = ONBOARDING_CONFIG.googleMapsKey
   if (!key || key === 'YOUR_GOOGLE_PLACES_API_KEY') {
-    return MOCK_PLACES.filter(
-      p =>
-        p.name.toLowerCase().includes(q.toLowerCase())
-        || p.address.toLowerCase().includes(q.toLowerCase()),
-    )
+    return []
   }
 
   try {
@@ -62,7 +30,6 @@ export async function fetchPlaceAutocomplete(
       input: q,
       key,
       types: 'establishment',
-      components: 'country:bo',
       language: 'es',
     })
     const res = await fetch(
@@ -77,7 +44,7 @@ export async function fetchPlaceAutocomplete(
     }
 
     if (json.status !== 'OK' || !json.predictions?.length) {
-      return MOCK_PLACES.filter(p => p.name.toLowerCase().includes(q.toLowerCase()))
+      return []
     }
 
     return json.predictions.map(p => ({
@@ -86,21 +53,13 @@ export async function fetchPlaceAutocomplete(
       address: p.structured_formatting.secondary_text,
     }))
   } catch {
-    return MOCK_PLACES.filter(p => p.name.toLowerCase().includes(q.toLowerCase()))
+    return []
   }
 }
 
 export async function fetchPlaceDetails(placeId: string): Promise<PlaceDetails | null> {
   if (placeId.startsWith('mock-')) {
-    const mock = MOCK_PLACES.find(p => p.placeId === placeId)
-    if (!mock) return null
-    return {
-      placeId: mock.placeId,
-      name: mock.name,
-      address: mock.address,
-      lat: -17.7833 + Math.random() * 0.02,
-      lng: -63.1821 + Math.random() * 0.02,
-    }
+    return null
   }
 
   const key = ONBOARDING_CONFIG.googleMapsKey

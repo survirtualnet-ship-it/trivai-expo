@@ -200,7 +200,7 @@ export default function PerfilPublico() {
           <View style={s.section}>
             <Text style={s.sectionTitle}>Reseñas recientes</Text>
             {resenas.map(r => {
-              const fecha = new Date(r.created_at).toLocaleDateString('es-BO', {
+              const fecha = new Date(r.created_at).toLocaleDateString('es', {
                 day: 'numeric', month: 'short', year: 'numeric',
               })
               return (

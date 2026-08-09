@@ -15,7 +15,7 @@ import { useMapInitialSelection } from './hooks/useMapInitialSelection'
 import { useMapStore } from './store/useMapStore'
 import { buildDiscoveryMapHtml } from './utils/mapWebHtml'
 import { mapTheme } from './theme'
-import { MAP_CITY_CENTER } from './data/mockPlaces'
+import { placeLatitude, placeLongitude } from './utils/placeHelpers'
 
 /** Web fallback — react-native-maps is native-only. */
 export function MapScreen() {
@@ -42,7 +42,13 @@ export function MapScreen() {
 
   useMapInitialSelection(carouselRef, placesLoading)
 
-  const mapCenter = userLocation ?? coords ?? MAP_CITY_CENTER
+  const firstPlace = displayPlaces[0]
+  const mapCenter =
+    userLocation
+    ?? coords
+    ?? (firstPlace
+      ? { lat: placeLatitude(firstPlace), lng: placeLongitude(firstPlace) }
+      : { lat: 0, lng: 0 })
 
   const html = useMemo(
     () => buildDiscoveryMapHtml(displayPlaces, selectedPlaceId, mapCenter),
@@ -103,7 +109,8 @@ export function MapScreen() {
   )
 
   const handleCenterUser = useCallback(() => {
-    const loc = coords ?? userLocation ?? MAP_CITY_CENTER
+    const loc = coords ?? userLocation
+    if (!loc) return
     mapEmbedRef.current?.focusPlace(selectedPlaceId ?? displayPlaces[0]?.id ?? '')
     setUserLocation({ lat: loc.lat, lng: loc.lng })
   }, [coords, userLocation, selectedPlaceId, displayPlaces, setUserLocation])

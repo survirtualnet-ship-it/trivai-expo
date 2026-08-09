@@ -138,7 +138,7 @@ export default function EditarPerfil() {
         {[
           { label: 'Nombre completo', value: nombre, onChange: setNombre, placeholder: 'Tu nombre', autoCapitalize: 'words' as const },
           { label: 'Usuario', value: usuario, onChange: setUsuario, placeholder: 'tu_usuario', autoCapitalize: 'none' as const, hint: 'Solo letras, números, puntos y guiones bajos' },
-          { label: 'Ciudad', value: ciudad, onChange: setCiudad, placeholder: 'Santa Cruz', autoCapitalize: 'words' as const },
+          { label: 'Ciudad', value: ciudad, onChange: setCiudad, placeholder: 'Tu ciudad', autoCapitalize: 'words' as const },
         ].map(f => (
           <View key={f.label} style={styles.field}>
             <Text style={styles.label}>{f.label}</Text>

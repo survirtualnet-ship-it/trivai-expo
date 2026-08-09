@@ -36,7 +36,10 @@ export async function resolvePlaceUuid(routeId: string): Promise<string | null> 
       longitude: details.lng,
       google_place_id: details.place_id,
       category: 'Otros',
-      city: 'Santa Cruz de la Sierra',
+      city: (() => {
+        const parts = details.address?.split(',').map(s => s.trim()).filter(Boolean) ?? []
+        return parts[parts.length - 1] ?? ''
+      })(),
       photos: [],
       rating_avg: details.rating ?? 0,
       rating_count: details.total ?? 0,

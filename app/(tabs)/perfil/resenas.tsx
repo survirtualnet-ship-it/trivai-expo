@@ -51,7 +51,7 @@ export default function MisResenas() {
           id:     String(r.id),
           lugar:  r.place?.name ?? 'Lugar',
           rating: r.rating,
-          fecha:  new Date(r.created_at).toLocaleDateString('es-BO', { day: 'numeric', month: 'long', year: 'numeric' }),
+          fecha:  new Date(r.created_at).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' }),
           texto:  r.text ?? '',
           emoji:  '⭐',
           href:   `/lugares/${r.place?.id ?? ''}`,

@@ -6,7 +6,6 @@ import { groupFavoritePlaces, type FavoriteGroup } from '@/lib/favoritesGrouping
 import { enrichAllPlaces } from '@/lib/discoverFilters'
 import { favoriteKeys, discoverKeys, STALE } from '@/lib/queries/keys'
 import { getCurrentCoords } from '@/lib/geolocation'
-import { EXPLORER_LOCATIONS } from '@/lib/explorerCategories'
 import type { PlaceCardData } from '@/components/ui/PlaceCard'
 
 export function useFavoritePlaces() {
@@ -26,10 +25,11 @@ export function useFavoritePlaces() {
     staleTime: STALE.user,
   })
 
-  const origin = coordsQuery.data ?? EXPLORER_LOCATIONS[0].center
+  const origin = coordsQuery.data ?? null
 
   const places = useMemo((): PlaceCardData[] => {
     if (!favoritesQuery.data) return []
+    if (!origin) return favoritesQuery.data
     return enrichAllPlaces(favoritesQuery.data, origin)
   }, [favoritesQuery.data, origin])
 

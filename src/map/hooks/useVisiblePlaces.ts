@@ -41,6 +41,7 @@ export function usePlaceDistance(place: MapPlace | undefined): string {
   return useMemo(() => {
     if (!place) return '—'
     const origin = originCoords(userLocation)
+    if (!origin) return '—'
     const km = haversineKm(
       origin.lat,
       origin.lng,

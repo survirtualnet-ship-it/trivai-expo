@@ -34,10 +34,6 @@ import { MAP_DARK_STYLE } from './mapDarkStyle'
 
 import { mapTheme } from './theme'
 
-import { MAP_CITY_CENTER } from './data/mockPlaces'
-
-
-
 const INITIAL_REGION: Region = {
 
   latitude: DEFAULT_REGION.lat,
@@ -178,15 +174,15 @@ export function MapScreen() {
 
   const handleCenterUser = useCallback(() => {
 
-    const loc = coords ?? MAP_CITY_CENTER
+    if (!coords) return
 
     mapRef.current?.animateToRegion(
 
       {
 
-        latitude: loc.lat,
+        latitude: coords.lat,
 
-        longitude: loc.lng,
+        longitude: coords.lng,
 
         latitudeDelta: 0.025,
 

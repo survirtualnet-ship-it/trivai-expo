@@ -16,9 +16,12 @@ import {
   applyDiscoverFilters,
   enrichAllEvents,
   enrichAllPlaces,
+  enrichEventsWithZone,
+  enrichPlacesWithZone,
   type CategoryFilter,
   type LocationFilter,
 } from '@/lib/discoverFilters'
+import { UNKNOWN_CITY_EN, UNKNOWN_CITY_ES } from '@/lib/constants'
 import { DiscoverHeader } from '@/components/ui/DiscoverHeader'
 import { DiscoverSearchBar } from '@/components/ui/DiscoverSearchBar'
 import { DiscoverFilterBar } from '@/components/discover/DiscoverFilterBar'
@@ -60,7 +63,6 @@ import {
   mergeSearchPlaces,
   matchesSearch,
 } from '@/lib/smartSearch'
-const SC_CENTER = { lat: -17.7833, lng: -63.1821 }
 const FILTER_RESULTS_CAP = 32
 
 export default function Discover() {
@@ -72,7 +74,7 @@ export default function Discover() {
   const { profile, user, isAuthenticated, signOut, isOnboarded, refreshProfile, dismissOnboarding } = useUser()
   const { locale, setLocale } = useLocale()
   const t = DISCOVER_STRINGS[locale]
-  const cityName = profile?.city ?? 'Santa Cruz de la Sierra'
+  const cityName = profile?.city?.trim() || (locale === 'en' ? UNKNOWN_CITY_EN : UNKNOWN_CITY_ES)
 
   const [searchQuery, setSearchQuery] = useState('')
   const deferredSearchQuery = useDeferredValue(searchQuery)
@@ -140,15 +142,22 @@ export default function Discover() {
     if (distanceFromBottom < 480) fetchNextPage()
   }, [fetchNextPage, hasNextPage, isFetchingNextPage, prefetchNextPage])
 
-  const distOrigin = userCoords ?? SC_CENTER
+  const distOrigin = useMemo(() => {
+    if (userCoords) return userCoords
+    const first = lugares.find(p => p.latitude != null && p.longitude != null)
+    if (first?.latitude != null && first?.longitude != null) {
+      return { lat: first.latitude, lng: first.longitude }
+    }
+    return null
+  }, [userCoords, lugares])
 
   const basePlacesEnriched = useMemo(
-    () => enrichAllPlaces(lugares, distOrigin),
+    () => (distOrigin ? enrichAllPlaces(lugares, distOrigin) : enrichPlacesWithZone(lugares, null)),
     [lugares, distOrigin],
   )
 
   const baseEventsEnriched = useMemo(
-    () => enrichAllEvents(eventos, distOrigin),
+    () => (distOrigin ? enrichAllEvents(eventos, distOrigin) : enrichEventsWithZone(eventos, null)),
     [eventos, distOrigin],
   )
 

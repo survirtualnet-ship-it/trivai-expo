@@ -3,7 +3,9 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { colors, spacing, radius, fontSize, fontWeight, shadows } from '../theme'
 import type { Locale } from '../data/mock'
-
+import { AppModeToggle } from '@/components/AppModeToggle'
+import { useIsBusinessMode } from '@/src/appMode'
+import { useProfileStore } from '@/src/profile/store/useProfileStore'
 import { BrandAssets } from '@/lib/brandAssets'
 
 type Props = {
@@ -21,6 +23,9 @@ export const InicioHeader = memo(function InicioHeader({
   onToggleLocale,
   onPressNotifications,
 }: Props) {
+  const businessMode = useIsBusinessMode()
+  const companyId = useProfileStore(s => s.user.companyId)
+
   return (
     <View style={styles.wrap}>
       <View style={styles.topRow}>
@@ -56,6 +61,14 @@ export const InicioHeader = memo(function InicioHeader({
           </Pressable>
         </View>
       </View>
+
+      <AppModeToggle compact />
+
+      {companyId && businessMode ? (
+        <View style={styles.modeChip}>
+          <Text style={styles.modeChipText}>Modo empresa activo</Text>
+        </View>
+      ) : null}
 
       <Text style={styles.city} numberOfLines={2}>
         {city}
@@ -166,5 +179,17 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.8,
+  },
+  modeChip: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.accentSoft,
+    borderRadius: radius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+  },
+  modeChipText: {
+    fontSize: fontSize.caption,
+    fontWeight: fontWeight.semibold,
+    color: colors.accent,
   },
 })

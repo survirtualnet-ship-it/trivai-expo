@@ -21,7 +21,17 @@ export type DiscoverFeedType = 'discover' | 'for_you' | 'trending' | 'nearby'
 
 export const HOME_PREVIEW_LIMIT = 8
 
-const SC_CENTER: Coords = { lat: -17.7833, lng: -63.1821 }
+function resolveOrigin(
+  userCoords: Coords | null,
+  places: PlaceCardData[],
+): Coords | null {
+  if (userCoords) return userCoords
+  const first = places.find(p => p.latitude != null && p.longitude != null)
+  if (first?.latitude != null && first?.longitude != null) {
+    return { lat: first.latitude, lng: first.longitude }
+  }
+  return null
+}
 
 export function isDiscoverPreviewType(type: DiscoverFeedType): boolean {
   return type === 'for_you' || type === 'trending' || type === 'nearby'
@@ -75,7 +85,11 @@ function buildForYouPreview(
   profile: UserProfile | null,
   limit: number,
 ): DiscoverSuggestion[] {
-  const origin = userCoords ?? SC_CENTER
+  const origin = resolveOrigin(userCoords, lugares)
+  if (!origin) {
+    return buildPoolOrderPreview(lugares, eventos, limit)
+  }
+
   const rankedPlaces = profile
     ? getRecommendedPlaceList(profile, lugares, {
       limit: Math.max(limit, 12),
@@ -113,7 +127,11 @@ export function buildHomePreviewSuggestions(
   limit = HOME_PREVIEW_LIMIT,
   recommendationProfile: UserProfile | null = null,
 ): DiscoverSuggestion[] {
-  const origin = userCoords ?? SC_CENTER
+  const origin = resolveOrigin(userCoords, lugares)
+  if (!origin) {
+    return buildPoolOrderPreview(lugares, eventos, limit)
+  }
+
   const places = enrichAllPlaces(lugares, origin)
   const events = enrichAllEvents(eventos, origin)
 

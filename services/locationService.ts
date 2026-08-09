@@ -1,6 +1,5 @@
 import * as Location from 'expo-location'
 import { Platform } from 'react-native'
-import { DEFAULT_CITY, DEFAULT_COUNTRY, DEFAULT_COORDS } from '@/lib/constants'
 import { getCurrentCoords, requestLocationPermission, type Coords } from '@/lib/geolocation'
 import { CACHE_KEYS, readCache, writeCache } from '@/lib/homeCache'
 
@@ -49,7 +48,11 @@ function countryCodeFromName(country: string | null | undefined): string {
   if (c.includes('brazil') || c.includes('brasil')) return 'BR'
   if (c.includes('mexico') || c.includes('méxico')) return 'MX'
   if (c.includes('united states') || c.includes('usa')) return 'US'
-  return 'XX'
+  if (c.includes('spain') || c.includes('españa')) return 'ES'
+  if (c.includes('france') || c.includes('francia')) return 'FR'
+  if (c.includes('germany') || c.includes('deutschland') || c.includes('alemania')) return 'DE'
+  if (c.includes('united kingdom') || c.includes('england') || c.includes('uk')) return 'GB'
+  return ''
 }
 
 async function reverseGeocode(lat: number, lng: number): Promise<Partial<UserLocationProfile>> {
@@ -57,9 +60,9 @@ async function reverseGeocode(lat: number, lng: number): Promise<Partial<UserLoc
     const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng })
     const hit = results[0]
     if (!hit) return {}
-    const country = hit.country ?? DEFAULT_COUNTRY
+    const country = hit.country ?? ''
     return {
-      city: hit.city ?? hit.subregion ?? hit.region ?? DEFAULT_CITY,
+      city: hit.city ?? hit.subregion ?? hit.region ?? '',
       country,
       countryCode: hit.isoCountryCode ?? countryCodeFromName(country),
       region: hit.region ?? hit.subregion ?? null,
@@ -70,17 +73,40 @@ async function reverseGeocode(lat: number, lng: number): Promise<Partial<UserLoc
   }
 }
 
+async function geocodeCityName(city: string): Promise<Coords | null> {
+  try {
+    const results = await Location.geocodeAsync(city)
+    const hit = results[0]
+    if (!hit) return null
+    return { lat: hit.latitude, lng: hit.longitude }
+  } catch {
+    return null
+  }
+}
+
 export async function getManualCity(): Promise<ManualCityInput | null> {
   return readCache<ManualCityInput>(CACHE_KEYS.manualCity)
 }
 
-export async function setManualCity(input: ManualCityInput): Promise<UserLocationProfile> {
+export async function setManualCity(input: ManualCityInput): Promise<UserLocationProfile | null> {
   await writeCache(CACHE_KEYS.manualCity, input)
+
+  let lat = input.latitude
+  let lng = input.longitude
+  if (lat == null || lng == null) {
+    const geo = await geocodeCityName(
+      [input.city, input.country].filter(Boolean).join(', '),
+    )
+    if (!geo) return null
+    lat = geo.lat
+    lng = geo.lng
+  }
+
   const profile: UserLocationProfile = {
-    latitude: input.latitude ?? DEFAULT_COORDS.latitude,
-    longitude: input.longitude ?? DEFAULT_COORDS.longitude,
+    latitude: lat,
+    longitude: lng,
     city: input.city,
-    country: input.country ?? DEFAULT_COUNTRY,
+    country: input.country ?? '',
     countryCode: input.countryCode ?? countryCodeFromName(input.country),
     region: null,
     district: null,
@@ -90,22 +116,13 @@ export async function setManualCity(input: ManualCityInput): Promise<UserLocatio
   return profile
 }
 
-function defaultProfile(): UserLocationProfile {
-  return {
-    latitude: DEFAULT_COORDS.latitude,
-    longitude: DEFAULT_COORDS.longitude,
-    city: DEFAULT_CITY,
-    country: DEFAULT_COUNTRY,
-    countryCode: 'BO',
-    region: null,
-    district: null,
-    source: 'default',
-  }
-}
-
 export async function resolveLocationProfile(options?: {
   forceRefresh?: boolean
-}): Promise<{ profile: UserLocationProfile; permission: LocationPermission; offline: boolean }> {
+}): Promise<{
+  profile: UserLocationProfile | null
+  permission: LocationPermission
+  offline: boolean
+}> {
   const manual = await getManualCity()
   if (manual?.city) {
     const profile = await setManualCity(manual)
@@ -123,7 +140,7 @@ export async function resolveLocationProfile(options?: {
     if (cached) {
       return { profile: { ...cached, source: 'cache' }, permission, offline: true }
     }
-    return { profile: defaultProfile(), permission, offline: false }
+    return { profile: null, permission, offline: false }
   }
 
   const coords = await getCurrentCoords()
@@ -131,7 +148,7 @@ export async function resolveLocationProfile(options?: {
     if (cached) {
       return { profile: { ...cached, source: 'cache' }, permission, offline: true }
     }
-    return { profile: defaultProfile(), permission, offline: false }
+    return { profile: null, permission, offline: false }
   }
 
   if (
@@ -150,9 +167,9 @@ export async function resolveLocationProfile(options?: {
   const profile: UserLocationProfile = {
     latitude: coords.lat,
     longitude: coords.lng,
-    city: geo.city ?? cached?.city ?? DEFAULT_CITY,
-    country: geo.country ?? cached?.country ?? DEFAULT_COUNTRY,
-    countryCode: geo.countryCode ?? cached?.countryCode ?? 'BO',
+    city: geo.city ?? cached?.city ?? '',
+    country: geo.country ?? cached?.country ?? '',
+    countryCode: geo.countryCode ?? cached?.countryCode ?? '',
     region: geo.region ?? null,
     district: geo.district ?? null,
     source: 'gps',
@@ -183,9 +200,9 @@ export async function watchLocationSignificantChange(
       const profile: UserLocationProfile = {
         latitude: coords.lat,
         longitude: coords.lng,
-        city: geo.city ?? last?.city ?? DEFAULT_CITY,
-        country: geo.country ?? last?.country ?? DEFAULT_COUNTRY,
-        countryCode: geo.countryCode ?? last?.countryCode ?? 'BO',
+        city: geo.city ?? last?.city ?? '',
+        country: geo.country ?? last?.country ?? '',
+        countryCode: geo.countryCode ?? last?.countryCode ?? '',
         region: geo.region ?? null,
         district: geo.district ?? null,
         source: 'gps',

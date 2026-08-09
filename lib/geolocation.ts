@@ -68,7 +68,8 @@ async function geocodeWithGoogle(query: string): Promise<Coords | null> {
 
 /** Convierte dirección + ciudad en coordenadas */
 export async function geocodeAddress(address: string, city: string): Promise<Coords | null> {
-  const query = `${address.trim()}, ${city.trim()}, Bolivia`
+  const parts = [address.trim(), city.trim()].filter(Boolean)
+  const query = parts.join(', ')
 
   const expoResult = await geocodeWithExpo(query)
   if (expoResult) return expoResult

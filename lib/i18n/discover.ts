@@ -54,7 +54,7 @@ export const DISCOVER_STRINGS = {
 export type DiscoverStrings = (typeof DISCOVER_STRINGS)[AppLocale]
 
 export function formatToday(locale: AppLocale): string {
-  const raw = new Date().toLocaleDateString(locale === 'es' ? 'es-BO' : 'en-US', {
+  const raw = new Date().toLocaleDateString(locale === 'es' ? 'es' : 'en-US', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -66,7 +66,7 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
-/** Ej: "Santa Cruz de la Sierra, Sábado, 04 de Julio de 2026" */
+/** Ej: "Tu ciudad, Sábado, 04 de Julio de 2026" */
 export function formatCityDateLine(cityName: string, locale: AppLocale): string {
   const { city, date } = formatCityDateSplit(cityName, locale)
   return `${city}, ${date}`
@@ -76,9 +76,9 @@ export function formatCityDateLine(cityName: string, locale: AppLocale): string 
 export function formatCityDateSplit(cityName: string, locale: AppLocale): { city: string; date: string } {
   const now = new Date()
   if (locale === 'es') {
-    const weekday = capitalize(now.toLocaleDateString('es-BO', { weekday: 'long' }))
+    const weekday = capitalize(now.toLocaleDateString('es', { weekday: 'long' }))
     const day = String(now.getDate()).padStart(2, '0')
-    const month = capitalize(now.toLocaleDateString('es-BO', { month: 'long' }))
+    const month = capitalize(now.toLocaleDateString('es', { month: 'long' }))
     const year = now.getFullYear()
     return { city: cityName, date: `${weekday}, ${day} de ${month} de ${year}` }
   }

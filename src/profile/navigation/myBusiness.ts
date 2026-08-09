@@ -1,8 +1,13 @@
 import { router } from 'expo-router'
 import { useProfileStore } from '@/src/profile/store/useProfileStore'
 
-/** Profile → My Business (protected hub) */
+/** Profile → My Business (protected hub) or claim flow */
 export function navigateToMyBusiness() {
+  const companyId = useProfileStore.getState().user.companyId
+  if (companyId) {
+    router.push(`/empresa/${companyId}`)
+    return
+  }
   router.push('/empresa/mi-negocio')
 }
 

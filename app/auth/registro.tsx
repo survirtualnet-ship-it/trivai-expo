@@ -57,7 +57,7 @@ export default function Registro() {
 
   const [fullName, setFullName] = useState('')
   const [username, setUsername] = useState('')
-  const [paisCode, setPaisCode] = useState('+591')
+  const [paisCode, setPaisCode] = useState('')
   const [phone, setPhone] = useState('')
   const [showPaises, setShowPaises] = useState(false)
 
@@ -68,15 +68,16 @@ export default function Registro() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const paisActual = PAISES.find(p => p.code === paisCode)!
+  const paisActual = PAISES.find(p => p.code === paisCode)
   const strength = passwordStrength(password)
 
   const step1Valid = useMemo(
     () =>
       fullName.trim().length > 0 &&
       username.trim().length > 0 &&
+      !!paisCode &&
       phone.trim().length >= 7,
-    [fullName, username, phone],
+    [fullName, username, paisCode, phone],
   )
 
   const step2Valid = useMemo(
@@ -296,8 +297,8 @@ export default function Registro() {
                     style={styles.paisBtn}
                     onPress={() => setShowPaises(true)}
                   >
-                    <Text style={styles.paisFlag}>{paisActual.flag}</Text>
-                    <Text style={styles.paisBtnCode}>{paisActual.code}</Text>
+                    <Text style={styles.paisFlag}>{paisActual?.flag ?? '🌍'}</Text>
+                    <Text style={styles.paisBtnCode}>{paisActual?.code || 'País'}</Text>
                     <ChevronDown size={14} color={t.textMuted} />
                   </Pressable>
                   <View style={styles.phoneInputWrap}>

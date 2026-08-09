@@ -2,25 +2,47 @@ import { memo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { Briefcase, Compass } from 'lucide-react-native'
 import { profileTheme } from '../theme'
+import { useAppMode } from '@/src/appMode'
 import type { UserRole } from '../store/useProfileStore'
 
 type Props = {
   role: UserRole
+  companyId?: string
 }
 
-export const ModeIndicator = memo(function ModeIndicator({ role }: Props) {
-  const isCompany = role === 'company'
+/** Static role hint for tourists; company users see live explore/business mode. */
+export const ModeIndicator = memo(function ModeIndicator({
+  role,
+  companyId,
+}: Props) {
+  const { mode } = useAppMode()
+  const isCompany = !!companyId || role === 'company'
+
+  if (isCompany) {
+    const business = mode === 'business'
+    return (
+      <View style={[styles.wrap, business ? styles.company : styles.tourist]}>
+        {business ? (
+          <Briefcase size={13} color={profileTheme.success} />
+        ) : (
+          <Compass size={13} color={profileTheme.accent} />
+        )}
+        <Text
+          style={[
+            styles.label,
+            business ? styles.companyLabel : styles.touristLabel,
+          ]}
+        >
+          {business ? 'Modo empresa activo' : 'Modo explorar'}
+        </Text>
+      </View>
+    )
+  }
 
   return (
-    <View style={[styles.wrap, isCompany ? styles.company : styles.tourist]}>
-      {isCompany ? (
-        <Briefcase size={13} color={profileTheme.success} />
-      ) : (
-        <Compass size={13} color={profileTheme.accent} />
-      )}
-      <Text style={[styles.label, isCompany ? styles.companyLabel : styles.touristLabel]}>
-        {isCompany ? 'Modo Empresa' : 'Modo Turista'}
-      </Text>
+    <View style={[styles.wrap, styles.tourist]}>
+      <Compass size={13} color={profileTheme.accent} />
+      <Text style={[styles.label, styles.touristLabel]}>Modo explorar</Text>
     </View>
   )
 })

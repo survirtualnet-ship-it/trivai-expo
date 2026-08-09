@@ -120,7 +120,7 @@ export function mapPlaceToDetail(
     reviewCount: place.rating_count ?? 0,
     priceLevel,
     images: place.photos?.length ? place.photos : [],
-    address: place.address?.trim() || place.city || 'Santa Cruz de la Sierra',
+    address: place.address?.trim() || place.city || '',
     distance,
     coordinates: { lat, lng },
     tags: deriveTags(place),

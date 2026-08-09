@@ -35,13 +35,9 @@ export function resolveAppDestination(input: DestinationInput): {
     return { phase: 'onboarding', destination: '/onboarding' }
   }
 
-  if (role === 'company') {
-    if (companyId) {
-      return {
-        phase: 'company-dashboard',
-        destination: `/empresa/${companyId}`,
-      }
-    }
+  // Company owners enter the main app like everyone else.
+  // /empresa/{id} is an advanced panel, not the post-auth entrypoint.
+  if (role === 'company' && !companyId) {
     return {
       phase: 'company-onboarding',
       destination: '/empresa/onboarding',
@@ -100,7 +96,8 @@ export function isOnboardingPath(pathname: string): boolean {
   return (
     path === '/onboarding' ||
     path.startsWith('/onboarding/') ||
-    path === '/empresa/onboarding'
+    path === '/empresa/onboarding' ||
+    path.startsWith('/empresa/onboarding/')
   )
 }
 

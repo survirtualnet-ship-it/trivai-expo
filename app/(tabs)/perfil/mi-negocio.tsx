@@ -135,7 +135,7 @@ export default function MiNegocio() {
       phone:        telefono.trim() || null,
       website:      website.trim() || null,
       address:      direccion.trim() || null,
-      city:         'Santa Cruz',
+      city:         '',
       is_open:      true,
       is_sponsored: false,
       is_verified:  isVerified,
