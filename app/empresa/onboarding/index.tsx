@@ -4,10 +4,12 @@ import { useAppBootstrap } from '@/hooks/useAppBootstrap'
 import { useUser } from '@/hooks/useUser'
 import { SplashScreen } from '@/components/SplashScreen'
 import { useOnboardingStore } from '@/onboarding/store/onboardingStore'
+import { useAppModeStore } from '@/src/appMode'
 
 /**
  * Entry for "Registrar mi negocio".
  * Already signed-in users skip Google login and go straight to search.
+ * Users who already claimed a business return to the main app (not a silo).
  */
 export default function BusinessOnboardingIndex() {
   const bootstrap = useAppBootstrap()
@@ -21,7 +23,8 @@ export default function BusinessOnboardingIndex() {
   useEffect(() => {
     if (!bootstrap.ready || !bootstrap.isAuthenticated) return
     if (companyId) {
-      router.replace(`/empresa/${companyId}`)
+      useAppModeStore.getState().setMode('business')
+      router.replace(`/(tabs)/`)
       return
     }
 

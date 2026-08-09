@@ -19,10 +19,12 @@ import { LocationPreview } from '@/components/place/LocationPreview'
 import { SimilarPlaces } from '@/components/place/SimilarPlaces'
 import { PlaceLiveSection } from '@/components/place/PlaceLiveSection'
 import { ClaimBusinessBanner } from '@/components/place/ClaimBusinessBanner'
+import { OwnerBusinessPanel } from '@/components/place/OwnerBusinessPanel'
 import { ReviewsPreview } from '@/components/place/ReviewsPreview'
 import { StickyCTA } from '@/components/place/StickyCTA'
 import { PlaceDetailSkeleton } from '@/components/place/PlaceDetailSkeleton'
 import { FadeInView } from '@/components/ui/FadeInView'
+import { useIsBusinessMode } from '@/src/appMode'
 import {
   usePlaceDetail,
   usePlaceFavorite,
@@ -47,6 +49,7 @@ export default function PlaceDetailScreen() {
   const { user } = useUser()
   const { profile } = useLocationProfile()
   const countryCode = profile?.countryCode || ''
+  const businessModeActive = useIsBusinessMode()
 
   const { place, isLoading, isError, refetch } = usePlaceDetail(id)
   const hybridQuery = useHybridPlace(id)
@@ -181,14 +184,31 @@ export default function PlaceDetailScreen() {
           />
         </FadeInView>
 
-        <FadeInView delay={85}>
-          <ClaimBusinessBanner
-            placeName={place.name}
-            claimed={hybrid?.claimed ?? false}
-            isOwner={hybrid?.isOwner ?? false}
-            isAuthenticated={!!user}
-          />
-        </FadeInView>
+        {hybrid?.isOwner ? (
+          <FadeInView delay={85}>
+            <OwnerBusinessPanel
+              placeId={place.id}
+              placeName={place.name}
+              description={place.description ?? ''}
+              category={place.category}
+              phone={place.phone}
+              website={place.website}
+              address={place.address}
+              latitude={place.coordinates?.lat}
+              longitude={place.coordinates?.lng}
+              businessModeActive={businessModeActive}
+            />
+          </FadeInView>
+        ) : (
+          <FadeInView delay={85}>
+            <ClaimBusinessBanner
+              placeName={place.name}
+              claimed={hybrid?.claimed ?? false}
+              isOwner={hybrid?.isOwner ?? false}
+              isAuthenticated={!!user}
+            />
+          </FadeInView>
+        )}
 
         <FadeInView delay={90}>
           <ReviewsPreview

@@ -4,6 +4,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated'
 import { profileTheme } from '../theme'
 import { useProfileStore } from '../store/useProfileStore'
 import { ModeIndicator } from './ModeIndicator'
+import { AppModeToggle } from '@/components/AppModeToggle'
 
 export const ProfileHeader = memo(function ProfileHeader() {
   const user = useProfileStore(s => s.user)
@@ -18,7 +19,12 @@ export const ProfileHeader = memo(function ProfileHeader() {
         <Text style={styles.cityIcon}>📍</Text>
         <Text style={styles.city}>{user.city}</Text>
       </View>
-      <ModeIndicator role={user.role} />
+      <ModeIndicator role={user.role} companyId={user.companyId} />
+      {user.companyId ? (
+        <View style={styles.toggleWrap}>
+          <AppModeToggle />
+        </View>
+      ) : null}
       <View style={styles.typePill}>
         <Text style={styles.typeText}>{user.travelerType}</Text>
       </View>
@@ -80,6 +86,10 @@ const styles = StyleSheet.create({
     color: profileTheme.textSecondary,
     fontSize: 14,
     fontWeight: '500',
+  },
+  toggleWrap: {
+    alignSelf: 'stretch',
+    marginTop: profileTheme.spacing.xs,
   },
   typePill: {
     marginTop: profileTheme.spacing.xs,

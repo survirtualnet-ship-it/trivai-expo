@@ -94,7 +94,7 @@ export function CompanyProfileScreen({ companyId }: Props) {
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
             <ChevronLeft size={24} color={t.text} />
           </Pressable>
-          <Text style={styles.navTitle}>Perfil de empresa</Text>
+          <Text style={styles.navTitle}>Panel avanzado</Text>
           <LogoutButton variant="nav" />
         </View>
         <View style={styles.center}>
@@ -112,7 +112,7 @@ export function CompanyProfileScreen({ companyId }: Props) {
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
             <ChevronLeft size={24} color={t.text} />
           </Pressable>
-          <Text style={styles.navTitle}>Perfil de empresa</Text>
+          <Text style={styles.navTitle}>Panel avanzado</Text>
           <LogoutButton variant="nav" />
         </View>
         <View style={styles.center}>
@@ -136,7 +136,13 @@ export function CompanyProfileScreen({ companyId }: Props) {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.nav}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable
+          onPress={() => {
+            if (router.canGoBack()) router.back()
+            else router.replace('/(tabs)/')
+          }}
+          style={styles.backBtn}
+        >
           <ChevronLeft size={24} color={t.text} />
         </Pressable>
         <Text style={styles.navTitle} numberOfLines={1}>

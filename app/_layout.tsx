@@ -14,6 +14,7 @@ import { AuthProvider } from '@/components/AuthProvider'
 import { SplashScreen } from '@/components/SplashScreen'
 import { useAppBootstrap } from '@/hooks/useAppBootstrap'
 import { useAuthStore } from '@/src/auth/store/useAuthStore'
+import { AppModeProvider } from '@/src/appMode'
 
 function AppShell() {
   const pathname = usePathname()
@@ -69,7 +70,9 @@ export default function RootLayout() {
             <WebAppShell>
               <StatusBar style="dark" backgroundColor={T.surface} />
               <AuthProvider>
-                <AppShell />
+                <AppModeProvider>
+                  <AppShell />
+                </AppModeProvider>
               </AuthProvider>
             </WebAppShell>
           </SafeAreaProvider>

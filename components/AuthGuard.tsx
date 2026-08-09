@@ -15,7 +15,8 @@ import { isAuthCallbackPath } from '@/lib/auth/completeAuthCallback'
 
 /**
  * Global route protection — redirects unauthenticated users to welcome/login
- * and enforces legal consent, onboarding + role-based destinations.
+ * and enforces legal consent + onboarding. Company users are not siloed:
+ * they share explore tabs; business tools use AppMode, not forced redirects.
  */
 export function AuthGuard() {
   const bootstrap = useAppBootstrap()
@@ -70,35 +71,8 @@ export function AuthGuard() {
       return
     }
 
-    // Company owners should land on their dashboard even from browse tabs
-    if (
-      bootstrap.isAuthenticated &&
-      bootstrap.hasCompletedOnboarding &&
-      !bootstrap.needsLegalAcceptance &&
-      bootstrap.role === 'company' &&
-      bootstrap.companyId &&
-      (
-        path === '/' ||
-        path.startsWith('/activity') ||
-        path.startsWith('/mapa') ||
-        path.startsWith('/profile') ||
-        path.startsWith('/perfil') ||
-        path.startsWith('/discover') ||
-        path.startsWith('/eventos') ||
-        path.startsWith('/amigos') ||
-        path.startsWith('/lugares') ||
-        path.startsWith('/explore') ||
-        path === '/empresa/onboarding' ||
-        path.startsWith('/empresa/onboarding/')
-      )
-    ) {
-      const dest = `/empresa/${bootstrap.companyId}`
-      if (path !== dest && lastRedirect.current !== dest) {
-        lastRedirect.current = dest
-        router.replace(dest as `/empresa/${string}`)
-      }
-      return
-    }
+    // Company users share the same explore experience as tourists.
+    // Mode (explore | business) is global UI state — never force /empresa/{id}.
 
     // Guests can browse places, map, discover — read-only exploration
     if (isPublicBrowsePath(path) && !isPublicPath(path)) {
