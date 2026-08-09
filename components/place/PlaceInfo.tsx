@@ -13,10 +13,10 @@ type Props = {
   countryCode?: string
 }
 
-export const PlaceInfo = memo(function PlaceInfo({ place, countryCode = 'BO' }: Props) {
+export const PlaceInfo = memo(function PlaceInfo({ place, countryCode }: Props) {
   const minutes = place.distance != null ? distToMinutes(place.distance) : null
   const cat = getCatLabel(place.category)
-  const priceLabel = place.priceLevel
+  const priceLabel = place.priceLevel && countryCode
     ? formatPriceTierLabel(place.priceLevel as PriceLevel, countryCode)
     : null
 

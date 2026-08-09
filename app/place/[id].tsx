@@ -46,7 +46,7 @@ export default function PlaceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { user } = useUser()
   const { profile } = useLocationProfile()
-  const countryCode = profile?.countryCode ?? 'BO'
+  const countryCode = profile?.countryCode || ''
 
   const { place, isLoading, isError, refetch } = usePlaceDetail(id)
   const hybridQuery = useHybridPlace(id)

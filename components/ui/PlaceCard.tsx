@@ -11,7 +11,7 @@ import { T, F, S, R, SHADOW, getCatLabel } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 import { UI, PLACE_CARD_W, PLACE_CARD_IMAGE_H, uiText } from '@/lib/ui/styles'
 import { calcIsOpen } from '@/lib/hours'
-import { getCityZone, distToMinutes } from '@/lib/zones'
+import { distToMinutes } from '@/lib/zones'
 import type { AppLocale } from '@/lib/i18n/discover'
 import { DISCOVER_STRINGS, categoryLabel } from '@/lib/i18n/discover'
 import { firstPhoto } from '@/lib/discoverCardUtils'
@@ -195,11 +195,7 @@ const PlaceCardCompact = memo(function PlaceCardCompact({
   const t = DISCOVER_STRINGS[locale ?? 'es']
   const isOpen = calcIsOpen(place.hours, place.is_open ?? false)
   const minutes = place._dist != null ? distToMinutes(place._dist) : null
-  const zone =
-    place._zone ??
-    (place.latitude != null && place.longitude != null
-      ? getCityZone(place.latitude, place.longitude)
-      : null)
+  const zone = place._zone ?? null
   const catLabel = locale === 'es'
     ? getCatLabel(place.category)
     : categoryLabel(place.category, locale ?? 'es')

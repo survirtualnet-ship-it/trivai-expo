@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useUser } from '@/hooks/useUser'
 import { discoverKeys, searchKeys, STALE } from '@/lib/queries/keys'
 import { getCurrentCoords, type Coords } from '@/lib/geolocation'
-import { EXPLORER_LOCATIONS } from '@/lib/explorerCategories'
 import {
   filterSearchCategories,
   loadRecentSearches,
@@ -58,8 +57,6 @@ export function useSearchScreen() {
     staleTime: STALE.coords,
   })
 
-  const origin: Coords = coordsQuery.data ?? EXPLORER_LOCATIONS[0].center
-
   const recentQuery = useQuery({
     queryKey: searchKeys.recent(),
     queryFn: loadRecentSearches,
@@ -75,13 +72,22 @@ export function useSearchScreen() {
 
   const liveQuery = query.trim()
 
+  const origin = useMemo((): Coords | null => {
+    if (coordsQuery.data) return coordsQuery.data
+    const first = resultsQuery.data?.find(p => p.latitude != null && p.longitude != null)
+    if (first?.latitude != null && first?.longitude != null) {
+      return { lat: first.latitude, lng: first.longitude }
+    }
+    return null
+  }, [coordsQuery.data, resultsQuery.data])
+
   const categories = useMemo(
     (): SearchCategory[] => filterSearchCategories(liveQuery || debounced),
     [liveQuery, debounced],
   )
 
   const places = useMemo((): ExplorerPlace[] => {
-    if (!debounced || !resultsQuery.data) return []
+    if (!debounced || !resultsQuery.data || !origin) return []
     return toExplorerPlaces(resultsQuery.data, origin)
   }, [debounced, resultsQuery.data, origin])
 

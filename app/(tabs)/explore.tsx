@@ -23,6 +23,9 @@ import { getCurrentCoords } from '@/lib/geolocation'
 import { deferredPush } from '@/lib/deferredNav'
 import { discoverKeys, STALE } from '@/lib/queries/keys'
 import { FONT } from '@/lib/typography'
+import { useLocationProfile } from '@/hooks/useLocationProfile'
+import { useWeather } from '@/hooks/useWeather'
+import { UNKNOWN_CITY_ES } from '@/lib/constants'
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true)
@@ -35,6 +38,15 @@ export default function ExploreScreen() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null)
   const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set())
+
+  const { profile: locationProfile, isLoading: isLocationLoading } = useLocationProfile()
+  const { weatherLine } = useWeather(
+    locationProfile?.latitude,
+    locationProfile?.longitude,
+    'ES',
+    isLocationLoading,
+  )
+  const locationLabel = `📍 ${locationProfile?.city?.trim() || UNKNOWN_CITY_ES}`
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 180)
@@ -102,8 +114,8 @@ export default function ExploreScreen() {
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ExploreHeader
-        locationLabel="📍 Santa Cruz, Bolivia"
-        weatherLabel="☀️ 28°C"
+        locationLabel={locationLabel}
+        weatherLabel={weatherLine}
         search={search}
         onSearchChange={setSearch}
       />

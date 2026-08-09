@@ -57,12 +57,16 @@ export function BusinessSearchScreen({ navigation }: BusinessSearchProps) {
       setError(null)
       try {
         const details = await fetchPlaceDetails(item.placeId)
+        if (!details) {
+          setError('No pudimos cargar los detalles del lugar.')
+          return
+        }
         setBusinessData({
-          name: details?.name ?? item.name,
-          address: details?.address ?? item.address,
+          name: details.name,
+          address: details.address,
           placeId: item.placeId,
-          lat: details?.lat ?? -17.7833,
-          lng: details?.lng ?? -63.1821,
+          lat: details.lat,
+          lng: details.lng,
         })
         navigation.navigate('BusinessVerify')
       } catch {

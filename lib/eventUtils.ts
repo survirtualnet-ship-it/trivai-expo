@@ -14,17 +14,17 @@ export function formatDist(km: number) {
 }
 
 export function formatEventTime(dt: string) {
-  return new Date(dt).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })
+  return new Date(dt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
 }
 
 export function formatEventDateShort(dt: string) {
-  return new Date(dt).toLocaleDateString('es-BO', {
+  return new Date(dt).toLocaleDateString('es', {
     weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   })
 }
 
 export function formatEventDateLong(dt: string) {
-  return new Date(dt).toLocaleDateString('es-BO', {
+  return new Date(dt).toLocaleDateString('es', {
     weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
   })
 }

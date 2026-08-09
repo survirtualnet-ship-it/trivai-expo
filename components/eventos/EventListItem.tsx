@@ -15,7 +15,7 @@ export type ListEvent = {
 }
 
 function formatHora(dt: string) {
-  return new Date(dt).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' })
+  return new Date(dt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
 }
 
 function formatDist(km: number) {

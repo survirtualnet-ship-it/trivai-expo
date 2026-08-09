@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+﻿import { useState, useEffect, useMemo } from 'react'
 import {
   View, Text, ScrollView, FlatList, TouchableOpacity,
   StyleSheet, ActivityIndicator, TextInput, Image,
@@ -18,7 +18,7 @@ import { AppHeader, HeaderLogo } from '@/components/ui/AppHeader'
 import { PlaceCard } from '@/components/ui/PlaceCard'
 import { DiscoveryCard } from '@/components/DiscoveryCard'
 import { SectionHeader } from '@/components/ui/Section'
-import { BARRIO_ZONES, getZoneEmoji } from '@/lib/barrioZones'
+import { buildRelativeZones, getZoneEmoji } from '@/lib/barrioZones'
 import { getCurrentCoords } from '@/lib/geolocation'
 import { ENV } from '@/lib/env'
 
@@ -66,11 +66,6 @@ const PILLS: {
   { id: 'Parques',         label: 'Parques',         Icon: Trees,           color: T.green,  bg: T.greenSoft },
   { id: 'Otros',           label: 'Otros',           Icon: Sparkles,        color: T.fg2,    bg: T.muted },
 ]
-
-/** Mapa estático de Santa Cruz sin marcadores (sin pines) */
-const MAP_PREVIEW_URI = ENV.googleMapsKey
-  ? `https://maps.googleapis.com/maps/api/staticmap?center=-17.7833,-63.1821&zoom=13&size=640x280&scale=2&style=feature:poi|visibility:off&key=${ENV.googleMapsKey}`
-  : null
 
 export default function Lugares() {
   const { cat: catParam } = useLocalSearchParams<{ cat?: string }>()
@@ -172,6 +167,13 @@ export default function Lugares() {
     .sort((a, b) => (a._dist ?? 999) - (b._dist ?? 999))
     .slice(0, 6)
 
+  const barrioZones = useMemo(() => buildRelativeZones(userCoords), [userCoords])
+
+  const mapPreviewUri = useMemo(() => {
+    if (!ENV.googleMapsKey || !userCoords) return null
+    return `https://maps.googleapis.com/maps/api/staticmap?center=${userCoords.lat},${userCoords.lng}&zoom=13&size=640x280&scale=2&style=feature:poi|visibility:off&key=${ENV.googleMapsKey}`
+  }, [userCoords])
+
   return (
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
@@ -224,8 +226,8 @@ export default function Lugares() {
           })}
         </ScrollView>
 
-        {/* Explorar por zona — solo sin filtro de categoría */}
-        {!cat && (
+        {/* Explorar por zona — solo sin filtro de categoría y con GPS */}
+        {!cat && barrioZones.length > 0 && (
           <View style={styles.zonesSection}>
             <SectionHeader
               title="Explorar por zona"
@@ -233,7 +235,7 @@ export default function Lugares() {
               onAction={() => router.push('/mapa')}
             />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.zonesRow}>
-              {BARRIO_ZONES.map(zona => (
+              {barrioZones.map(zona => (
                 <TouchableOpacity
                   key={zona.nombre}
                   style={styles.zoneCard}
@@ -271,8 +273,8 @@ export default function Lugares() {
 
         {/* 5. VISTA PREVIA DEL MAPA (sin pines) */}
         <View style={styles.mapCard}>
-          {MAP_PREVIEW_URI ? (
-            <Image source={{ uri: MAP_PREVIEW_URI }} style={styles.mapImg} resizeMode="cover" />
+          {mapPreviewUri ? (
+            <Image source={{ uri: mapPreviewUri }} style={styles.mapImg} resizeMode="cover" />
           ) : (
             <LinearGradient
               colors={[T.greenSoft, T.purpleSoft]}
@@ -282,7 +284,7 @@ export default function Lugares() {
           )}
           <View style={styles.mapOverlay}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.mapCity}>Santa Cruz de la Sierra</Text>
+              <Text style={styles.mapCity}>Cerca de ti</Text>
               <Text style={styles.mapHint}>Explora los alrededores</Text>
             </View>
             <TouchableOpacity style={styles.mapBtn} onPress={() => router.push('/mapa')} activeOpacity={0.85}>

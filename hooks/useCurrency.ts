@@ -41,7 +41,7 @@ export function useCurrency(countryCode: string | undefined, locale: Locale) {
 
   const dateLabel = useMemo(() => {
     const formatted = new Date().toLocaleDateString(
-      locale === 'EN' ? 'en-US' : 'es-BO',
+      locale === 'EN' ? 'en-US' : 'es',
       { weekday: 'short', day: 'numeric', month: 'short' },
     )
     return formatted.charAt(0).toUpperCase() + formatted.slice(1)

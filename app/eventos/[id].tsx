@@ -30,7 +30,7 @@ export default function EventoDetalle() {
   const insets = useSafeAreaInsets()
   const { user } = useUser()
   const { profile } = useLocationProfile()
-  const countryCode = profile?.countryCode ?? 'BO'
+  const countryCode = profile?.countryCode || ''
   const { data: evento, isLoading: eventLoading } = useEvent(id)
   const { data: lugar } = usePlace(evento?.place_id ?? undefined)
   const [asistire, setAsistire] = useState(false)

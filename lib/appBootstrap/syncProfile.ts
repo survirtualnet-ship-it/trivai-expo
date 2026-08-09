@@ -53,7 +53,7 @@ export function syncProfileStoreFromAuth(
     avatarUrl,
     photo: avatarUrl || undefined,
     initials: initialsFromName(name),
-    city: profile?.city ?? 'Santa Cruz de la Sierra',
+    city: profile?.city?.trim() || '',
     role,
     companyId: profile?.business_place_id ?? useProfileStore.getState().user.companyId,
     onboardingCompleted,

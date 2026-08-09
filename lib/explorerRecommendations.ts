@@ -45,5 +45,5 @@ export function buildExplorerRecommendation(
     return `Buena opción para explorar ${prefs.location.city}`
   }
 
-  return 'Recomendado para descubrir lo mejor de Santa Cruz'
+  return 'Recomendado para descubrir cerca de ti'
 }

@@ -10,11 +10,6 @@ type Props = {
   onMarkerPress: (id: string) => void
 }
 
-const FALLBACK = {
-  latitude: -17.7833,
-  longitude: -63.1821,
-}
-
 function ExploreMapNative({
   places,
   selectedId,
@@ -22,7 +17,12 @@ function ExploreMapNative({
   onMarkerPress,
 }: Props) {
   const mapRef = useRef<MapView>(null)
-  const center = userCoords ?? FALLBACK
+  const first = places[0]
+  const center = userCoords ?? (
+    first
+      ? { latitude: first.latitude, longitude: first.longitude }
+      : { latitude: 0, longitude: 0 }
+  )
 
   const initialRegion = useMemo((): Region => ({
     latitude: center.latitude,

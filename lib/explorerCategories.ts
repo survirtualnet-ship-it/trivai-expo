@@ -30,19 +30,16 @@ export function explorerChipCategory(chipId: ExplorerChipId): Category | null {
   return EXPLORER_CHIPS.find(c => c.id === chipId)?.category ?? null
 }
 
-export type ExplorerLocationId = 'near_me' | 'santa_cruz' | 'equipetrol' | 'urbari'
+/** Only GPS-relative locations — no city-locked neighborhoods. */
+export type ExplorerLocationId = 'near_me'
 
 export interface ExplorerLocationOption {
   id: ExplorerLocationId
   label: string
-  center: { lat: number; lng: number }
 }
 
 export const EXPLORER_LOCATIONS: ExplorerLocationOption[] = [
-  { id: 'santa_cruz', label: 'Santa Cruz', center: { lat: -17.7833, lng: -63.1821 } },
-  { id: 'equipetrol', label: 'Equipetrol', center: { lat: -17.7638, lng: -63.1712 } },
-  { id: 'urbari', label: 'Urbarí', center: { lat: -17.7565, lng: -63.1825 } },
-  { id: 'near_me', label: 'Cerca de mí', center: { lat: -17.7833, lng: -63.1821 } },
+  { id: 'near_me', label: 'Cerca de mí' },
 ]
 
 export function estimatePriceLevel(ratingAvg?: number | null): PriceLevel {

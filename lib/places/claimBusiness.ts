@@ -55,7 +55,10 @@ export async function claimBusiness(
         description: input.description ?? null,
         phone: input.phone ?? null,
         website: input.website ?? null,
-        city: 'Santa Cruz de la Sierra',
+        city: (() => {
+          const parts = input.address?.split(',').map(s => s.trim()).filter(Boolean) ?? []
+          return parts[parts.length - 1] ?? ''
+        })(),
         photos: [],
         rating_avg: 0,
         rating_count: 0,

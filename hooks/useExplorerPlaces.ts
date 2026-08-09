@@ -12,7 +12,6 @@ import {
 import type { ExplorerChipId } from '@/lib/explorerCategories'
 import { explorerChipCategory } from '@/lib/explorerCategories'
 import type { ExplorerLocationId } from '@/lib/explorerCategories'
-import { EXPLORER_LOCATIONS } from '@/lib/explorerCategories'
 import { fetchNearbyPlaces, searchPlacesLive } from '@/services/places.service'
 import { placesToCardData } from '@/lib/places/toCardData'
 import { PLACES_DEFAULT_LIMIT, PLACES_DEFAULT_RADIUS_KM } from '@/lib/constants'
@@ -57,7 +56,7 @@ export interface UseExplorerPlacesOptions {
 export function useExplorerPlaces({
   chipId,
   search,
-  locationId,
+  locationId: _locationId,
   userCoords,
 }: UseExplorerPlacesOptions) {
   const { user } = useUser()
@@ -78,11 +77,7 @@ export function useExplorerPlaces({
     enabled: !!userId,
   })
 
-  const origin = useMemo((): Coords | null => {
-    if (locationId === 'near_me') return userCoords
-    return EXPLORER_LOCATIONS.find(l => l.id === locationId)?.center
-      ?? userCoords
-  }, [locationId, userCoords])
+  const origin = userCoords
 
   const placesQuery = useQuery({
     queryKey: explorerKeys.list({

@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/hooks/useUser'
+import { UNKNOWN_CITY_ES } from '@/lib/constants'
 import { T, F, S, R } from '@/lib/tokens'
 import { HeaderLogo } from '@/components/ui/AppHeader'
 import { BrandDateHeader } from '@/components/ui/BrandDateHeader'
@@ -116,7 +117,7 @@ function statusAmigo(id: string, enEvento: boolean): Amigo['status'] {
 export default function Amigos() {
   const { isAuthenticated, profile } = useUser()
   const { locale } = useLocale()
-  const cityName = profile?.city ?? 'Santa Cruz de la Sierra'
+  const cityName = profile?.city?.trim() || UNKNOWN_CITY_ES
   const [miId,        setMiId]        = useState<string | null>(null)
   const [amigos,      setAmigos]      = useState<Amigo[]>([])
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])

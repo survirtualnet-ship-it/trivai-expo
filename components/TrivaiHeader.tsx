@@ -1,5 +1,6 @@
 import { View, Text, Image, StyleSheet, type ReactNode } from 'react-native'
 import { BrandAssets } from '@/lib/brandAssets'
+import { UNKNOWN_CITY_ES } from '@/lib/constants'
 import { T, F, S } from '@/lib/tokens'
 
 type Props = {
@@ -11,26 +12,27 @@ type Props = {
   light?: boolean
   /** Ocultar logo centrado (p. ej. auth con branding propio) */
   hideLogo?: boolean
+  city?: string
 }
 
 /** Fecha actual, ej. "Viernes, 4 de julio" */
 export function fechaHoy() {
-  const f = new Date().toLocaleDateString('es-BO', { weekday: 'long', day: 'numeric', month: 'long' })
+  const f = new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' })
   return f.charAt(0).toUpperCase() + f.slice(1)
 }
 
 /** Ciudad + fecha bajo el título del header */
-export function HeaderCityDate() {
+export function HeaderCityDate({ city }: { city?: string }) {
   return (
     <Text style={styles.cityDate}>
-      <Text style={styles.city}>Santa Cruz de la Sierra</Text>
+      <Text style={styles.city}>{city?.trim() || UNKNOWN_CITY_ES}</Text>
       {' · '}{fechaHoy()}
     </Text>
   )
 }
 
 /** Header estilo mockup: iconos a los lados, logo centrado y título debajo */
-export function TrivaiHeader({ title, subtitle, left, right, light, hideLogo }: Props) {
+export function TrivaiHeader({ title, subtitle, left, right, light, hideLogo, city }: Props) {
   return (
     <View style={[styles.wrap, light && styles.wrapLight]}>
       <View style={styles.row}>
@@ -45,7 +47,7 @@ export function TrivaiHeader({ title, subtitle, left, right, light, hideLogo }: 
             />
           ) : null}
           {title ? <Text style={styles.title}>{title}</Text> : null}
-          {title ? <HeaderCityDate /> : null}
+          {title ? <HeaderCityDate city={city} /> : null}
         </View>
         <View style={[styles.side, styles.sideRight]}>{right}</View>
       </View>

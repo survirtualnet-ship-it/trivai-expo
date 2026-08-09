@@ -12,8 +12,6 @@ import { T, F, S, R, CATEGORIES } from '@/lib/tokens'
 import { grantXP, XP } from '@/lib/xp'
 import { getCurrentCoords, resolvePlaceCoords, type Coords } from '@/lib/geolocation'
 
-const CIUDADES = ['Santa Cruz', 'La Paz', 'Cochabamba', 'Sucre', 'Oruro', 'Potosí']
-
 function Campo({
   label, value, onChangeText, placeholder, multiline = false, required = false, keyboardType = 'default', icon,
 }: {
@@ -51,7 +49,7 @@ export default function CrearLugar() {
   const [nombre,      setNombre]      = useState('')
   const [categoria,   setCategoria]   = useState('')
   const [direccion,   setDireccion]   = useState('')
-  const [ciudad,      setCiudad]      = useState('Santa Cruz')
+  const [ciudad,      setCiudad]      = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [horario,     setHorario]     = useState('')
   const [telefono,    setTelefono]    = useState('')
@@ -169,21 +167,11 @@ export default function CrearLugar() {
             </Text>
           )}
 
-          {/* Ciudad */}
-          <View style={c.campo}>
-            <Text style={c.campoLabel}>Ciudad</Text>
-            <View style={c.chips}>
-              {CIUDADES.map(cid => (
-                <TouchableOpacity
-                  key={cid}
-                  style={[c.chip, ciudad === cid && c.chipActivePurple]}
-                  onPress={() => setCiudad(cid)}
-                >
-                  <Text style={[c.chipText, ciudad === cid && c.chipTextActive]}>{cid}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+          <Campo
+            label="Ciudad" value={ciudad} onChangeText={setCiudad}
+            placeholder="Tu ciudad"
+            icon={<MapPin size={14} color={T.fg3} />}
+          />
 
           <Campo
             label="Descripción" value={descripcion} onChangeText={setDescripcion}

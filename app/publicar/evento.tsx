@@ -70,7 +70,7 @@ function formatHoraInput(raw: string) {
 
 export default function CrearEvento() {
   const { profile } = useLocationProfile()
-  const countryCode = profile?.countryCode ?? 'BO'
+  const countryCode = profile?.countryCode || ''
   const precioPlaceholder = pricePlaceholder(countryCode)
 
   const hoy = new Date()

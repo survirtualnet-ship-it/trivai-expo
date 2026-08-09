@@ -67,7 +67,7 @@ export default function ExplorerScreen() {
 
   const locationLabel = useMemo(() => {
     if (locationId === 'near_me' && userCoords) return 'Cerca de mí'
-    return EXPLORER_LOCATIONS.find(l => l.id === locationId)?.label ?? 'Santa Cruz'
+    return EXPLORER_LOCATIONS.find(l => l.id === locationId)?.label ?? 'Cerca de mí'
   }, [locationId, userCoords])
 
   const handleSelect = useCallback((id: string) => {

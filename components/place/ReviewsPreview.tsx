@@ -112,7 +112,7 @@ export const ReviewsPreview = memo(function ReviewsPreview({
         preview.map(r => {
           const name = r.profile?.full_name ?? r.profile?.username ?? 'Usuario'
           const ini = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-          const fecha = new Date(r.created_at).toLocaleDateString('es-BO', {
+          const fecha = new Date(r.created_at).toLocaleDateString('es', {
             day: 'numeric',
             month: 'short',
           })

@@ -30,7 +30,7 @@ function buildShareDescription(place: SharePlaceInput): string {
   const cat = place.category ? getCatLabel(place.category) : 'lugar'
   const where = place.address?.trim()
   if (where) return `${cat} en ${where}`
-  return `Descubre este ${cat.toLowerCase()} en Santa Cruz con Trivai`
+  return `Descubre este ${cat.toLowerCase()} con Trivai`
 }
 
 /** Native / web share sheet — fire-and-forget, never throws on user cancel. */

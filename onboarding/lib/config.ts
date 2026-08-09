@@ -4,5 +4,5 @@ export const ONBOARDING_CONFIG = {
     process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY?.trim() ?? 'YOUR_GOOGLE_PLACES_API_KEY',
   googleWebClientId:
     process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim() ?? '',
-  defaultCity: 'Santa Cruz de la Sierra, Bolivia',
+  defaultCity: '',
 } as const
