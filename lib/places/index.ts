@@ -24,4 +24,9 @@ export {
   type HybridGooglePlace,
   type TrivaiPlaceEnrichment,
 } from './mergePlace'
-export { resolvePlaceUuid, isUuid, isGooglePlaceId } from './resolvePlace'
+export {
+  resolvePlaceUuid,
+  refreshPlaceFromGoogle,
+  isUuid,
+  isGooglePlaceId,
+} from './resolvePlace'

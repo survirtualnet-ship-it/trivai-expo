@@ -31,7 +31,10 @@ async function loadExplorerPlaces(
 ) {
   const q = search.trim()
   if (q.length >= 2) {
-    const places = await searchPlacesLive(q)
+    const places = await searchPlacesLive(q, {
+      latitude: origin.lat,
+      longitude: origin.lng,
+    })
     return placesToCardData(places)
   }
 
