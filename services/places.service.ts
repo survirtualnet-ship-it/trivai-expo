@@ -1,7 +1,73 @@
 import { supabase } from '@/services/supabase'
 import type { Place, PlaceFilters } from '@/types/place'
-import { EMERGENCY_CATEGORIES, PLACES_DEFAULT_LIMIT, PLACES_DEFAULT_RADIUS_KM } from '@/lib/constants'
 import type { Place as DbPlace } from '@/lib/supabase'
+import { EMERGENCY_CATEGORIES, PLACES_DEFAULT_LIMIT, PLACES_DEFAULT_RADIUS_KM } from '@/lib/constants'
+import {
+  getNearbyPlacesFromGoogle,
+  searchPlaces,
+} from '@/lib/googlePlacesApi'
+import {
+  hybridToProductPlace,
+  mergeTrivaiData,
+} from '@/lib/places/mergePlace'
+import { resolvePlaceUuid } from '@/lib/places/resolvePlace'
+
+function isEmergencyCategory(category: string): boolean {
+  const c = category.toLowerCase()
+  return EMERGENCY_CATEGORIES.some(k => c.includes(k))
+}
+
+/**
+ * Nearby places from Google + Trivai enrichment merge.
+ * Does NOT depend on a global local places DB.
+ */
+export async function fetchNearbyPlaces(filters: PlaceFilters = {}): Promise<Place[]> {
+  const {
+    category,
+    search,
+    latitude,
+    longitude,
+    radiusKm = PLACES_DEFAULT_RADIUS_KM,
+    limit = PLACES_DEFAULT_LIMIT,
+  } = filters
+
+  if (latitude == null || longitude == null) {
+    return []
+  }
+
+  const google = await getNearbyPlacesFromGoogle(latitude, longitude, {
+    radiusMeters: Math.round(radiusKm * 1000),
+    keyword: search?.trim() || undefined,
+  })
+
+  if (google.length === 0) return []
+
+  const hybrid = await mergeTrivaiData(google)
+  const origin = { latitude, longitude }
+
+  let places = hybrid
+    .map(h => hybridToProductPlace(h, origin))
+    .map(p => ({
+      ...p,
+      is_emergency: isEmergencyCategory(p.category) || p.is_emergency,
+    }))
+
+  if (category && category !== 'all') {
+    const needle = category.toLowerCase()
+    places = places.filter(p => p.category.toLowerCase().includes(needle))
+  }
+
+  places.sort((a, b) => (a.distance_km ?? 99) - (b.distance_km ?? 99))
+  return places.slice(0, limit)
+}
+
+/** Live Google text search + Trivai merge */
+export async function searchPlacesLive(query: string): Promise<Place[]> {
+  const google = await searchPlaces(query)
+  if (google.length === 0) return []
+  const hybrid = await mergeTrivaiData(google)
+  return hybrid.map(h => hybridToProductPlace(h, null))
+}
 
 function haversineKm(
   lat1: number,
@@ -13,24 +79,13 @@ function haversineKm(
   const dLat = ((lat2 - lat1) * Math.PI) / 180
   const dLng = ((lng2 - lng1) * Math.PI) / 180
   const a =
-    Math.sin(dLat / 2) ** 2
-    + Math.cos((lat1 * Math.PI) / 180)
-      * Math.cos((lat2 * Math.PI) / 180)
-      * Math.sin(dLng / 2) ** 2
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-function formatDistance(km: number): string {
-  if (km < 1) return `${Math.round(km * 1000)} m`
-  return `${km.toFixed(1)} km`
-}
-
-function isEmergencyCategory(category: string): boolean {
-  const c = category.toLowerCase()
-  return EMERGENCY_CATEGORIES.some(k => c.includes(k))
-}
-
-/** Map Supabase row → product Place */
 export function mapDbPlaceToPlace(
   row: Pick<
     DbPlace,
@@ -43,6 +98,7 @@ export function mapDbPlaceToPlace(
     | 'rating_avg'
     | 'photos'
     | 'address'
+    | 'google_place_id'
   >,
   origin?: { latitude: number; longitude: number } | null,
 ): Place | null {
@@ -51,8 +107,16 @@ export function mapDbPlaceToPlace(
   let distance_km: number | undefined
   let distance_label: string | undefined
   if (origin) {
-    distance_km = haversineKm(origin.latitude, origin.longitude, row.latitude, row.longitude)
-    distance_label = formatDistance(distance_km)
+    distance_km = haversineKm(
+      origin.latitude,
+      origin.longitude,
+      row.latitude,
+      row.longitude,
+    )
+    distance_label =
+      distance_km < 1
+        ? `${Math.round(distance_km * 1000)} m`
+        : `${distance_km.toFixed(1)} km`
   }
 
   return {
@@ -68,70 +132,20 @@ export function mapDbPlaceToPlace(
     address: row.address,
     distance_km,
     distance_label,
+    google_place_id: row.google_place_id ?? null,
   }
-}
-
-const PLACE_SELECT =
-  'id,name,category,description,latitude,longitude,rating_avg,photos,address'
-
-/**
- * Fetch nearby places from Supabase `places` table.
- * Filters client-side by radius when coords are provided.
- */
-export async function fetchNearbyPlaces(filters: PlaceFilters = {}): Promise<Place[]> {
-  const {
-    category,
-    search,
-    latitude,
-    longitude,
-    radiusKm = PLACES_DEFAULT_RADIUS_KM,
-    limit = PLACES_DEFAULT_LIMIT,
-  } = filters
-
-  let q = supabase
-    .from('places')
-    .select(PLACE_SELECT)
-    .not('latitude', 'is', null)
-    .not('longitude', 'is', null)
-
-  if (category && category !== 'all') {
-    q = q.ilike('category', `%${category}%`)
-  }
-  if (search?.trim()) {
-    q = q.ilike('name', `%${search.trim()}%`)
-  }
-
-  q = q.order('rating_avg', { ascending: false }).limit(Math.max(limit * 3, 60))
-
-  const { data, error } = await q
-  if (error) throw error
-
-  const origin =
-    latitude != null && longitude != null
-      ? { latitude, longitude }
-      : null
-
-  let places = (data ?? [])
-    .map(row => mapDbPlaceToPlace(row as DbPlace, origin))
-    .filter((p): p is Place => !!p)
-
-  if (origin) {
-    places = places
-      .filter(p => (p.distance_km ?? 0) <= radiusKm)
-      .sort((a, b) => (a.distance_km ?? 0) - (b.distance_km ?? 0))
-  }
-
-  return places.slice(0, limit)
 }
 
 export async function fetchPlaceById(id: string): Promise<Place | null> {
+  const uuid = await resolvePlaceUuid(id)
+  if (!uuid) return null
   const { data, error } = await supabase
     .from('places')
-    .select(PLACE_SELECT)
-    .eq('id', id)
+    .select(
+      'id,name,category,description,latitude,longitude,rating_avg,photos,address,google_place_id',
+    )
+    .eq('id', uuid)
     .maybeSingle()
-
-  if (error) throw error
-  if (!data) return null
+  if (error || !data) return null
   return mapDbPlaceToPlace(data as DbPlace)
 }

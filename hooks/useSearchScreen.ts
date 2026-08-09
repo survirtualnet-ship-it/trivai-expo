@@ -1,15 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useUser } from '@/hooks/useUser'
-import { fetchPlacesList } from '@/lib/queries/places'
 import { discoverKeys, searchKeys, STALE } from '@/lib/queries/keys'
 import { getCurrentCoords, type Coords } from '@/lib/geolocation'
 import { EXPLORER_LOCATIONS } from '@/lib/explorerCategories'
-import {
-  filterPlacesByQuery,
-  fetchSmartSearchResults,
-  mergeSearchPlaces,
-} from '@/lib/smartSearch'
 import {
   filterSearchCategories,
   loadRecentSearches,
@@ -20,7 +14,7 @@ import {
 } from '@/lib/search'
 import type { PlaceCardData } from '@/components/ui/PlaceCard'
 import type { ExplorerPlace } from '@/lib/explorerRanking'
-import { getAllMockPlaceCards, USE_MOCK_API } from '@/services/mockApi'
+import { searchPlacesLive } from '@/services/places.service'
 
 const DEBOUNCE_MS = 160
 
@@ -28,21 +22,23 @@ async function fetchSearchPlaces(query: string): Promise<PlaceCardData[]> {
   const q = query.trim()
   if (!q) return []
 
-  const [cached, remote] = await Promise.all([
-    fetchPlacesList({ limit: 120 }),
-    fetchSmartSearchResults(q),
-  ])
-
-  const mockPool = USE_MOCK_API ? getAllMockPlaceCards() : []
-  const merged = mergeSearchPlaces(
-    mergeSearchPlaces(cached, mockPool, q),
-    remote.lugares,
-    q,
-  )
-
-  return filterPlacesByQuery(merged, q)
-    .sort((a, b) => (b.rating_avg ?? 0) - (a.rating_avg ?? 0))
-    .slice(0, 24)
+  // Live Google search — no local DB dependency
+  const live = await searchPlacesLive(q)
+  return live.slice(0, 24).map(p => ({
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    address: p.address ?? null,
+    rating_avg: p.rating,
+    rating_count: 0,
+    is_open: true,
+    hours: null,
+    latitude: p.latitude,
+    longitude: p.longitude,
+    photos: p.image_url ? [p.image_url] : [],
+    is_featured: false,
+    is_sponsored: false,
+  }))
 }
 
 export function useSearchScreen() {

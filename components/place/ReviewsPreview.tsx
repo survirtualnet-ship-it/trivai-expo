@@ -100,7 +100,14 @@ export const ReviewsPreview = memo(function ReviewsPreview({
       </View>
 
       {reviews.length === 0 ? (
-        <Text style={styles.empty}>Sé el primero en compartir tu experiencia</Text>
+        <View style={styles.emptyBox}>
+          <Text style={styles.empty}>
+            Sé el primero en compartir tu experiencia
+          </Text>
+          <Text style={styles.emptyHint}>
+            Tu reseña ayuda a otros viajeros — y da vida a este lugar en Trivai.
+          </Text>
+        </View>
       ) : (
         preview.map(r => {
           const name = r.profile?.full_name ?? r.profile?.username ?? 'Usuario'
@@ -187,12 +194,24 @@ const styles = StyleSheet.create({
     fontSize: F.size.sm,
     color: T.primary,
   },
+  emptyBox: {
+    paddingVertical: S.lg,
+    gap: S.sm,
+    alignItems: 'center',
+  },
   empty: {
+    fontFamily: FONT.semibold,
+    fontSize: F.size.md,
+    color: T.fg1,
+    textAlign: 'center',
+  },
+  emptyHint: {
     fontFamily: FONT.regular,
     fontSize: F.size.sm,
     color: T.fg3,
     textAlign: 'center',
-    paddingVertical: S.lg,
+    lineHeight: 20,
+    paddingHorizontal: S.md,
   },
   card: {
     flexDirection: 'row',

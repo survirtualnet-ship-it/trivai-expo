@@ -16,3 +16,12 @@ export {
 export { searchGooglePlaces } from '@/lib/googlePlacesApi'
 export { claimBusiness, ClaimBusinessError } from './claimBusiness'
 export { fetchHybridPlaceMeta } from './hybridPlace'
+export {
+  mergePlaceData,
+  mergeTrivaiData,
+  getTrivaiDataByGoogleIds,
+  hybridToProductPlace,
+  type HybridGooglePlace,
+  type TrivaiPlaceEnrichment,
+} from './mergePlace'
+export { resolvePlaceUuid, isUuid, isGooglePlaceId } from './resolvePlace'

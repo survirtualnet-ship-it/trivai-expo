@@ -76,6 +76,7 @@ function mockPool(): PlaceItem[] {
 
 async function loadPlaces(lat: number, lng: number): Promise<Place[]> {
   try {
+    // Google Nearby + Trivai merge — not a local DB dump
     const places = await fetchNearbyPlaces({
       latitude: lat,
       longitude: lng,
@@ -86,8 +87,8 @@ async function loadPlaces(lat: number, lng: number): Promise<Place[]> {
       await writeCache(CACHE_KEYS.places, places)
       return places
     }
-  } catch {
-    // fall through to cache / mock
+  } catch (err) {
+    console.warn('[home] Google nearby failed', err)
   }
 
   const cached = await readCache<Place[]>(CACHE_KEYS.places)

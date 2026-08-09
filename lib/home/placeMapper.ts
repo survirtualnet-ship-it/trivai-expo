@@ -27,7 +27,9 @@ export function placeToItem(
     id: place.id,
     name: place.name,
     distance: place.distance_label ?? '—',
-    category: place.category,
+    category: place.has_trivai_content
+      ? `${place.category} · Trivai`
+      : place.category,
     imageUrl: place.image_url || FALLBACK_IMG,
     zone: inferZone(place.latitude, place.longitude, userLat, userLng),
   }

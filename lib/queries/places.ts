@@ -49,6 +49,18 @@ export async function fetchPlacesList(filters: PlacesListFilters = {}): Promise<
 }
 
 export async function fetchPlaceById(id: string): Promise<Place> {
+  const { resolvePlaceUuid } = await import('@/lib/places/resolvePlace')
+  const uuid = await resolvePlaceUuid(id)
+
+  if (uuid) {
+    const { data } = await supabase
+      .from('places')
+      .select('*')
+      .eq('id', uuid)
+      .maybeSingle()
+    if (data) return data as Place
+  }
+
   const { data, error } = await supabase
     .from('places')
     .select('*')

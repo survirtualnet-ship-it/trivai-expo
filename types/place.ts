@@ -26,6 +26,9 @@ export type Place = {
   address?: string | null
   distance_km?: number
   distance_label?: string
+  google_place_id?: string | null
+  claimed?: boolean
+  has_trivai_content?: boolean
 }
 
 export type PlaceFilters = {
