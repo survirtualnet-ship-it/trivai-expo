@@ -1,10 +1,4 @@
 import { create } from 'zustand'
-import {
-  MOCK_USER,
-  MOCK_FRIENDS,
-  MOCK_PERSONAL_ACTIVITIES,
-  MOCK_FRIENDS_ACTIVITIES,
-} from '../data/mockActivities'
 
 export type ActivityTab = 'personal' | 'friends'
 export type ActivityFilter = 'all' | 'visit' | 'save' | 'live'
@@ -38,30 +32,19 @@ export type ActivityFriend = ActivityUser & {
   isActive: boolean
 }
 
-type ActivityStore = {
-  user: ActivityUser
-  friends: ActivityFriend[]
-  activities: FeedActivity[]
+/** UI-only store — feed data comes from React Query / Supabase. */
+type ActivityUiStore = {
   selectedTab: ActivityTab
   activeFilter: ActivityFilter
-  isConnectedToFriends: boolean
   setSelectedTab: (tab: ActivityTab) => void
   setActiveFilter: (filter: ActivityFilter) => void
-  connectFriends: () => void
-  getActiveFriendsCount: () => number
 }
 
-export const useActivityStore = create<ActivityStore>((set, get) => ({
-  user: MOCK_USER,
-  friends: MOCK_FRIENDS,
-  activities: [...MOCK_PERSONAL_ACTIVITIES, ...MOCK_FRIENDS_ACTIVITIES],
+export const useActivityStore = create<ActivityUiStore>(set => ({
   selectedTab: 'personal',
   activeFilter: 'all',
-  isConnectedToFriends: true,
   setSelectedTab: tab => set({ selectedTab: tab, activeFilter: 'all' }),
   setActiveFilter: filter => set({ activeFilter: filter }),
-  connectFriends: () => set({ isConnectedToFriends: true }),
-  getActiveFriendsCount: () => get().friends.filter(f => f.isActive).length,
 }))
 
 export function formatTimeAgo(timestamp: number): string {
@@ -75,19 +58,23 @@ export function formatTimeAgo(timestamp: number): string {
   return `hace ${days} d`
 }
 
-export function activityActionText(type: ActivityType, userName: string, isSelf: boolean): string {
+export function activityActionText(
+  type: ActivityType,
+  userName: string,
+  isSelf: boolean,
+): string {
   const subject = isSelf ? 'Tú' : userName.split(' ')[0]
   switch (type) {
     case 'visit':
-      return `${subject} visitó un lugar`
+      return `${subject} dejó una reseña en`
     case 'save':
-      return `${subject} guardó un lugar`
+      return `${subject} guardó`
     case 'view':
-      return `${subject} vio un lugar`
+      return `${subject} exploró`
     case 'checkin':
       return `${subject} está ahora en`
     default:
-      return `${subject} interactuó con un lugar`
+      return `${subject} interactuó con`
   }
 }
 
@@ -95,16 +82,8 @@ export function filterActivities(
   activities: FeedActivity[],
   tab: ActivityTab,
   filter: ActivityFilter,
-  userId: string,
 ): FeedActivity[] {
   let list = activities.filter(a => a.scope === tab)
-
-  if (tab === 'personal') {
-    list = list.map(a => ({
-      ...a,
-      user: { ...a.user, name: a.user.id === userId ? 'Tú' : a.user.name },
-    }))
-  }
 
   switch (filter) {
     case 'visit':
