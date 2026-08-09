@@ -3,7 +3,7 @@ import { useOnboardingStore } from '@/onboarding/store/onboardingStore'
 import { useAppModeStore } from '@/src/appMode'
 import { useCompanyProfileStore } from '@/src/company/store/useCompanyProfileStore'
 import { clearOnboardingFlags } from '@/lib/onboardingStorage'
-import { MOCK_USER } from '@/src/profile/data/mockProfile'
+import { EMPTY_USER } from '@/src/profile/data/mockProfile'
 
 /**
  * Wipe persisted local identity so the next login cannot inherit
@@ -12,7 +12,7 @@ import { MOCK_USER } from '@/src/profile/data/mockProfile'
 export function clearLocalSessionArtifacts(): void {
   useProfileStore.setState({
     user: {
-      ...MOCK_USER,
+      ...EMPTY_USER,
       id: '',
       name: '',
       email: undefined,

@@ -1,17 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import {
-  MOCK_USER,
-  MOCK_PREFERENCES,
-  MOCK_CURRENT_STATUS,
-  MOCK_RECOMMENDATIONS,
-  MOCK_AUTO_PLANS,
-  MOCK_ACTIVITY,
-  MOCK_FAVORITE_LISTS,
-  MOCK_ACHIEVEMENTS,
-  MOCK_SETTINGS,
-} from '../data/mockProfile'
+import { DEFAULT_SETTINGS, EMPTY_USER } from '../data/mockProfile'
 
 export type TravelerType = 'Foodie' | 'Cultural' | 'Nightlife' | 'Explorer'
 
@@ -33,19 +23,14 @@ export type ProfileUser = {
   locationPermission?: boolean
 }
 
-export type ProfilePreferences = {
-  smartTags: string[]
-  budgetLevel: 1 | 2 | 3
-  preferredTime: 'morning' | 'afternoon' | 'night'
-  favoriteCategories: string[]
+export type ProfileSettings = {
+  language: string
+  currency: string
+  notifications: boolean
+  privacy: boolean
 }
 
-export type CurrentStatus = {
-  zone: string
-  suggestion: string
-  moodEmoji: string
-}
-
+/** Card shape for “Para ti hoy” — filled from real place ranking. */
 export type ProfileRecommendation = {
   id: string
   name: string
@@ -55,61 +40,12 @@ export type ProfileRecommendation = {
   highlight?: boolean
 }
 
-export type AutoPlan = {
-  id: string
-  title: string
-  subtitle: string
-  emoji: string
-  generating?: boolean
-}
-
-export type ActivityRecord = {
-  id: string
-  placeName: string
-  imageUrl: string
-  date: string
-  type: 'visitado' | 'guardado'
-}
-
-export type FavoriteList = {
-  id: string
-  title: string
-  count: number
-  coverUrl: string
-}
-
-export type Achievement = {
-  id: string
-  title: string
-  icon: string
-  progress: number
-  total: number
-  unlocked: boolean
-}
-
-export type ProfileSettings = {
-  language: string
-  currency: string
-  notifications: boolean
-  privacy: boolean
-}
-
 type ProfileStore = {
   user: ProfileUser
-  preferences: ProfilePreferences
-  currentStatus: CurrentStatus
-  recommendations: ProfileRecommendation[]
-  autoPlans: AutoPlan[]
-  activity: ActivityRecord[]
-  favoriteLists: FavoriteList[]
-  achievements: Achievement[]
   settings: ProfileSettings
-  isLoading: boolean
-  setLoading: (loading: boolean) => void
   setUser: (patch: Partial<ProfileUser>) => void
   completeOnboarding: (patch?: Partial<ProfileUser>) => void
   resetUser: () => void
-  generatePlan: (planId: string) => void
   toggleNotifications: () => void
   togglePrivacy: () => void
 }
@@ -117,62 +53,36 @@ type ProfileStore = {
 export const useProfileStore = create<ProfileStore>()(
   persist(
     (set, get) => ({
-  user: MOCK_USER,
-  preferences: MOCK_PREFERENCES,
-  currentStatus: MOCK_CURRENT_STATUS,
-  recommendations: MOCK_RECOMMENDATIONS,
-  autoPlans: MOCK_AUTO_PLANS,
-  activity: MOCK_ACTIVITY,
-  favoriteLists: MOCK_FAVORITE_LISTS,
-  achievements: MOCK_ACHIEVEMENTS,
-  settings: MOCK_SETTINGS,
-  isLoading: false,
-  setLoading: loading => set({ isLoading: loading }),
-  setUser: patch =>
-    set(state => ({
-      user: { ...state.user, ...patch },
-    })),
-  completeOnboarding: patch =>
-    set(state => ({
-      user: {
-        ...state.user,
-        ...patch,
-        onboardingCompleted: true,
+      user: EMPTY_USER,
+      settings: DEFAULT_SETTINGS,
+      setUser: patch =>
+        set(state => ({
+          user: { ...state.user, ...patch },
+        })),
+      completeOnboarding: patch =>
+        set(state => ({
+          user: {
+            ...state.user,
+            ...patch,
+            onboardingCompleted: true,
+          },
+        })),
+      resetUser: () =>
+        set({
+          user: { ...EMPTY_USER },
+        }),
+      toggleNotifications: () => {
+        const { settings } = get()
+        set({ settings: { ...settings, notifications: !settings.notifications } })
       },
-    })),
-  resetUser: () =>
-    set(state => ({
-      user: {
-        ...MOCK_USER,
-        id: state.user.id,
-        onboardingCompleted: false,
+      togglePrivacy: () => {
+        const { settings } = get()
+        set({ settings: { ...settings, privacy: !settings.privacy } })
       },
-    })),
-  generatePlan: planId => {
-    set(state => ({
-      autoPlans: state.autoPlans.map(p =>
-        p.id === planId ? { ...p, generating: true } : p,
-      ),
-    }))
-    setTimeout(() => {
-      set(state => ({
-        autoPlans: state.autoPlans.map(p =>
-          p.id === planId ? { ...p, generating: false } : p,
-        ),
-      }))
-    }, 1800)
-  },
-  toggleNotifications: () => {
-    const { settings } = get()
-    set({ settings: { ...settings, notifications: !settings.notifications } })
-  },
-  togglePrivacy: () => {
-    const { settings } = get()
-    set({ settings: { ...settings, privacy: !settings.privacy } })
-  },
-}),
+    }),
     {
-      name: 'trivai-profile-user',
+      // v2: drop mock list seeds / celebrity default identity from older clients
+      name: 'trivai-profile-user-v2',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: state => ({
         user: {
@@ -189,24 +99,8 @@ export const useProfileStore = create<ProfileStore>()(
           onboardingCompleted: state.user.onboardingCompleted,
           locationPermission: state.user.locationPermission,
         },
+        settings: state.settings,
       }),
     },
   ),
 )
-
-export function budgetLabel(level: 1 | 2 | 3): string {
-  if (level === 1) return '€'
-  if (level === 2) return '€€'
-  return '€€€'
-}
-
-export function preferredTimeLabel(time: ProfilePreferences['preferredTime']): string {
-  switch (time) {
-    case 'morning':
-      return 'Mañanas'
-    case 'afternoon':
-      return 'Tardes'
-    default:
-      return 'Noches'
-  }
-}

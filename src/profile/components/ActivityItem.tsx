@@ -1,30 +1,58 @@
 import { memo } from 'react'
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeInLeft } from 'react-native-reanimated'
+import { router } from 'expo-router'
 import { profileTheme } from '../theme'
-import type { ActivityRecord } from '../store/useProfileStore'
+import {
+  formatTimeAgo,
+  type ActivityType,
+} from '@/src/activity/store/useActivityStore'
+
+export type ProfileActivityRow = {
+  id: string
+  placeId: string
+  placeName: string
+  imageUrl: string
+  timestamp: number
+  type: ActivityType
+}
 
 type Props = {
-  item: ActivityRecord
+  item: ProfileActivityRow
   index: number
 }
 
+function pillFor(type: ActivityType): { label: string; visited: boolean } {
+  if (type === 'save') return { label: 'Guardado', visited: false }
+  if (type === 'visit') return { label: 'Reseña', visited: true }
+  if (type === 'checkin') return { label: 'En vivo', visited: true }
+  return { label: 'Explorado', visited: false }
+}
+
 export const ActivityItem = memo(function ActivityItem({ item, index }: Props) {
-  const isVisited = item.type === 'visitado'
+  const pill = pillFor(item.type)
 
   return (
     <Animated.View entering={FadeInLeft.delay(index * 50).duration(350)}>
       <Pressable
+        onPress={() => router.push(`/place/${item.placeId}`)}
         style={({ pressed }) => [styles.row, pressed && styles.pressed]}
       >
         <Image source={{ uri: item.imageUrl }} style={styles.thumb} />
         <View style={styles.body}>
-          <Text style={styles.name} numberOfLines={1}>{item.placeName}</Text>
-          <Text style={styles.date}>{item.date}</Text>
+          <Text style={styles.name} numberOfLines={1}>
+            {item.placeName}
+          </Text>
+          <Text style={styles.date}>{formatTimeAgo(item.timestamp)}</Text>
         </View>
-        <View style={[styles.pill, isVisited ? styles.pillVisited : styles.pillSaved]}>
-          <Text style={[styles.pillText, isVisited ? styles.pillTextVisited : styles.pillTextSaved]}>
-            {isVisited ? 'Visitado' : 'Guardado'}
+        <View style={[styles.pill, pill.visited ? styles.pillVisited : styles.pillSaved]}>
+          <Text
+            style={[
+              styles.pillText,
+              pill.visited ? styles.pillTextVisited : styles.pillTextSaved,
+            ]}
+          >
+            {pill.label}
           </Text>
         </View>
       </Pressable>

@@ -1,25 +1,53 @@
 import { memo } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Animated, { FadeInDown } from 'react-native-reanimated'
+import { router } from 'expo-router'
 import { profileTheme } from '../theme'
-import { useProfileStore } from '../store/useProfileStore'
 
-export const StatusCard = memo(function StatusCard() {
-  const status = useProfileStore(s => s.currentStatus)
+type Props = {
+  zone: string | null
+  city: string | null
+  permissionDenied?: boolean
+}
+
+export const StatusCard = memo(function StatusCard({
+  zone,
+  city,
+  permissionDenied,
+}: Props) {
+  const placeLabel = zone?.trim() || city?.trim() || null
 
   return (
     <Animated.View entering={FadeInDown.delay(120).duration(420).springify()} style={styles.card}>
       <View style={styles.row}>
-        <Text style={styles.emoji}>{status.moodEmoji}</Text>
+        <Text style={styles.emoji}>📍</Text>
         <View style={styles.body}>
-          <Text style={styles.label}>Ahora estás en</Text>
-          <Text style={styles.zone}>{status.zone}</Text>
+          <Text style={styles.label}>Tu ubicación</Text>
+          <Text style={styles.zone}>
+            {placeLabel || (permissionDenied ? 'Ubicación desactivada' : 'Detectando…')}
+          </Text>
         </View>
       </View>
-      <View style={styles.suggestionBox}>
-        <Text style={styles.suggestionLabel}>Sugerencia TRIVAI</Text>
-        <Text style={styles.suggestion}>{status.suggestion}</Text>
-      </View>
+      {!placeLabel ? (
+        <View style={styles.suggestionBox}>
+          <Text style={styles.suggestionLabel}>Tip</Text>
+          <Text style={styles.suggestion}>
+            {permissionDenied
+              ? 'Activá la ubicación para recomendaciones cerca tuyo.'
+              : 'Cuando tengamos GPS o ciudad, lo mostramos acá — sin inventar barrios.'}
+          </Text>
+          <Pressable onPress={() => router.push('/(tabs)/mapa')} style={styles.linkBtn}>
+            <Text style={styles.linkText}>Abrir mapa</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <View style={styles.suggestionBox}>
+          <Text style={styles.suggestionLabel}>Cerca tuyo</Text>
+          <Text style={styles.suggestion}>
+            Explorá el mapa o Inicio para ver lugares reales en esta zona.
+          </Text>
+        </View>
+      )}
     </Animated.View>
   )
 })
@@ -41,7 +69,7 @@ const styles = StyleSheet.create({
     gap: profileTheme.spacing.md,
   },
   emoji: {
-    fontSize: 32,
+    fontSize: 28,
   },
   body: {
     flex: 1,
@@ -79,5 +107,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     lineHeight: 21,
+  },
+  linkBtn: {
+    marginTop: 6,
+    alignSelf: 'flex-start',
+  },
+  linkText: {
+    color: profileTheme.accent,
+    fontSize: 14,
+    fontWeight: '700',
   },
 })
