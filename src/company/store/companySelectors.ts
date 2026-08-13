@@ -9,13 +9,11 @@ import {
   MOCK_GALLERY,
   MOCK_PRODUCTS,
   MOCK_REVIEWS,
-  MOCK_STATS,
 } from '../data/mockCompanyData'
 
 export type CompanyCatalog = {
   products: Product[]
   reviews: Review[]
-  stats: DashboardStats
   gallery: string[]
 }
 
@@ -24,15 +22,18 @@ export function buildDemoCompany(): Company {
 }
 
 export function buildInitialCompanies(): Record<string, Company> {
-  return { [MOCK_COMPANY.id]: buildDemoCompany() }
+  if (__DEV__) {
+    return { [MOCK_COMPANY.id]: buildDemoCompany() }
+  }
+  return {}
 }
 
 export function buildInitialCatalog(): Record<string, CompanyCatalog> {
+  if (!__DEV__) return {}
   return {
     [MOCK_COMPANY.id]: {
       products: MOCK_PRODUCTS,
       reviews: MOCK_REVIEWS,
-      stats: MOCK_STATS,
       gallery: MOCK_GALLERY,
     },
   }

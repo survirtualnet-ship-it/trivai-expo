@@ -30,14 +30,14 @@ export function HomeTab({
       <EditableField
         label="Nombre"
         value={data.name}
-        editable={editMode}
-        onChangeText={text => onUpdateDraft({ name: text })}
+        editable={false}
+        locked
       />
       <EditableField
         label="Categoría"
         value={data.category}
-        editable={editMode}
-        onChangeText={text => onUpdateDraft({ category: text })}
+        editable={false}
+        locked
       />
       <EditableField
         label="Descripción"

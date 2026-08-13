@@ -57,6 +57,8 @@ import {
 import type { PlaceReview } from '@/lib/queries/placeDetail'
 import { placeKeys } from '@/lib/queries/keys'
 import { logPlaceView } from '@/lib/userActivity'
+import { trackPlaceEvent } from '@/lib/analytics/analytics'
+import { isPlaceUuid } from '@/lib/analytics/utils'
 import { T, F, S } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 
@@ -69,6 +71,7 @@ export default function PlaceDetailScreen() {
   const queryClient = useQueryClient()
   const scrollRef = useRef<ScrollView>(null)
   const reviewsY = useRef(0)
+  const viewedPlaceRef = useRef<string | null>(null)
 
   const [reviewOpen, setReviewOpen] = useState(false)
   const [submittingReview, setSubmittingReview] = useState(false)
@@ -76,16 +79,40 @@ export default function PlaceDetailScreen() {
 
   const { place, raw, isLoading, isError, refetch } = usePlaceDetail(id)
   const resolvedPlaceId = raw?.id ?? place?.id
+  const googlePlaceId =
+    (raw as { google_place_id?: string } | undefined)?.google_place_id ?? null
+  const placeCity =
+    (raw as { city?: string } | undefined)?.city ?? place?.address ?? null
+
+  const trackForPlace = useCallback(
+    (
+      eventType: Parameters<typeof trackPlaceEvent>[2],
+      metadata?: Record<string, string | number | boolean | null | undefined>,
+    ) => {
+      if (!resolvedPlaceId || !isPlaceUuid(resolvedPlaceId)) return
+      trackPlaceEvent(resolvedPlaceId, googlePlaceId, eventType, {
+        userId: user?.id,
+        city: placeCity,
+        country: countryCode || null,
+        metadata,
+      })
+    },
+    [resolvedPlaceId, googlePlaceId, user?.id, placeCity, countryCode],
+  )
+
+  // Log explore signal + business analytics view (once per place open)
+  useEffect(() => {
+    if (!resolvedPlaceId || !isPlaceUuid(resolvedPlaceId)) return
+    if (viewedPlaceRef.current === resolvedPlaceId) return
+    viewedPlaceRef.current = resolvedPlaceId
+    trackForPlace('VIEW_PLACE')
+    if (user?.id) logPlaceView(user.id, resolvedPlaceId)
+  }, [user?.id, resolvedPlaceId, trackForPlace])
+
   const hybridQuery = useHybridPlace(resolvedPlaceId)
   const reviewsQuery = usePlaceReviews(resolvedPlaceId)
   const { isFavorite, toggle, isPending: favPending } = usePlaceFavorite(resolvedPlaceId)
   const similarQuery = useSimilarPlaces(resolvedPlaceId, place?.category)
-
-  // Log explore signal once we have a Supabase place UUID (not a Google ChIJ id).
-  useEffect(() => {
-    if (!user?.id || !raw?.id) return
-    logPlaceView(user.id, raw.id)
-  }, [user?.id, raw?.id])
 
   const reviews = reviewsQuery.data ?? []
   const hybrid = hybridQuery.data
@@ -140,13 +167,14 @@ export default function PlaceDetailScreen() {
         })
         void queryClient.invalidateQueries({ queryKey: ['activity'] })
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+        trackForPlace('REVIEW_CREATED', { review_id: result.review.id })
         setReviewOpen(false)
         setTimeout(scrollToReviews, 200)
       } finally {
         setSubmittingReview(false)
       }
     },
-    [user?.id, resolvedPlaceId, displayName, queryClient, id, scrollToReviews],
+    [user?.id, resolvedPlaceId, displayName, queryClient, id, scrollToReviews, trackForPlace],
   )
 
   const handleReply = useCallback(
@@ -171,26 +199,30 @@ export default function PlaceDetailScreen() {
               r.id === reviewId ? { ...r, response: result.response } : r,
             ),
         )
+        trackForPlace('REVIEW_RESPONSE', { review_id: reviewId })
         return true
       } finally {
         setReplySubmittingId(null)
       }
     },
-    [user?.id, resolvedPlaceId, queryClient],
+    [user?.id, resolvedPlaceId, queryClient, trackForPlace],
   )
 
   const openMaps = useCallback(() => {
     if (!place || !hasDirections(place)) return
+    trackForPlace('DIRECTIONS')
     Linking.openURL(mapsDirectionsUrl(place.coordinates.lat, place.coordinates.lng))
-  }, [place])
+  }, [place, trackForPlace])
 
   const openWhatsApp = useCallback(() => {
     if (!place?.phone) return
+    trackForPlace('WHATSAPP_CLICK')
     Linking.openURL(whatsappUrl(place.phone, place.name))
-  }, [place])
+  }, [place, trackForPlace])
 
   const handleShare = useCallback(() => {
     if (!place) return
+    trackForPlace('SHARE')
     sharePlace(
       {
         id: place.id,
@@ -202,15 +234,16 @@ export default function PlaceDetailScreen() {
       },
       user?.id,
     )
-  }, [place, user?.id])
+  }, [place, user?.id, trackForPlace])
 
   const handleSave = useCallback(() => {
     if (!user) {
       router.push('/auth/login')
       return
     }
+    if (!isFavorite) trackForPlace('FAVORITE')
     toggle()
-  }, [user, toggle])
+  }, [user, toggle, isFavorite, trackForPlace])
 
   const handleStickyPress = useCallback(() => {
     if (!place) return

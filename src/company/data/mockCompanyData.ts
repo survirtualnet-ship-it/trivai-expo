@@ -119,7 +119,6 @@ export function getCompanyBundle(companyId: string) {
     company: { ...MOCK_COMPANY, isDemoCompany: true },
     products: MOCK_PRODUCTS,
     reviews: MOCK_REVIEWS,
-    stats: MOCK_STATS,
     gallery: MOCK_GALLERY,
   }
 }

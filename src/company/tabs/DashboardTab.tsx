@@ -3,32 +3,45 @@ import { StatCard } from '../components/StatCard'
 import { SimpleBarChart } from '../components/SimpleBarChart'
 import { companyTheme as t } from '../theme'
 import type { DashboardStats } from '../types'
+import type { BusinessMetric } from '@/lib/analytics/types'
 
 type Props = {
   stats: DashboardStats
+  metrics?: BusinessMetric[]
 }
 
-export function DashboardTab({ stats }: Props) {
+function formatChangeHint(metrics: BusinessMetric[] | undefined, key: string): string {
+  const m = metrics?.find(x => x.key === key)
+  if (!m) return 'vs período anterior'
+  const sign = m.changePercent >= 0 ? '+' : ''
+  return `${sign}${m.changePercent}% vs período anterior`
+}
+
+export function DashboardTab({ stats, metrics }: Props) {
   return (
     <ScrollView
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
       <Text style={styles.heading}>Resumen del negocio</Text>
-      <Text style={styles.subheading}>Últimos 7 días · Solo visible para el dueño</Text>
+      <Text style={styles.subheading}>Datos reales · Solo visible para el dueño</Text>
 
       <View style={styles.grid}>
-        <StatCard label="Vistas" value={stats.views.toLocaleString()} hint="+12% vs semana anterior" />
+        <StatCard
+          label="Vistas"
+          value={stats.views.toLocaleString()}
+          hint={formatChangeHint(metrics, 'views')}
+        />
         <StatCard
           label="Clicks"
           value={stats.clicks.toLocaleString()}
-          hint="Llamadas, web y WhatsApp"
+          hint="WhatsApp, web, llamadas y rutas"
           accent={t.success}
         />
         <StatCard
           label="Guardados"
           value={stats.saves.toLocaleString()}
-          hint="Usuarios que guardaron"
+          hint={formatChangeHint(metrics, 'favorites')}
           accent={t.warning}
         />
         <StatCard

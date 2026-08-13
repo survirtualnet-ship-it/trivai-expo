@@ -13,6 +13,7 @@ import { useCompanyProfileStore } from './store/useCompanyProfileStore'
 import { useProfileStore } from '@/src/profile/store/useProfileStore'
 import { useAuthStore } from '@/src/auth/store/useAuthStore'
 import { useBusinessSubscription } from '@/hooks/useBusinessSubscription'
+import { useBusinessDashboard } from '@/hooks/useBusinessDashboard'
 import {
   canAccessDashboard,
   canEditBasicInfo,
@@ -37,8 +38,8 @@ export function CompanyProfileScreen({ companyId }: Props) {
   const company = useCompanyProfileStore(s => s.company)
   const products = useCompanyProfileStore(s => s.products)
   const reviews = useCompanyProfileStore(s => s.reviews)
-  const stats = useCompanyProfileStore(s => s.stats)
   const gallery = useCompanyProfileStore(s => s.gallery)
+  const addGalleryImage = useCompanyProfileStore(s => s.addGalleryImage)
   const editMode = useCompanyProfileStore(s => s.editMode)
   const draftCompany = useCompanyProfileStore(s => s.draftCompany)
   const activeTab = useCompanyProfileStore(s => s.activeTab)
@@ -53,6 +54,13 @@ export function CompanyProfileScreen({ companyId }: Props) {
   const { tier, isLoading: subscriptionLoading } = useBusinessSubscription(
     isOwner ? companyId : null,
   )
+  const { data: dashboardData } = useBusinessDashboard(
+    isOwner ? companyId : null,
+    'week',
+    tier,
+    company?.rating ?? 0,
+  )
+  const dashboardStats = dashboardData?.stats ?? null
   const needsPlan = isOwner && tier === 'none'
 
   const loadCompany = useCompanyProfileStore(s => s.loadCompany)
@@ -240,7 +248,12 @@ export function CompanyProfileScreen({ companyId }: Props) {
 
             {activeTab === 'gallery' ? (
               canUseBusinessFeature(tier, 'gallery') ? (
-                <GalleryTab images={gallery} />
+                <GalleryTab
+                  images={gallery}
+                  tier={tier}
+                  canEdit={isOwner}
+                  onUpload={uri => addGalleryImage(uri, tier)}
+                />
               ) : (
                 <UpgradePrompt
                   message={upgradeMessageForFeature(tier, 'gallery')}
@@ -258,8 +271,8 @@ export function CompanyProfileScreen({ companyId }: Props) {
             ) : null}
 
             {activeTab === 'dashboard' && isOwner ? (
-              canAccessDashboard(tier) && stats ? (
-                <DashboardTab stats={stats} />
+              canAccessDashboard(tier) && dashboardStats ? (
+                <DashboardTab stats={dashboardStats} metrics={dashboardData?.metrics} />
               ) : (
                 <UpgradePrompt
                   message={upgradeMessageForFeature(tier, 'dashboard')}

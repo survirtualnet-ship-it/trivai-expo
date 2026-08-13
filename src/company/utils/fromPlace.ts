@@ -59,19 +59,16 @@ export async function fetchCompanyByPlaceId(
   return companyFromPlace(data as Place, email)
 }
 
-/** Persist basic editable company fields back to places. */
+/** Persist Trivai-editable fields — Google canonical fields are read-only here. */
 export async function updatePlaceFromCompany(
   company: Company,
 ): Promise<{ ok: boolean; error?: string }> {
   const { error } = await supabase
     .from('places')
     .update({
-      name: company.name,
       description: company.description || null,
-      category: company.category,
       phone: company.phone || null,
       website: company.website || null,
-      address: company.location.address || null,
     })
     .eq('id', company.id)
 

@@ -26,6 +26,9 @@ export function BusinessProfileScreen() {
   const placeId = activeBusinessId ?? ''
   const { tier, isLoading: tierLoading } = useBusinessSubscription(placeId || null)
   const company = useCompanyProfileStore(s => s.company)
+  const enrichment = useCompanyProfileStore(s => s.enrichment)
+  const products = useCompanyProfileStore(s => s.products)
+  const galleryItems = useCompanyProfileStore(s => s.galleryItems)
   const loadCompany = useCompanyProfileStore(s => s.loadCompany)
   const loadingRemote = useCompanyProfileStore(s => s.loadingRemote)
 
@@ -105,10 +108,27 @@ export function BusinessProfileScreen() {
         </ProfileSection>
 
         <ProfileSection title="Redes sociales">
-          <InfoRow label="Instagram" value="Próximamente" />
-          <InfoRow label="Facebook" value="Próximamente" />
-          <InfoRow label="TikTok" value="Próximamente" />
-          <InfoRow label="YouTube" value="Próximamente" />
+          <InfoRow label="Instagram" value={enrichment?.social.instagram || '—'} />
+          <InfoRow label="Facebook" value={enrichment?.social.facebook || '—'} />
+          <InfoRow label="TikTok" value={enrichment?.social.tiktok || '—'} />
+          <InfoRow label="YouTube" value={enrichment?.social.youtube || '—'} />
+          <InfoRow label="LinkedIn" value={enrichment?.social.linkedin || '—'} />
+          <InfoRow label="X" value={enrichment?.social.x || '—'} />
+          <NavRow
+            label="Editar redes"
+            onPress={() => router.push(`/empresa/${placeId}` as never)}
+          />
+        </ProfileSection>
+
+        <ProfileSection title="Configuración">
+          <NavRow label="Información general" onPress={() => router.push(`/empresa/${placeId}` as never)} />
+          <NavRow label="Contacto" onPress={() => router.push(`/empresa/${placeId}` as never)} />
+          <NavRow label="Horarios" onPress={() => router.push(`/empresa/${placeId}` as never)} />
+          <NavRow label="Galería" onPress={() => router.push(`/empresa/${placeId}` as never)} />
+          <NavRow label="Productos" onPress={() => router.push(`/empresa/${placeId}` as never)} />
+          <NavRow label="Menú" onPress={() => router.push(`/empresa/${placeId}` as never)} />
+          <InfoRow label="Productos publicados" value={String(products.length)} />
+          <InfoRow label="Fotos en galería" value={String(galleryItems.length)} />
         </ProfileSection>
 
         <ProfileSection title="Suscripción">
@@ -126,7 +146,7 @@ export function BusinessProfileScreen() {
           <InfoRow label="Facturación" value="Próximamente" />
         </ProfileSection>
 
-        <ProfileSection title="Configuración">
+        <ProfileSection title="Seguridad y cuenta">
           <InfoRow label="Idioma" value="Español" />
           <InfoRow label="Notificaciones" value="Activadas" />
           <InfoRow label="Privacidad" value="Ver políticas" />

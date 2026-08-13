@@ -14,7 +14,13 @@ import * as ImagePicker from 'expo-image-picker'
 import * as Haptics from 'expo-haptics'
 import { Feather } from '@expo/vector-icons'
 import { useBusinessSubscription } from '@/hooks/useBusinessSubscription'
+import { useBusinessDashboard } from '@/hooks/useBusinessDashboard'
+import { useBusinessHealth } from '@/hooks/useBusinessHealth'
+import { useBusinessOpportunities } from '@/hooks/useBusinessOpportunities'
 import { useCompanyProfileStore } from '@/src/company/store/useCompanyProfileStore'
+import { HealthScoreCard } from '@/src/company/components/HealthScoreCard'
+import { OpportunitiesSection } from '@/src/company/components/OpportunitiesSection'
+import { ProfileStatsBar } from '@/src/company/components/ProfileStatsBar'
 import { BusinessHomeHeader } from '@/src/company/components/home/BusinessHomeHeader'
 import { SubscriptionRequiredGate } from '@/src/company/components/SubscriptionRequiredGate'
 import { SimpleBarChart } from '@/src/company/components/SimpleBarChart'
@@ -30,12 +36,7 @@ import {
 import { companyLogoFromRecord } from '@/lib/business/businessLogo'
 import { uploadBusinessLogoFromUri } from '@/lib/business/uploadBusinessLogo'
 import { fetchBusinessByPlaceIdEnriched } from '@/lib/business/businessPlan'
-import {
-  buildBusinessMetrics,
-  MOCK_BUSINESS_ACTIVITY,
-  MOCK_PROMOTIONS,
-  type MetricPeriod,
-} from '@/src/company/data/businessHomeData'
+import type { MetricPeriod } from '@/src/company/data/businessHomeData'
 import { T, F, S, R, SHADOW } from '@/lib/tokens'
 import { companyTheme as ct } from '@/src/company/theme'
 
@@ -54,12 +55,64 @@ export function BusinessHomeScreen({ placeId }: Props) {
   const company = useCompanyProfileStore(s => s.company)
   const products = useCompanyProfileStore(s => s.products)
   const reviews = useCompanyProfileStore(s => s.reviews)
-  const stats = useCompanyProfileStore(s => s.stats)
+  const enrichment = useCompanyProfileStore(s => s.enrichment)
+  const galleryItems = useCompanyProfileStore(s => s.galleryItems)
+  const menuItemCount = useCompanyProfileStore(s => s.menuItemCount)
   const loadCompany = useCompanyProfileStore(s => s.loadCompany)
   const loadError = useCompanyProfileStore(s => s.loadError)
   const [period, setPeriod] = useState<MetricPeriod>('week')
   const [customLogo, setCustomLogo] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const rating = company?.rating ?? 0
+  const { data: dashboard, loading: metricsLoading } = useBusinessDashboard(
+    placeId,
+    period,
+    tier,
+    rating,
+  )
+
+  const healthInput = useMemo(() => {
+    if (!company) return null
+    return {
+      placeId,
+      company: { ...company, customLogoUrl: customLogo },
+      enrichment,
+      products,
+      reviews,
+      galleryCount: galleryItems.length,
+      menuItemCount,
+      promotionCount: 0,
+      recentEventCount: 0,
+    }
+  }, [company, customLogo, enrichment, galleryItems.length, menuItemCount, placeId, products, reviews])
+
+  const { health, loading: healthLoading } = useBusinessHealth(healthInput)
+
+  const unansweredReviews = useMemo(
+    () => reviews.filter(r => !r.companyReply?.trim()).length,
+    [reviews],
+  )
+
+  const opportunities = useBusinessOpportunities(
+    health
+      ? {
+          placeId,
+          health,
+          unansweredReviews,
+          productCount: products.length,
+          galleryCount: galleryItems.length,
+          hasPromotions: false,
+          descriptionLength: company?.description?.trim().length ?? 0,
+          hoursComplete: enrichment?.hoursComplete ?? false,
+        }
+      : null,
+  )
+
+  const profilePercent = health?.dimensions.find(d => d.id === 'profile')?.percent ?? 0
+  const lastUpdatedLabel = enrichment?.updatedAt
+    ? formatRelativeDate(enrichment.updatedAt)
+    : 'Sin registros'
 
   useEffect(() => {
     let cancelled = false
@@ -85,7 +138,9 @@ export function BusinessHomeScreen({ placeId }: Props) {
     })
   }, [company, customLogo])
 
-  const metrics = useMemo(() => buildBusinessMetrics(period), [period])
+  const metrics = dashboard?.metrics ?? []
+  const activity = dashboard?.activity ?? []
+  const weeklyViews = dashboard?.stats.weeklyViews ?? [0, 0, 0, 0, 0, 0, 0]
   const featured = useMemo(() => products.filter(p => p.isFeatured).slice(0, 6), [products])
   const recentReviews = useMemo(() => reviews.slice(0, 3), [reviews])
 
@@ -189,6 +244,23 @@ export function BusinessHomeScreen({ placeId }: Props) {
           </View>
         </View>
 
+        <View style={styles.sectionInline}>
+          <ProfileStatsBar
+            profilePercent={profilePercent}
+            productCount={products.length}
+            galleryCount={galleryItems.length}
+            lastUpdatedLabel={lastUpdatedLabel}
+          />
+        </View>
+
+        {healthLoading ? (
+          <ActivityIndicator color={T.purple} style={styles.healthLoader} />
+        ) : health ? (
+          <View style={styles.sectionInline}>
+            <HealthScoreCard health={health} />
+          </View>
+        ) : null}
+
         {showBasicDashboard ? (
           <Section title="Dashboard">
             <View style={styles.periodRow}>
@@ -207,43 +279,64 @@ export function BusinessHomeScreen({ placeId }: Props) {
                 </Pressable>
               ))}
             </View>
-            <View style={styles.metricsGrid}>
-              {metrics.map(m => (
-                <View key={m.key} style={styles.metricWrap}>
-                  <View style={styles.metricIcon}>
-                    <Feather name={m.icon as never} size={16} color={T.purple} />
-                  </View>
-                  <Text style={styles.metricValue}>{m.value.toLocaleString()}</Text>
-                  <Text style={styles.metricLabel}>{m.label}</Text>
-                  <Text
-                    style={[
-                      styles.metricChange,
-                      { color: m.changePercent >= 0 ? T.green : T.danger },
-                    ]}
-                  >
-                    {m.changePercent >= 0 ? '+' : ''}
-                    {m.changePercent}%
-                  </Text>
+            {metricsLoading ? (
+              <ActivityIndicator color={T.purple} style={styles.metricsLoader} />
+            ) : (
+              <>
+                <View style={styles.metricsGrid}>
+                  {metrics.map(m => (
+                    <View key={m.key} style={styles.metricWrap}>
+                      <View style={styles.metricIcon}>
+                        <Feather name={m.icon as never} size={16} color={T.purple} />
+                      </View>
+                      <Text style={styles.metricValue}>{m.value.toLocaleString()}</Text>
+                      <Text style={styles.metricLabel}>{m.label}</Text>
+                      <Text
+                        style={[
+                          styles.metricChange,
+                          { color: m.changePercent >= 0 ? T.green : T.danger },
+                        ]}
+                      >
+                        {m.changePercent >= 0 ? '+' : ''}
+                        {m.changePercent}%
+                      </Text>
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
-            {showFullDashboard && stats ? (
-              <View style={styles.chartWrap}>
-                <SimpleBarChart values={stats.weeklyViews} />
-              </View>
-            ) : null}
+                {showFullDashboard ? (
+                  <View style={styles.chartWrap}>
+                    <SimpleBarChart values={weeklyViews} />
+                    {dashboard?.ctr != null ? (
+                      <Text style={styles.ctrHint}>
+                        CTR contacto: {dashboard.ctr}%
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : null}
+              </>
+            )}
           </Section>
         ) : (
           <UpgradePrompt message="Elige un plan para ver métricas." placeId={placeId} />
         )}
 
         <Section title="Actividad del negocio">
-          {MOCK_BUSINESS_ACTIVITY.map(item => (
-            <View key={item.id} style={styles.activityRow}>
-              <Text style={styles.activityTime}>{item.timeAgo}</Text>
-              <Text style={styles.activityTitle}>{item.title}</Text>
-            </View>
-          ))}
+          {activity.length === 0 ? (
+            <Text style={styles.empty}>
+              Sin actividad registrada aún. Las interacciones de turistas aparecerán aquí.
+            </Text>
+          ) : (
+            activity.map(item => (
+              <View key={item.id} style={styles.activityRow}>
+                <Text style={styles.activityTime}>{item.timeAgo}</Text>
+                <Text style={styles.activityTitle}>{item.title}</Text>
+              </View>
+            ))
+          )}
+        </Section>
+
+        <Section title="Oportunidades">
+          <OpportunitiesSection opportunities={opportunities} placeId={placeId} />
         </Section>
 
         <Section title="Acciones rápidas">
@@ -305,14 +398,9 @@ export function BusinessHomeScreen({ placeId }: Props) {
 
         {canCreatePromotions(tier) ? (
           <Section title="Promociones activas">
-            {MOCK_PROMOTIONS.map(p => (
-              <View key={p.id} style={styles.promoCard}>
-                <Text style={styles.promoTitle}>{p.title}</Text>
-                <Text style={styles.promoMeta}>
-                  {p.status === 'active' ? 'Activa' : 'Programada'} · {p.endsAt} · {p.clicks} clicks
-                </Text>
-              </View>
-            ))}
+            <Text style={styles.empty}>
+              Las promociones activas aparecerán aquí cuando estén disponibles.
+            </Text>
           </Section>
         ) : null}
 
@@ -440,6 +528,7 @@ const styles = StyleSheet.create({
   periodChipActive: { backgroundColor: T.purpleSoft },
   periodLabel: { fontSize: F.size.sm, fontWeight: '600', color: T.fg3 },
   periodLabelActive: { color: T.purple, fontWeight: '700' },
+  metricsLoader: { marginVertical: S.lg },
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -467,7 +556,8 @@ const styles = StyleSheet.create({
   metricValue: { fontSize: F.size.xxl, fontWeight: '800', color: T.fg1 },
   metricLabel: { fontSize: F.size.sm, color: T.fg3, fontWeight: '600' },
   metricChange: { fontSize: F.size.sm, fontWeight: '700' },
-  chartWrap: { marginTop: S.md },
+  chartWrap: { marginTop: S.md, gap: S.sm },
+  ctrHint: { fontSize: F.size.sm, color: T.fg3, fontWeight: '600' },
   activityRow: {
     backgroundColor: T.surface,
     borderRadius: R.lg,
@@ -508,16 +598,6 @@ const styles = StyleSheet.create({
   },
   productName: { fontWeight: '700', color: T.fg1, fontSize: F.size.md },
   productPrice: { color: T.purple, fontWeight: '700', marginTop: 4 },
-  promoCard: {
-    backgroundColor: T.surface,
-    borderRadius: R.lg,
-    padding: S.md,
-    borderWidth: 1,
-    borderColor: T.border,
-    gap: 4,
-  },
-  promoTitle: { fontWeight: '700', color: T.fg1 },
-  promoMeta: { fontSize: F.size.sm, color: T.fg3 },
   reviewCard: {
     backgroundColor: T.surface,
     borderRadius: R.lg,
@@ -541,4 +621,14 @@ const styles = StyleSheet.create({
   empty: { color: T.fg3, fontSize: F.size.md },
   bottomPad: { height: S.xxxl },
   pressed: { opacity: 0.9 },
+  sectionInline: { paddingHorizontal: S.lg, marginBottom: S.lg },
+  healthLoader: { marginVertical: S.md },
 })
+
+function formatRelativeDate(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  if (days <= 0) return 'Hoy'
+  if (days === 1) return 'Hace 1 día'
+  return `Hace ${days} días`
+}

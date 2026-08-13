@@ -1,9 +1,16 @@
 /**
- * Analytics event taxonomy — architecture only (no pipeline implemented).
- * Separates anonymous telemetry from authenticated user actions.
+ * @deprecated Import from `@/lib/analytics/analytics` instead.
+ * Re-exports for backward compatibility during migration.
  */
+export {
+  trackBusinessEvent,
+  trackBusinessEventAsync,
+  trackPlaceEvent,
+  type BusinessEventType,
+  type TrackBusinessEventInput,
+} from '@/lib/analytics/analytics'
 
-/** Anonymous — no user_id; aggregate only. */
+/** Legacy names — map to business events where applicable. */
 export type AnonymousAnalyticsEvent =
   | 'screen_view'
   | 'place_impression'
@@ -19,7 +26,6 @@ export type AnonymousAnalyticsEvent =
   | 'session_duration'
   | 'category_browse'
 
-/** Authenticated — tied to profiles.id. */
 export type AuthenticatedAnalyticsEvent =
   | 'favorite_add'
   | 'favorite_remove'
@@ -32,36 +38,10 @@ export type AuthenticatedAnalyticsEvent =
   | 'business_claim_complete'
   | 'return_visit'
 
-export type AnalyticsEventName =
-  | AnonymousAnalyticsEvent
-  | AuthenticatedAnalyticsEvent
-
-export type AnalyticsPayload = {
-  event: AnalyticsEventName
-  timestamp: string
-  sessionId?: string
-  userId?: string | null
-  placeId?: string
-  googlePlaceId?: string
-  metadata?: Record<string, string | number | boolean>
+export function trackAnonymousEvent(): void {
+  // Legacy stub — use trackBusinessEvent / trackPlaceEvent
 }
 
-/** Stub — wire to Supabase / analytics provider later. */
-export function trackAnonymousEvent(
-  event: AnonymousAnalyticsEvent,
-  metadata?: AnalyticsPayload['metadata'],
-): void {
-  if (__DEV__) {
-    console.debug('[analytics:anonymous]', event, metadata)
-  }
-}
-
-export function trackAuthenticatedEvent(
-  event: AuthenticatedAnalyticsEvent,
-  userId: string,
-  metadata?: AnalyticsPayload['metadata'],
-): void {
-  if (__DEV__) {
-    console.debug('[analytics:auth]', event, userId, metadata)
-  }
+export function trackAuthenticatedEvent(): void {
+  // Legacy stub — use trackBusinessEvent / trackPlaceEvent
 }
