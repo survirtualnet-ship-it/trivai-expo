@@ -152,7 +152,7 @@ export function BusinessProfileScreen() {
             label={planManageActionLabel(tier)}
             onPress={() =>
               router.push({
-                pathname: '/empresa/suscripcion',
+                pathname: '/(tabs)/empresa-plan',
                 params: { placeId, name: company.name },
               } as never)
             }

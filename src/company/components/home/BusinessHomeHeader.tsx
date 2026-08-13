@@ -11,6 +11,7 @@ type Props = {
   businessName: string
   logoUrl: string
   tier: BusinessSubscriptionTier
+  placeId?: string
   isVerified?: boolean
   onPressNotifications?: () => void
   onPressLogo?: () => void
@@ -21,6 +22,7 @@ export const BusinessHomeHeader = memo(function BusinessHomeHeader({
   businessName,
   logoUrl,
   tier,
+  placeId,
   isVerified,
   onPressNotifications,
   onPressLogo,
@@ -64,10 +66,15 @@ export const BusinessHomeHeader = memo(function BusinessHomeHeader({
         </View>
       </View>
 
-      {logoChangeBlocked ? (
+      {logoChangeBlocked && placeId ? (
         <Pressable
           style={styles.logoHint}
-          onPress={() => router.push('/empresa/suscripcion' as never)}
+          onPress={() =>
+            router.push({
+              pathname: '/(tabs)/empresa-plan',
+              params: { placeId, name: businessName },
+            } as never)
+          }
         >
           <Text style={styles.logoHintTitle}>Cambiar logo</Text>
           <Text style={styles.logoHintSub}>Disponible en Plan PRO</Text>

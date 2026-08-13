@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useUser } from '@/hooks/useUser'
 import { useProfileStore } from '@/src/profile/store/useProfileStore'
+import { useAuthStore } from '@/src/auth/store/useAuthStore'
 import {
   createAuthContext,
   createGuestContext,
@@ -16,9 +17,10 @@ export function usePermissions(): PermissionContext & {
 } {
   const { user, profile } = useUser()
   const storeUser = useProfileStore(s => s.user)
+  const authUser = useAuthStore(s => s.user)
 
   return useMemo(() => {
-    if (!user) {
+    if (!user && !authUser) {
       return {
         ...createGuestContext(),
         isBusinessUser: false,
@@ -28,12 +30,15 @@ export function usePermissions(): PermissionContext & {
     }
 
     const role =
-      normalizeUserRole(roleFromProfileSafe(profile, storeUser.role)) ?? 'tourist'
-    const ctx = createAuthContext(user.id, role)
+      normalizeUserRole(roleFromProfileSafe(profile, storeUser.role ?? authUser?.role)) ??
+      'tourist'
+    const ctx = createAuthContext(user?.id ?? authUser!.id, role)
     const activeBusinessId =
       profile?.business_place_id ??
       storeUser.activeBusinessId ??
       storeUser.companyId ??
+      authUser?.activeBusinessId ??
+      authUser?.companyId ??
       null
 
     return {
@@ -42,7 +47,7 @@ export function usePermissions(): PermissionContext & {
       isTourist: role === 'tourist',
       activeBusinessId,
     }
-  }, [user, profile, storeUser.role, storeUser.activeBusinessId, storeUser.companyId])
+  }, [user, profile, storeUser.role, storeUser.activeBusinessId, storeUser.companyId, authUser])
 }
 
 function roleFromProfileSafe(

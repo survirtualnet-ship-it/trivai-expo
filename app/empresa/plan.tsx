@@ -1,36 +1,22 @@
-import { ChoosePlanScreen } from '@/src/company/screens/ChoosePlanScreen'
-import { useLocalSearchParams, router } from 'expo-router'
-import { useOnboardingStore } from '@/onboarding/store/onboardingStore'
-import { completeBusinessOnboarding } from '@/lib/appBootstrap'
-import { useUser } from '@/hooks/useUser'
+import { Redirect, useLocalSearchParams } from 'expo-router'
 
-/** Post-claim subscription — separate from Claim flow. */
+/** Legacy route — redirects to tab screen so bottom nav stays visible. */
 export default function EmpresaPlanRoute() {
-  const { placeId, name } = useLocalSearchParams<{ placeId: string; name?: string }>()
-  const businessData = useOnboardingStore(s => s.businessData)
-  const { user, profile } = useUser()
-
+  const { placeId, name, from } = useLocalSearchParams<{
+    placeId: string
+    name?: string
+    from?: string
+  }>()
   if (!placeId) return null
-
-  const displayName = name ?? businessData?.name
-
   return (
-    <ChoosePlanScreen
-      placeId={placeId}
-      businessName={displayName}
-      onComplete={async id => {
-        if (user?.id) {
-          await completeBusinessOnboarding({
-            userId: user.id,
-            email: user.email,
-            name: profile?.full_name ?? user.email?.split('@')[0],
-            companyId: id,
-            businessName: displayName,
-            destinationOverride: `/empresa/${id}`,
-          })
-          return
-        }
-        router.replace(`/empresa/${id}`)
+    <Redirect
+      href={{
+        pathname: '/(tabs)/empresa-plan',
+        params: {
+          placeId,
+          ...(name ? { name } : {}),
+          ...(from ? { from } : {}),
+        },
       }}
     />
   )

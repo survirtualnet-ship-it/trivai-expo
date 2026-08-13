@@ -25,7 +25,7 @@ export function UpgradePrompt({
           style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
           onPress={() =>
             router.push({
-              pathname: '/empresa/plan',
+              pathname: '/(tabs)/empresa-plan',
               params: { placeId },
             } as never)
           }

@@ -20,7 +20,7 @@ export function SubscriptionRequiredGate({ placeId, businessName }: Props) {
         style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
         onPress={() =>
           router.push({
-            pathname: '/empresa/plan',
+            pathname: '/(tabs)/empresa-plan',
             params: { placeId, name: businessName ?? '' },
           } as never)
         }

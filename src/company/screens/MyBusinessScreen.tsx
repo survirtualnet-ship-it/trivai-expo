@@ -35,7 +35,7 @@ export function MyBusinessScreen() {
       }
       if (tier === 'none') {
         router.push({
-          pathname: '/empresa/plan',
+          pathname: '/(tabs)/empresa-plan',
           params: { placeId, name },
         } as never)
         return

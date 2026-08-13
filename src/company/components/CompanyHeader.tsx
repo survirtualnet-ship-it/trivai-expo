@@ -2,6 +2,7 @@ import { memo } from 'react'
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Star } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
+import { companyLogoFromRecord } from '@/lib/business/businessLogo'
 import { companyTheme as t } from '../theme'
 import { ActionButtons } from './ActionButtons'
 import { LogoutButton } from '@/components/auth/LogoutButton'
@@ -24,13 +25,16 @@ export const CompanyHeader = memo(function CompanyHeader({
   onToggleEdit,
   onSave,
 }: Props) {
+  const avatarUrl = companyLogoFromRecord(company)
+  const coverUrl = company.coverImage?.trim() || avatarUrl
+
   return (
     <View style={styles.wrap}>
-      <Image source={{ uri: company.coverImage }} style={styles.cover} />
+      <Image source={{ uri: coverUrl }} style={styles.cover} />
       <View style={styles.overlay} />
 
       <View style={styles.profileRow}>
-        <Image source={{ uri: company.profileImage }} style={styles.avatar} />
+        <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         <View style={styles.meta}>
           <Text style={styles.name}>{company.name}</Text>
           <Text style={styles.category}>{company.category}</Text>

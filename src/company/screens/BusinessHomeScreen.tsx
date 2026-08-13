@@ -134,7 +134,7 @@ export function BusinessHomeScreen({ placeId }: Props) {
     if (!company) return ''
     return companyLogoFromRecord({
       ...company,
-      customLogoUrl: customLogo,
+      customLogoUrl: customLogo ?? company.customLogoUrl,
     })
   }, [company, customLogo])
 
@@ -203,6 +203,7 @@ export function BusinessHomeScreen({ placeId }: Props) {
           businessName={company.name}
           logoUrl={logoUrl}
           tier={tier}
+          placeId={placeId}
           isVerified={company.isVerified}
         />
         <SubscriptionRequiredGate placeId={placeId} businessName={company.name} />
@@ -220,6 +221,7 @@ export function BusinessHomeScreen({ placeId }: Props) {
           businessName={company.name}
           logoUrl={logoUrl}
           tier={tier}
+          placeId={placeId}
           isVerified={company.isVerified}
           logoChangeBlocked={!canChangeBusinessLogo(tier)}
           onPressLogo={() => void handleChangeLogo()}

@@ -47,8 +47,8 @@ export function BusinessDoneScreen(_props: BusinessDoneProps) {
       loadCompany(company.id)
 
       router.replace({
-        pathname: '/empresa/plan',
-        params: { placeId: claim.placeId, name: businessData.name },
+        pathname: '/(tabs)/empresa-plan',
+        params: { placeId: claim.placeId, name: businessData.name, from: 'onboarding' },
       } as never)
     } catch (err) {
       if (err instanceof ClaimBusinessError) {

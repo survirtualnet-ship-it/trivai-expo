@@ -66,6 +66,7 @@ export function useAppBootstrap(): BootstrapState {
   }, [user, profile])
 
   const isAuthenticated = authAuthenticated || !!user
+  const sessionUserId = user?.id ?? authUser?.id ?? null
 
   // Live Supabase profile wins. Stale auth/profile zustand must not revive
   // a previous account's company identity for a regular user.
@@ -83,12 +84,16 @@ export function useAppBootstrap(): BootstrapState {
     null
   const ownedBusinessIds = profileUser.businessIds ?? []
 
-  const sameUserLocal = !!user?.id && profileUser.id === user.id
+  const sameUserLocal = !!sessionUserId && profileUser.id === sessionUserId
   const hasCompletedOnboarding =
     profile?.account_type != null ||
     (sameUserLocal && profileUser.onboardingCompleted) ||
     (sameUserLocal && onboardingCompletedStore) ||
-    (sameUserLocal && storageDone === true)
+    (sameUserLocal && storageDone === true) ||
+    (authAuthenticated &&
+      !!authUser?.id &&
+      profileUser.id === authUser.id &&
+      profileUser.onboardingCompleted)
 
   const needsLegal =
     isAuthenticated && checkNeedsLegal(true, profile)

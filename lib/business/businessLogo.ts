@@ -23,10 +23,19 @@ export function businessInitial(name: string): string {
   return trimmed.charAt(0).toUpperCase()
 }
 
+const PLACEHOLDER_PHOTO = /unsplash\.com/i
+
+function isRealPhoto(url: string | undefined | null): boolean {
+  const value = url?.trim()
+  if (!value) return false
+  return !PLACEHOLDER_PHOTO.test(value)
+}
+
 export function companyLogoFromRecord(
-  company: Pick<Company, 'name' | 'profileImage' | 'customLogoUrl'>,
+  company: Pick<Company, 'name' | 'profileImage' | 'coverImage' | 'customLogoUrl'>,
 ): string {
   if (company.customLogoUrl?.trim()) return company.customLogoUrl.trim()
-  if (company.profileImage?.trim()) return company.profileImage.trim()
+  if (isRealPhoto(company.profileImage)) return company.profileImage.trim()
+  if (isRealPhoto(company.coverImage)) return company.coverImage.trim()
   return resolveBusinessLogoUrl({ name: company.name })
 }

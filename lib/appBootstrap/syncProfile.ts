@@ -1,7 +1,8 @@
 import type { User } from '@supabase/supabase-js'
 import type { Profile } from '@/lib/supabase'
 import { useProfileStore } from '@/src/profile/store/useProfileStore'
-import { roleFromAccountType, normalizeUserRole } from '@/lib/domain/user'
+import { roleFromAccountType, normalizeUserRole, isBusinessUser } from '@/lib/domain/user'
+import { useAppModeStore } from '@/src/appMode/store'
 import type { UserRole } from './types'
 
 function initialsFromName(name: string): string {
@@ -87,4 +88,8 @@ export function syncProfileStoreFromAuth(
     businessIds: businessIds ?? [],
     onboardingCompleted,
   })
+
+  if (isBusinessUser(role) && activeBusinessId) {
+    useAppModeStore.getState().setMode('business')
+  }
 }

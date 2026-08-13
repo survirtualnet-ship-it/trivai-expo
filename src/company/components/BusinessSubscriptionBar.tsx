@@ -30,7 +30,7 @@ export function BusinessSubscriptionBar({ placeId, businessName, tier }: Props) 
         style={({ pressed }) => [styles.action, pressed && styles.pressed]}
         onPress={() =>
           router.push({
-            pathname: '/empresa/suscripcion',
+            pathname: '/(tabs)/empresa-plan',
             params: { placeId, name: businessName ?? '' },
           } as never)
         }

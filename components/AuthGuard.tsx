@@ -88,6 +88,7 @@ export function AuthGuard() {
       !path.startsWith('/empresa/onboarding') &&
       path !== '/empresa/plan' &&
       path !== '/empresa/suscripcion' &&
+      path !== '/empresa-plan' &&
       path !== '/empresa/mi-negocio' &&
       !isBusinessUser(bootstrap.role) &&
       !activeBusinessId
@@ -137,7 +138,7 @@ export function AuthGuard() {
       // Allow /empresa/onboarding/* and /empresa/plan for already-onboarded users claiming a business
       if (
         bootstrap.hasCompletedOnboarding
-        && !(path === '/empresa/onboarding' || path.startsWith('/empresa/onboarding/') || path === '/empresa/plan' || path === '/empresa/suscripcion')
+        && !(path === '/empresa/onboarding' || path.startsWith('/empresa/onboarding/') || path === '/empresa/plan' || path === '/empresa/suscripcion' || path === '/empresa-plan')
       ) {
         const dest = String(bootstrap.destination)
         if (lastRedirect.current !== dest) {
@@ -170,7 +171,8 @@ export function AuthGuard() {
       (path === '/empresa/onboarding' ||
         path.startsWith('/empresa/onboarding/') ||
         path === '/empresa/plan' ||
-        path === '/empresa/suscripcion')
+        path === '/empresa/suscripcion' ||
+        path === '/empresa-plan')
     ) {
       // Tourists may start claim flow → becomes business user after claim + plan.
       return

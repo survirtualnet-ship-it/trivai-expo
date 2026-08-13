@@ -12,6 +12,8 @@ import {
   syncProfileStoreFromAuth,
 } from '@/lib/appBootstrap'
 import { needsLegalAcceptance } from '@/lib/legal'
+import { isBusinessUser } from '@/lib/domain/user'
+import { useAppModeStore } from '@/src/appMode/store'
 
 /** Navigate after login/register/OAuth based on legal + onboarding + role. */
 export async function navigateAfterAuth(
@@ -35,6 +37,10 @@ export async function navigateAfterAuth(
 
   const role = roleFromProfile(profile) ?? 'tourist'
   const companyId = profile?.business_place_id ?? null
+
+  if (isBusinessUser(role) && companyId) {
+    useAppModeStore.getState().setMode('business')
+  }
 
   const destination = resolvePostAuthDestination({
     isAuthenticated: true,
