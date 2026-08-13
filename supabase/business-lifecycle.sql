@@ -29,6 +29,9 @@ alter table public.trivai_business
   add column if not exists subscription_expires_at timestamptz;
 
 alter table public.trivai_business
+  add column if not exists custom_logo_url text;
+
+alter table public.trivai_business
   add constraint trivai_business_claim_status_check
     check (claim_status in ('unclaimed', 'claimed', 'identified'));
 
@@ -92,6 +95,8 @@ comment on column public.trivai_business.subscription_started_at is
   'When subscription tier was chosen (no billing yet)';
 comment on column public.trivai_business.subscription_expires_at is
   'Future billing expiry — nullable until payments wired';
+comment on column public.trivai_business.custom_logo_url is
+  'PRO+ custom logo — overrides Google photo in app UI';
 
 -- Optional: admin role on profiles for future BackOffice (never used in mobile nav)
 alter table public.profiles drop constraint if exists profiles_app_role_check;

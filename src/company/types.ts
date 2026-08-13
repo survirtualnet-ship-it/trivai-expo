@@ -16,6 +16,10 @@ export type Company = {
   website: string
   coverImage: string
   profileImage: string
+  /** PRO+ custom logo URL (Supabase Storage) */
+  customLogoUrl?: string | null
+  reviewCount?: number
+  isVerified?: boolean
   rating: number
   /** Built-in demo company (co-001) — read-only hints in UI */
   isDemoCompany?: boolean

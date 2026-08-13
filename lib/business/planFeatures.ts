@@ -7,13 +7,16 @@ export type BusinessFeature =
   | 'reply_reviews'
   | 'hours'
   | 'contact'
+  | 'dashboard_basic'
   | 'dashboard'
   | 'stats'
   | 'analytics'
+  | 'products_basic'
   | 'products'
   | 'menu'
   | 'promotions'
   | 'gallery'
+  | 'custom_logo'
   | 'recommendation_priority'
   | 'campaigns'
   | 'automations'
@@ -27,13 +30,16 @@ const MIN_TIER: Record<BusinessFeature, BusinessSubscriptionTier> = {
   reply_reviews: 'free',
   hours: 'free',
   contact: 'free',
+  dashboard_basic: 'free',
   dashboard: 'pro',
   stats: 'pro',
   analytics: 'pro',
+  products_basic: 'free',
   products: 'pro',
   menu: 'pro',
   promotions: 'pro',
   gallery: 'pro',
+  custom_logo: 'pro',
   recommendation_priority: 'pro',
   campaigns: 'premium',
   automations: 'premium',
@@ -76,6 +82,14 @@ export function canAccessDashboard(tier: BusinessSubscriptionTier): boolean {
   return canUseBusinessFeature(tier, 'dashboard')
 }
 
+export function canAccessBasicDashboard(tier: BusinessSubscriptionTier): boolean {
+  return canUseBusinessFeature(tier, 'dashboard_basic')
+}
+
+export function canChangeBusinessLogo(tier: BusinessSubscriptionTier): boolean {
+  return canUseBusinessFeature(tier, 'custom_logo')
+}
+
 export function canEditBasicInfo(tier: BusinessSubscriptionTier): boolean {
   return canUseBusinessFeature(tier, 'edit_basic_info')
 }
@@ -114,7 +128,7 @@ export function tabAllowedForTier(
     case 'gallery':
       return canUseBusinessFeature(tier, 'gallery')
     case 'dashboard':
-      return canAccessDashboard(tier)
+      return canAccessDashboard(tier) || canAccessBasicDashboard(tier)
     default:
       return false
   }

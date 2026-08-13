@@ -146,7 +146,18 @@ Persistencia: `updateBusinessSubscription()` en `lib/business/businessPlan.ts`.
 
 ## UI
 
-### Sin plan (`subscriptionStatus = none`)
+### Home Empresa (tab Inicio)
+
+Pantalla exclusiva para usuarios empresa — **no comparte** `InicioScreen` turista.
+
+- `BusinessHomeScreen` — dashboard, métricas, actividad, acciones rápidas
+- `BusinessProfileScreen` — tab Perfil Empresa (negocio, no propietario)
+- Tabs empresa: Inicio · Mapa · Perfil Empresa (sin Actividades ni Mi Negocio)
+- Sin selector Explorar | Mi Negocio
+
+### Panel `/empresa/[id]`
+
+#### Sin plan (`subscriptionStatus = none`)
 
 Pantalla gate en panel empresa:
 

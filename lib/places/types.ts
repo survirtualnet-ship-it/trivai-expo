@@ -19,6 +19,7 @@ export type TrivaiBusiness = {
   claimed_at?: string | null
   subscription_started_at?: string | null
   subscription_expires_at?: string | null
+  custom_logo_url?: string | null
   created_at: string
   updated_at: string
 }

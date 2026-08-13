@@ -8,9 +8,8 @@ import { usePermissions } from '@/hooks/usePermissions'
 const TAB_CONTENT_HEIGHT = 54
 
 /**
- * Expo Router tabs:
  * Turista → Inicio · Actividades · Mapa · Perfil
- * Empresa → + Mi Negocio (same explore tabs, not siloed)
+ * Empresa → Inicio (dashboard) · Mapa · Perfil Empresa
  */
 export default function TabsLayout() {
   const insets = useSafeAreaInsets()
@@ -51,6 +50,7 @@ export default function TabsLayout() {
         name="activity"
         options={{
           title: 'Actividades',
+          href: isBusinessUser ? null : undefined,
           tabBarIcon: ({ color, size, focused }) => (
             <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
               <Feather name="activity" size={size} color={color} />
@@ -72,27 +72,16 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Perfil',
+          title: isBusinessUser ? 'Perfil Empresa' : 'Perfil',
           tabBarIcon: ({ color, size, focused }) => (
             <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
-              <Feather name="user" size={size} color={color} />
+              <Feather name={isBusinessUser ? 'briefcase' : 'user'} size={size} color={color} />
             </View>
           ),
         }}
       />
 
-      <Tabs.Screen
-        name="mi-negocio"
-        options={{
-          title: 'Mi Negocio',
-          href: isBusinessUser ? undefined : null,
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
-              <Feather name="briefcase" size={size} color={color} />
-            </View>
-          ),
-        }}
-      />
+      <Tabs.Screen name="mi-negocio" options={{ href: null }} />
 
       <Tabs.Screen name="explore" options={{ href: null }} />
       <Tabs.Screen name="crear" options={{ href: null }} />

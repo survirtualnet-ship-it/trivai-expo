@@ -29,6 +29,8 @@ export function companyFromPlace(
     coverImage: photo || DEFAULT_COVER,
     profileImage: photo || DEFAULT_AVATAR,
     rating: place.rating_avg ?? 0,
+    reviewCount: place.rating_count ?? 0,
+    isVerified: place.is_verified ?? false,
     isDemoCompany: false,
   }
 }

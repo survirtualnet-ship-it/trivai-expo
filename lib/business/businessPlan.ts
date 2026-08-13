@@ -59,7 +59,7 @@ export async function fetchBusinessByPlaceIdEnriched(
 ): Promise<OwnedBusinessRow | null> {
   const { data, error } = await supabase
     .from('trivai_business')
-    .select('*, places(name, address, category, photos)')
+    .select('*, places(name, address, category, photos, rating_count, rating_avg, is_verified)')
     .eq('place_id', placeId)
     .maybeSingle()
 
@@ -75,7 +75,7 @@ export async function fetchOwnedBusinessesEnriched(
 ): Promise<OwnedBusinessRow[]> {
   const { data, error } = await supabase
     .from('trivai_business')
-    .select('*, places(name, address, category, photos)')
+    .select('*, places(name, address, category, photos, rating_count, rating_avg, is_verified)')
     .eq('owner_id', ownerId)
     .eq('claimed', true)
     .order('updated_at', { ascending: false })
