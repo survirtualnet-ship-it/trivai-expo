@@ -19,9 +19,13 @@ export type LegacyClaimStatus = 'identified'
 
 /**
  * Subscription tier — separate from Claim.
+ * Maps to DB column `subscription_status`.
  * `none` = claimed but no plan chosen yet.
  */
 export type BusinessSubscriptionTier = 'none' | 'free' | 'pro' | 'premium'
+
+/** Alias for API/docs — same values as BusinessSubscriptionTier */
+export type SubscriptionStatus = BusinessSubscriptionTier
 
 /** @deprecated Uppercase plan column — use BusinessSubscriptionTier */
 export type BusinessSubscriptionPlan = 'FREE' | 'PRO' | 'PREMIUM'
@@ -44,9 +48,13 @@ export type Business = {
   googlePlaceId: string
   ownerUserId: string | null
   claimStatus: BusinessClaimStatus
+  /** DB: subscription_status */
   subscriptionTier: BusinessSubscriptionTier
   verificationStatus: BusinessVerificationStatus
   lifecyclePhase: BusinessLifecyclePhase
+  claimedAt?: string | null
+  subscriptionStartedAt?: string | null
+  subscriptionExpiresAt?: string | null
 }
 
 const TIER_ORDER: Record<BusinessSubscriptionTier, number> = {
@@ -118,6 +126,9 @@ export function mapTrivaiBusinessRow(
     claimStatus,
     subscriptionTier,
     verificationStatus,
+    claimedAt: row?.claimed_at ?? null,
+    subscriptionStartedAt: row?.subscription_started_at ?? null,
+    subscriptionExpiresAt: row?.subscription_expires_at ?? null,
     lifecyclePhase: deriveLifecyclePhase({
       claimStatus,
       subscriptionTier,

@@ -9,11 +9,15 @@ export type BusinessFeature =
   | 'contact'
   | 'dashboard'
   | 'stats'
+  | 'analytics'
   | 'products'
   | 'menu'
   | 'promotions'
   | 'gallery'
+  | 'recommendation_priority'
   | 'campaigns'
+  | 'automations'
+  | 'advanced_reports'
   | 'advanced_analytics'
   | 'ai_placeholder'
 
@@ -25,11 +29,15 @@ const MIN_TIER: Record<BusinessFeature, BusinessSubscriptionTier> = {
   contact: 'free',
   dashboard: 'pro',
   stats: 'pro',
+  analytics: 'pro',
   products: 'pro',
   menu: 'pro',
   promotions: 'pro',
   gallery: 'pro',
+  recommendation_priority: 'pro',
   campaigns: 'premium',
+  automations: 'premium',
+  advanced_reports: 'premium',
   advanced_analytics: 'premium',
   ai_placeholder: 'premium',
 }
@@ -41,6 +49,7 @@ const UPGRADE_LABEL: Record<BusinessSubscriptionTier, string> = {
   premium: '',
 }
 
+/** All gating uses subscription tier — never claimStatus. */
 export function canUseBusinessFeature(
   tier: BusinessSubscriptionTier,
   feature: BusinessFeature,
@@ -61,6 +70,36 @@ export function upgradeMessageForFeature(
   return UPGRADE_LABEL.none
 }
 
+// ─── Named permission helpers (single source of truth) ───────────────────────
+
+export function canAccessDashboard(tier: BusinessSubscriptionTier): boolean {
+  return canUseBusinessFeature(tier, 'dashboard')
+}
+
+export function canEditBasicInfo(tier: BusinessSubscriptionTier): boolean {
+  return canUseBusinessFeature(tier, 'edit_basic_info')
+}
+
+export function canEditProducts(tier: BusinessSubscriptionTier): boolean {
+  return canUseBusinessFeature(tier, 'products')
+}
+
+export function canUseAnalytics(tier: BusinessSubscriptionTier): boolean {
+  return canUseBusinessFeature(tier, 'analytics')
+}
+
+export function canCreatePromotions(tier: BusinessSubscriptionTier): boolean {
+  return canUseBusinessFeature(tier, 'promotions')
+}
+
+export function canUseAI(tier: BusinessSubscriptionTier): boolean {
+  return canUseBusinessFeature(tier, 'ai_placeholder')
+}
+
+export function canUseCampaigns(tier: BusinessSubscriptionTier): boolean {
+  return canUseBusinessFeature(tier, 'campaigns')
+}
+
 export function tabAllowedForTier(
   tab: 'home' | 'products' | 'gallery' | 'reviews' | 'dashboard',
   tier: BusinessSubscriptionTier,
@@ -71,11 +110,11 @@ export function tabAllowedForTier(
     case 'reviews':
       return canUseBusinessFeature(tier, 'reply_reviews')
     case 'products':
-      return canUseBusinessFeature(tier, 'products')
+      return canEditProducts(tier)
     case 'gallery':
       return canUseBusinessFeature(tier, 'gallery')
     case 'dashboard':
-      return canUseBusinessFeature(tier, 'dashboard')
+      return canAccessDashboard(tier)
     default:
       return false
   }

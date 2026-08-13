@@ -20,6 +20,15 @@ alter table public.trivai_business
   add column if not exists verification_status text not null default 'unverified';
 
 alter table public.trivai_business
+  add column if not exists claimed_at timestamptz;
+
+alter table public.trivai_business
+  add column if not exists subscription_started_at timestamptz;
+
+alter table public.trivai_business
+  add column if not exists subscription_expires_at timestamptz;
+
+alter table public.trivai_business
   add constraint trivai_business_claim_status_check
     check (claim_status in ('unclaimed', 'claimed', 'identified'));
 
@@ -58,7 +67,11 @@ set
     when claimed = true and owner_id is not null then coalesce(subscription_status, 'none')
     else coalesce(subscription_status, 'none')
   end,
-  verification_status = coalesce(verification_status, 'unverified')
+  verification_status = coalesce(verification_status, 'unverified'),
+  claimed_at = case
+    when claimed = true and owner_id is not null and claimed_at is null then now()
+    else claimed_at
+  end
 where true;
 
 create index if not exists trivai_business_owner_multi_idx
@@ -73,6 +86,12 @@ comment on column public.trivai_business.subscription_plan is
   'Legacy uppercase mirror of tier — billing not wired yet';
 comment on column public.trivai_business.verification_status is
   'Prepared for future verified badge — no app logic yet';
+comment on column public.trivai_business.claimed_at is
+  'Timestamp when owner completed claim';
+comment on column public.trivai_business.subscription_started_at is
+  'When subscription tier was chosen (no billing yet)';
+comment on column public.trivai_business.subscription_expires_at is
+  'Future billing expiry — nullable until payments wired';
 
 -- Optional: admin role on profiles for future BackOffice (never used in mobile nav)
 alter table public.profiles drop constraint if exists profiles_app_role_check;

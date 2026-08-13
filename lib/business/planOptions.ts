@@ -18,9 +18,9 @@ export const BUSINESS_PLAN_OPTIONS: PlanOption[] = [
     features: [
       'Reclamar negocio',
       'Editar información básica',
-      'Responder reseñas',
       'Horarios',
       'Datos de contacto',
+      'Responder reseñas',
     ],
     highlighted: true,
   },
@@ -30,13 +30,15 @@ export const BUSINESS_PLAN_OPTIONS: PlanOption[] = [
     priceLabel: 'Próximamente',
     description: 'Herramientas completas para crecer.',
     features: [
-      'Todo lo anterior',
-      'Dashboard completo',
+      'Todo Free',
+      'Dashboard',
       'Estadísticas',
       'Productos',
       'Menú',
       'Promociones',
       'Galería',
+      'Analytics',
+      'Prioridad en recomendaciones (placeholder)',
     ],
   },
   {
@@ -45,10 +47,11 @@ export const BUSINESS_PLAN_OPTIONS: PlanOption[] = [
     priceLabel: 'Próximamente',
     description: 'Máximo alcance y funciones avanzadas.',
     features: [
-      'Todo PRO',
-      'Campañas',
-      'Analítica avanzada',
+      'Todo Pro',
       'IA (placeholder)',
+      'Campañas',
+      'Automatizaciones',
+      'Reportes avanzados',
       'Funciones futuras',
     ],
   },
@@ -59,12 +62,18 @@ export function planBadgeLabel(tier: BusinessSubscriptionTier): string {
     case 'none':
       return 'Sin plan'
     case 'free':
-      return 'Free'
+      return 'FREE'
     case 'pro':
-      return 'Pro'
+      return 'PRO'
     case 'premium':
-      return 'Premium'
+      return 'PREMIUM'
     default:
       return tier
   }
+}
+
+export function planManageActionLabel(tier: BusinessSubscriptionTier): string {
+  if (tier === 'free') return 'Cambiar plan'
+  if (tier === 'pro' || tier === 'premium') return 'Administrar suscripción'
+  return 'Elegir plan'
 }

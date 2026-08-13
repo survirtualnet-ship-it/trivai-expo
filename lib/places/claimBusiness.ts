@@ -96,6 +96,8 @@ export async function claimBusiness(
 
   await syncGooglePlaceToSupabase(placeUuid, input.googlePlaceId)
 
+  const now = new Date().toISOString()
+
   const { error: bizError } = await supabase.from('trivai_business').upsert(
     {
       place_id: placeUuid,
@@ -106,7 +108,8 @@ export async function claimBusiness(
       subscription_plan: 'FREE',
       subscription_status: 'none',
       verification_status: 'unverified',
-      updated_at: new Date().toISOString(),
+      claimed_at: now,
+      updated_at: now,
     },
     { onConflict: 'google_place_id' },
   )

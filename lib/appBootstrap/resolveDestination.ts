@@ -102,7 +102,8 @@ export function isOnboardingPath(pathname: string): boolean {
     path.startsWith('/onboarding/') ||
     path === '/empresa/onboarding' ||
     path.startsWith('/empresa/onboarding/') ||
-    path === '/empresa/plan'
+    path === '/empresa/plan' ||
+    path === '/empresa/suscripcion'
   )
 }
 

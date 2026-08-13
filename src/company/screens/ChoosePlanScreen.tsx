@@ -17,13 +17,15 @@ import { BUSINESS_PLAN_OPTIONS, type PlanOption } from '@/lib/business/planOptio
 import type { BusinessSubscriptionTier } from '@/lib/domain/business'
 import { businessSubscriptionKeys } from '@/hooks/useBusinessSubscription'
 import { ownedBusinessListKeys } from '@/hooks/useOwnedBusinessesList'
-import { companyTheme as t } from '@/src/company/theme'
+import { T, F, S, R, SHADOW } from '@/lib/tokens'
 
 type Props = {
   placeId: string
   businessName?: string
-  /** After plan saved — default: business dashboard */
-  onComplete?: (placeId: string, tier: Exclude<BusinessSubscriptionTier, 'none'>) => void | Promise<void>
+  onComplete?: (
+    placeId: string,
+    tier: Exclude<BusinessSubscriptionTier, 'none'>,
+  ) => void | Promise<void>
 }
 
 export function ChoosePlanScreen({ placeId, businessName, onComplete }: Props) {
@@ -59,6 +61,11 @@ export function ChoosePlanScreen({ placeId, businessName, onComplete }: Props) {
     }
   }
 
+  const handleSelectPlan = (id: Exclude<BusinessSubscriptionTier, 'none'>) => {
+    void Haptics.selectionAsync()
+    setSelected(id)
+  }
+
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -76,10 +83,7 @@ export function ChoosePlanScreen({ placeId, businessName, onComplete }: Props) {
               key={option.id}
               option={option}
               selected={selected === option.id}
-              onSelect={() => {
-                void Haptics.selectionAsync()
-                setSelected(option.id)
-              }}
+              onSelect={() => handleSelectPlan(option.id)}
             />
           ))}
         </View>
@@ -116,13 +120,12 @@ function PlanCard({
   onSelect: () => void
 }) {
   return (
-    <Pressable
-      onPress={onSelect}
-      style={({ pressed }) => [
+    <View
+      style={[
         styles.card,
         option.highlighted && styles.cardHighlight,
         selected && styles.cardSelected,
-        pressed && styles.pressed,
+        SHADOW.sm,
       ]}
     >
       <View style={styles.cardHeader}>
@@ -138,94 +141,139 @@ function PlanCard({
       </View>
       <Text style={styles.planDesc}>{option.description}</Text>
       {option.features.map(f => (
-        <Text key={f} style={styles.feature}>
-          • {f}
-        </Text>
+        <View key={f} style={styles.featureRow}>
+          <Text style={styles.featureCheck}>✓</Text>
+          <Text style={styles.feature}>{f}</Text>
+        </View>
       ))}
-    </Pressable>
+      <Pressable
+        onPress={onSelect}
+        style={({ pressed }) => [
+          styles.selectBtn,
+          selected && styles.selectBtnActive,
+          pressed && styles.pressed,
+        ]}
+      >
+        <Text style={[styles.selectLabel, selected && styles.selectLabelActive]}>
+          {selected ? 'Plan seleccionado' : 'Seleccionar plan'}
+        </Text>
+      </Pressable>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: t.bg },
+  root: { flex: 1, backgroundColor: T.bg },
   scroll: {
-    padding: t.spacing.xxl,
-    paddingBottom: t.spacing.lg,
-    gap: t.spacing.md,
+    padding: S.xxl,
+    paddingBottom: S.lg,
+    gap: S.md,
   },
   kicker: {
-    color: t.accent,
-    fontSize: 12,
+    color: T.purple,
+    fontSize: F.size.sm,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   title: {
-    color: t.text,
-    fontSize: 26,
+    color: T.fg1,
+    fontSize: F.size.h1,
     fontWeight: '800',
   },
   subtitle: {
-    color: t.textSecondary,
-    fontSize: 15,
+    color: T.fg2,
+    fontSize: F.size.lg,
     lineHeight: 22,
-    marginBottom: t.spacing.sm,
+    marginBottom: S.sm,
   },
-  cards: { gap: t.spacing.md },
+  cards: { gap: S.md },
   card: {
-    backgroundColor: t.surface,
-    borderRadius: t.radius.lg,
+    backgroundColor: T.surface,
+    borderRadius: R.lg,
     borderWidth: 2,
-    borderColor: t.border,
-    padding: t.spacing.lg,
-    gap: t.spacing.sm,
+    borderColor: T.border,
+    padding: S.lg,
+    gap: S.sm,
   },
   cardHighlight: { borderColor: 'rgba(108, 76, 241, 0.35)' },
   cardSelected: {
-    borderColor: t.accent,
-    backgroundColor: t.accentSoft,
+    borderColor: T.purple,
+    backgroundColor: T.purpleSoft,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  planName: { color: t.text, fontSize: 18, fontWeight: '800' },
-  planPrice: { color: t.textSecondary, fontSize: 13, marginTop: 2 },
-  planDesc: { color: t.textSecondary, fontSize: 13, lineHeight: 18 },
-  feature: { color: t.text, fontSize: 13, lineHeight: 20 },
+  planName: { color: T.fg1, fontSize: 18, fontWeight: '800' },
+  planPrice: { color: T.fg2, fontSize: F.size.sm, marginTop: 2 },
+  planDesc: { color: T.fg2, fontSize: F.size.sm, lineHeight: 18 },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: S.sm,
+  },
+  featureCheck: {
+    color: T.green,
+    fontSize: F.size.md,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  feature: { flex: 1, color: T.fg1, fontSize: F.size.md, lineHeight: 20 },
   check: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: t.accent,
+    backgroundColor: T.purple,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  selectBtn: {
+    marginTop: S.sm,
+    paddingVertical: 12,
+    borderRadius: R.full,
+    borderWidth: 2,
+    borderColor: T.purple,
+    alignItems: 'center',
+  },
+  selectBtnActive: {
+    backgroundColor: T.purple,
+    borderColor: T.purple,
+  },
+  selectLabel: {
+    color: T.purple,
+    fontSize: F.size.md,
+    fontWeight: '700',
+  },
+  selectLabelActive: {
+    color: '#fff',
+  },
   footer: {
-    paddingHorizontal: t.spacing.xxl,
-    paddingBottom: t.spacing.lg,
-    paddingTop: t.spacing.sm,
+    paddingHorizontal: S.xxl,
+    paddingBottom: S.lg,
+    paddingTop: S.sm,
     borderTopWidth: 1,
-    borderTopColor: t.border,
-    backgroundColor: t.bg,
+    borderTopColor: T.border,
+    backgroundColor: T.bg,
   },
   continueBtn: {
-    backgroundColor: t.accent,
-    borderRadius: t.radius.full,
+    backgroundColor: T.purple,
+    borderRadius: R.full,
     paddingVertical: 16,
     alignItems: 'center',
+    ...SHADOW.md,
   },
   continueLabel: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: F.size.xl,
     fontWeight: '700',
   },
   errorBox: {
-    backgroundColor: 'rgba(239,68,68,0.12)',
-    borderRadius: t.radius.lg,
-    padding: t.spacing.md,
+    backgroundColor: T.dangerSoft,
+    borderRadius: R.lg,
+    padding: S.md,
   },
-  errorText: { color: '#fca5a5', fontSize: 13, textAlign: 'center' },
+  errorText: { color: T.danger, fontSize: F.size.sm, textAlign: 'center' },
   pressed: { opacity: 0.92 },
 })

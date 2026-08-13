@@ -16,6 +16,9 @@ export type TrivaiBusiness = {
   subscription_plan?: 'FREE' | 'PRO' | 'PREMIUM'
   subscription_status?: 'none' | 'free' | 'pro' | 'premium' | 'active' | 'expired' | 'cancelled'
   verification_status?: 'unverified' | 'pending' | 'verified'
+  claimed_at?: string | null
+  subscription_started_at?: string | null
+  subscription_expires_at?: string | null
   created_at: string
   updated_at: string
 }

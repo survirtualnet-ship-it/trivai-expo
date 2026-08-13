@@ -6,7 +6,8 @@
 import type { UserRole } from './user'
 import { isBusinessUser, isTouristUser, normalizeUserRole } from './user'
 import type { Business } from './business'
-import { canAccessBusinessDashboard, isBusinessClaimed } from './business'
+import { isBusinessClaimed } from './business'
+import { canAccessDashboard } from '@/lib/business/planFeatures'
 
 export type PermissionContext = {
   isAuthenticated: boolean
@@ -116,7 +117,10 @@ export function businessUserCanAccessDashboard(
   ctx: PermissionContext,
   business: Business,
 ): boolean {
-  return canAccessBusinessDashboard(business, ctx.userId)
+  if (!ctx.userId || !isBusinessClaimed(business) || business.ownerUserId !== ctx.userId) {
+    return false
+  }
+  return canAccessDashboard(business.subscriptionTier)
 }
 
 export function businessUserCanExploreAsTourist(ctx: PermissionContext): boolean {

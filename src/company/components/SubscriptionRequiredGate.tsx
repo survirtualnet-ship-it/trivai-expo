@@ -14,10 +14,8 @@ export function SubscriptionRequiredGate({ placeId, businessName }: Props) {
       <View style={styles.icon}>
         <Sparkles size={28} color={t.accent} />
       </View>
-      <Text style={styles.title}>Debes elegir un plan para comenzar.</Text>
-      <Text style={styles.subtitle}>
-        Tu negocio ya está reclamado. Selecciona Free, Pro o Premium para activar las herramientas de Trivai.
-      </Text>
+      <Text style={styles.title}>Tu negocio ya fue reclamado.</Text>
+      <Text style={styles.subtitle}>Ahora elige un plan para comenzar.</Text>
       <Pressable
         style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
         onPress={() =>
@@ -58,8 +56,8 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: t.textSecondary,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: 'center',
   },
   btn: {

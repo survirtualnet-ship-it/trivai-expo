@@ -16,12 +16,15 @@ function tierToLegacyPlan(tier: Exclude<BusinessSubscriptionTier, 'none'>): stri
 export async function updateBusinessSubscription(
   input: UpdateBusinessSubscriptionInput,
 ): Promise<void> {
+  const now = new Date().toISOString()
   const { error } = await supabase
     .from('trivai_business')
     .update({
       subscription_status: input.tier,
       subscription_plan: tierToLegacyPlan(input.tier),
-      updated_at: new Date().toISOString(),
+      subscription_started_at: now,
+      subscription_expires_at: null,
+      updated_at: now,
     })
     .eq('place_id', input.placeId)
 

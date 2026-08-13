@@ -5,6 +5,7 @@ import { router } from 'expo-router'
 import { ChevronLeft } from 'lucide-react-native'
 import { CompanyHeader } from './components/CompanyHeader'
 import { ProfileTabs } from './components/ProfileTabs'
+import { BusinessSubscriptionBar } from './components/BusinessSubscriptionBar'
 import { SubscriptionRequiredGate } from './components/SubscriptionRequiredGate'
 import { UpgradePrompt } from './components/UpgradePrompt'
 import { LogoutButton } from '@/components/auth/LogoutButton'
@@ -13,6 +14,9 @@ import { useProfileStore } from '@/src/profile/store/useProfileStore'
 import { useAuthStore } from '@/src/auth/store/useAuthStore'
 import { useBusinessSubscription } from '@/hooks/useBusinessSubscription'
 import {
+  canAccessDashboard,
+  canEditBasicInfo,
+  canEditProducts,
   canUseBusinessFeature,
   tabAllowedForTier,
   upgradeMessageForFeature,
@@ -111,7 +115,7 @@ export function CompanyProfileScreen({ companyId }: Props) {
     void saveProfile()
   }, [saveProfile])
 
-  const canEditBasic = isOwner && canUseBusinessFeature(tier, 'edit_basic_info')
+  const canEditBasic = isOwner && canEditBasicInfo(tier)
   const canReplyReviews = isOwner && canUseBusinessFeature(tier, 'reply_reviews')
 
   if (!storeHydrated || loadingRemote || subscriptionLoading || (!company && !loadError)) {
@@ -191,6 +195,14 @@ export function CompanyProfileScreen({ companyId }: Props) {
         <SubscriptionRequiredGate placeId={companyId} businessName={company.name} />
       ) : (
         <>
+          {isOwner ? (
+            <BusinessSubscriptionBar
+              placeId={companyId}
+              businessName={company.name}
+              tier={tier}
+            />
+          ) : null}
+
           <ProfileTabs
             active={activeTab}
             tier={tier}
@@ -210,7 +222,7 @@ export function CompanyProfileScreen({ companyId }: Props) {
             ) : null}
 
             {activeTab === 'products' ? (
-              canUseBusinessFeature(tier, 'products') ? (
+              canEditProducts(tier) ? (
                 <ProductsTab
                   products={products}
                   editMode={editMode && isOwner}
@@ -246,7 +258,7 @@ export function CompanyProfileScreen({ companyId }: Props) {
             ) : null}
 
             {activeTab === 'dashboard' && isOwner ? (
-              canUseBusinessFeature(tier, 'dashboard') && stats ? (
+              canAccessDashboard(tier) && stats ? (
                 <DashboardTab stats={stats} />
               ) : (
                 <UpgradePrompt
