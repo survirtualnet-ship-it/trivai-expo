@@ -50,13 +50,13 @@ const PERIODS: { id: MetricPeriod; label: string }[] = [
 ]
 
 export function BusinessHomeScreen({ placeId }: Props) {
-  const { user, profile } = useUser()
   const { tier, isLoading: tierLoading } = useBusinessSubscription(placeId)
   const company = useCompanyProfileStore(s => s.company)
   const products = useCompanyProfileStore(s => s.products)
   const reviews = useCompanyProfileStore(s => s.reviews)
   const stats = useCompanyProfileStore(s => s.stats)
   const loadCompany = useCompanyProfileStore(s => s.loadCompany)
+  const loadError = useCompanyProfileStore(s => s.loadError)
   const [period, setPeriod] = useState<MetricPeriod>('week')
   const [customLogo, setCustomLogo] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -89,8 +89,6 @@ export function BusinessHomeScreen({ placeId }: Props) {
   const featured = useMemo(() => products.filter(p => p.isFeatured).slice(0, 6), [products])
   const recentReviews = useMemo(() => reviews.slice(0, 3), [reviews])
 
-  const googleReviewCount = company.reviewCount ?? 0
-
   const handleChangeLogo = async () => {
     if (!canChangeBusinessLogo(tier)) return
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync()
@@ -112,7 +110,7 @@ export function BusinessHomeScreen({ placeId }: Props) {
     }
   }
 
-  if (loading || tierLoading || !company) {
+  if (loading || tierLoading) {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
         <View style={styles.center}>
@@ -121,6 +119,27 @@ export function BusinessHomeScreen({ placeId }: Props) {
       </SafeAreaView>
     )
   }
+
+  if (!company) {
+    return (
+      <SafeAreaView style={styles.root} edges={['top']}>
+        <View style={styles.center}>
+          <Text style={styles.errorText}>{loadError ?? 'No pudimos cargar tu negocio.'}</Text>
+          <Pressable
+            style={styles.retryBtn}
+            onPress={() => {
+              setLoading(true)
+              void loadCompany(placeId).finally(() => setLoading(false))
+            }}
+          >
+            <Text style={styles.retryLabel}>Reintentar</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    )
+  }
+
+  const googleReviewCount = company.reviewCount ?? 0
 
   if (tier === 'none') {
     return (
@@ -371,7 +390,15 @@ function QuickAction({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: T.bg },
   scroll: { paddingBottom: S.xxxl },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: S.xl },
+  errorText: { color: T.fg2, fontSize: F.size.md, textAlign: 'center', marginBottom: S.md },
+  retryBtn: {
+    backgroundColor: T.purple,
+    paddingHorizontal: S.lg,
+    paddingVertical: S.sm,
+    borderRadius: R.full,
+  },
+  retryLabel: { color: '#fff', fontWeight: '700' },
   infoCard: {
     marginHorizontal: S.lg,
     marginBottom: S.lg,
