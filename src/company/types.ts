@@ -53,4 +53,26 @@ export type DashboardStats = {
   weeklyViews: number[]
 }
 
-export type CompanyTab = 'home' | 'products' | 'gallery' | 'reviews' | 'dashboard'
+export type CompanyTab =
+  | 'home'
+  | 'hours'
+  | 'social'
+  | 'products'
+  | 'gallery'
+  | 'reviews'
+  | 'dashboard'
+
+export const COMPANY_TABS: CompanyTab[] = [
+  'home',
+  'hours',
+  'social',
+  'products',
+  'gallery',
+  'reviews',
+  'dashboard',
+]
+
+export function parseCompanyTab(value: string | undefined): CompanyTab | undefined {
+  if (!value) return undefined
+  return COMPANY_TABS.includes(value as CompanyTab) ? (value as CompanyTab) : undefined
+}

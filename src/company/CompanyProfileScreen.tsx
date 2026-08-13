@@ -24,6 +24,8 @@ import {
 } from '@/lib/business/planFeatures'
 import type { CompanyTab } from './types'
 import { HomeTab } from './tabs/HomeTab'
+import { HoursTab } from './tabs/HoursTab'
+import { SocialTab } from './tabs/SocialTab'
 import { ProductsTab } from './tabs/ProductsTab'
 import { GalleryTab } from './tabs/GalleryTab'
 import { ReviewsTab } from './tabs/ReviewsTab'
@@ -32,13 +34,15 @@ import { companyTheme as t } from './theme'
 
 type Props = {
   companyId: string
+  initialTab?: CompanyTab
 }
 
-export function CompanyProfileScreen({ companyId }: Props) {
+export function CompanyProfileScreen({ companyId, initialTab }: Props) {
   const company = useCompanyProfileStore(s => s.company)
   const products = useCompanyProfileStore(s => s.products)
   const reviews = useCompanyProfileStore(s => s.reviews)
   const gallery = useCompanyProfileStore(s => s.gallery)
+  const enrichment = useCompanyProfileStore(s => s.enrichment)
   const addGalleryImage = useCompanyProfileStore(s => s.addGalleryImage)
   const editMode = useCompanyProfileStore(s => s.editMode)
   const draftCompany = useCompanyProfileStore(s => s.draftCompany)
@@ -73,6 +77,8 @@ export function CompanyProfileScreen({ companyId }: Props) {
   const updateProduct = useCompanyProfileStore(s => s.updateProduct)
   const deleteProduct = useCompanyProfileStore(s => s.deleteProduct)
   const replyToReview = useCompanyProfileStore(s => s.replyToReview)
+  const saveHours = useCompanyProfileStore(s => s.saveHours)
+  const saveSocial = useCompanyProfileStore(s => s.saveSocial)
 
   const [storeHydrated, setStoreHydrated] = useState(
     useCompanyProfileStore.persist.hasHydrated(),
@@ -92,11 +98,26 @@ export function CompanyProfileScreen({ companyId }: Props) {
     if (!isOwner) return
     if (needsPlan) return
     if (!tabAllowedForTier(activeTab, tier)) {
-      const fallback: CompanyTab[] = ['home', 'reviews', 'products', 'gallery', 'dashboard']
+      const fallback: CompanyTab[] = [
+        'home',
+        'hours',
+        'social',
+        'reviews',
+        'products',
+        'gallery',
+        'dashboard',
+      ]
       const next = fallback.find(tab => tabAllowedForTier(tab, tier)) ?? 'home'
       setActiveTab(next)
     }
   }, [activeTab, isOwner, needsPlan, setActiveTab, tier])
+
+  useEffect(() => {
+    if (!initialTab || needsPlan || subscriptionLoading) return
+    if (tabAllowedForTier(initialTab, tier)) {
+      setActiveTab(initialTab)
+    }
+  }, [initialTab, needsPlan, setActiveTab, subscriptionLoading, tier])
 
   useEffect(() => {
     if (activeTab === 'dashboard' && !isOwner) {
@@ -124,6 +145,8 @@ export function CompanyProfileScreen({ companyId }: Props) {
   }, [saveProfile])
 
   const canEditBasic = isOwner && canEditBasicInfo(tier)
+  const canEditHours = isOwner && canUseBusinessFeature(tier, 'hours')
+  const canEditSocial = isOwner && canUseBusinessFeature(tier, 'contact')
   const canReplyReviews = isOwner && canUseBusinessFeature(tier, 'reply_reviews')
 
   if (!storeHydrated || loadingRemote || subscriptionLoading || (!company && !loadError)) {
@@ -227,6 +250,36 @@ export function CompanyProfileScreen({ companyId }: Props) {
                 featuredProducts={featuredProducts}
                 onUpdateDraft={updateDraft}
               />
+            ) : null}
+
+            {activeTab === 'hours' ? (
+              canEditHours || !isOwner ? (
+                <HoursTab
+                  hours={enrichment?.hours ?? null}
+                  canEdit={canEditHours}
+                  onSave={saveHours}
+                />
+              ) : (
+                <UpgradePrompt
+                  message={upgradeMessageForFeature(tier, 'hours')}
+                  placeId={companyId}
+                />
+              )
+            ) : null}
+
+            {activeTab === 'social' ? (
+              canEditSocial || !isOwner ? (
+                <SocialTab
+                  social={enrichment?.social ?? {}}
+                  canEdit={canEditSocial}
+                  onSave={saveSocial}
+                />
+              ) : (
+                <UpgradePrompt
+                  message={upgradeMessageForFeature(tier, 'contact')}
+                  placeId={companyId}
+                />
+              )
             ) : null}
 
             {activeTab === 'products' ? (

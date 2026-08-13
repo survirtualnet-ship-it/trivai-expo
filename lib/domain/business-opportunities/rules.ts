@@ -94,7 +94,7 @@ export function generateOpportunities(input: OpportunitiesInput): BusinessOpport
         priority: 'medium',
         estimatedImpact: 'Puede incrementar visitas.',
         action: 'Editar horarios',
-        deepLink: panel,
+        deepLink: `${panel}?tab=hours`,
       }),
     )
   }

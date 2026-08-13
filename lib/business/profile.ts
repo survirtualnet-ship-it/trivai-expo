@@ -113,7 +113,10 @@ export async function upsertBusinessEnrichment(
   if (patch.paymentMethods !== undefined) row.payment_methods = patch.paymentMethods
   if (patch.accessibility !== undefined) row.accessibility = patch.accessibility
   if (patch.amenities !== undefined) row.amenities = patch.amenities
-  if (hours !== undefined) row.hours = hours
+  if (hours !== undefined) {
+    row.hours = hours
+    row.temporarily_closed = hours.temporarilyClosed ?? false
+  }
   if (hoursComplete !== undefined) row.hours_complete = hoursComplete
 
   if (patch.social) {
@@ -162,6 +165,13 @@ export async function saveBusinessContact(input: {
     emailCommercial: input.emailCommercial ?? null,
     phoneSecondary: input.phoneSecondary ?? null,
   })
+}
+
+export async function saveBusinessSocial(
+  placeId: string,
+  social: SocialLinks,
+): Promise<{ ok: boolean; error?: string }> {
+  return upsertBusinessEnrichment(placeId, { social })
 }
 
 export async function saveBusinessHours(

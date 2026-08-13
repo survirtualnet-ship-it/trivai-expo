@@ -22,14 +22,14 @@ import {
   uploadBusinessGalleryImage,
   deleteBusinessGalleryItem,
 } from '@/lib/business/gallery'
-import { fetchBusinessEnrichment, saveBusinessContact } from '@/lib/business/profile'
+import { fetchBusinessEnrichment, saveBusinessContact, saveBusinessHours, saveBusinessSocial } from '@/lib/business/profile'
 import { countMenuItems } from '@/lib/business/menu'
 import { fetchPlaceReviewsWithReplies, createReviewResponse } from '@/lib/reviews'
 import { placeReviewsToCompanyReviews } from '@/lib/business/mapReviews'
 import { trackBusinessEvent } from '@/lib/analytics/analytics'
 import type { BusinessSubscriptionTier } from '@/lib/domain/business'
 import type { Company, CompanyTab, Product, Review } from '../types'
-import type { BusinessEnrichment, GalleryItem } from '@/lib/business/profileTypes'
+import type { BusinessEnrichment, BusinessHoursSchedule, GalleryItem, SocialLinks } from '@/lib/business/profileTypes'
 
 type RemoteBundle = CompanyCatalog & {
   enrichment: BusinessEnrichment | null
@@ -67,6 +67,8 @@ type CompanyProfileStore = {
   addGalleryImage: (uri: string, tier: BusinessSubscriptionTier) => Promise<void>
   removeGalleryImage: (itemId: string) => Promise<void>
   replyToReview: (reviewId: string, reply: string) => Promise<void>
+  saveHours: (hours: BusinessHoursSchedule) => Promise<{ ok: boolean; error?: string }>
+  saveSocial: (social: SocialLinks) => Promise<{ ok: boolean; error?: string }>
 }
 
 function mergeCompanies(persisted: Record<string, Company>): Record<string, Company> {
@@ -455,6 +457,54 @@ export const useCompanyProfileStore = create<CompanyProfileStore>()(
           reviews: next,
           catalog: patchCatalog(catalog, company.id, { reviews: next }),
         })
+      },
+
+      saveHours: async hours => {
+        if (!get().isCompanyOwner) return { ok: false, error: 'Sin permiso' }
+        const { company } = get()
+        if (!company || company.id.startsWith('co-')) {
+          return { ok: false, error: 'No disponible en demo' }
+        }
+
+        const result = await saveBusinessHours(company.id, hours)
+        if (!result.ok) return result
+
+        const enrichment = await fetchBusinessEnrichment(company.id)
+        set({ enrichment })
+        return { ok: true }
+      },
+
+      saveSocial: async social => {
+        if (!get().isCompanyOwner) return { ok: false, error: 'Sin permiso' }
+        const { company, enrichment } = get()
+        if (!company || company.id.startsWith('co-')) {
+          return { ok: false, error: 'No disponible en demo' }
+        }
+
+        const result = await saveBusinessSocial(company.id, social)
+        if (!result.ok) return result
+
+        set({
+          enrichment: enrichment
+            ? { ...enrichment, social: { ...enrichment.social, ...social } }
+            : {
+                placeId: company.id,
+                whatsapp: null,
+                phoneSecondary: null,
+                emailCommercial: null,
+                services: [],
+                languages: [],
+                paymentMethods: [],
+                accessibility: [],
+                amenities: [],
+                hours: null,
+                hoursComplete: false,
+                social,
+                updatedAt: new Date().toISOString(),
+                googleSyncedAt: null,
+              },
+        })
+        return { ok: true }
       },
     }),
     {

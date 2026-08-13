@@ -8,6 +8,8 @@ import type { CompanyTab } from '../types'
 
 const BASE_TABS: { id: CompanyTab; label: string }[] = [
   { id: 'home', label: 'Inicio' },
+  { id: 'hours', label: 'Horarios' },
+  { id: 'social', label: 'Redes' },
   { id: 'products', label: 'Productos' },
   { id: 'gallery', label: 'Galería' },
   { id: 'reviews', label: 'Reseñas' },

@@ -91,7 +91,12 @@ export function BusinessProfileScreen() {
           <InfoRow label="Dirección" value={company.location.address} locked />
           <NavRow
             label="Editar información y horarios"
-            onPress={() => router.push(`/empresa/${placeId}` as never)}
+            onPress={() =>
+              router.push({
+                pathname: '/empresa/[id]',
+                params: { id: placeId, tab: 'home' },
+              } as never)
+            }
           />
         </ProfileSection>
 
@@ -116,14 +121,24 @@ export function BusinessProfileScreen() {
           <InfoRow label="X" value={enrichment?.social.x || '—'} />
           <NavRow
             label="Editar redes"
-            onPress={() => router.push(`/empresa/${placeId}` as never)}
+            onPress={() =>
+              router.push({
+                pathname: '/empresa/[id]',
+                params: { id: placeId, tab: 'social' },
+              } as never)
+            }
           />
         </ProfileSection>
 
         <ProfileSection title="Configuración">
           <NavRow label="Información general" onPress={() => router.push(`/empresa/${placeId}` as never)} />
           <NavRow label="Contacto" onPress={() => router.push(`/empresa/${placeId}` as never)} />
-          <NavRow label="Horarios" onPress={() => router.push(`/empresa/${placeId}` as never)} />
+          <NavRow label="Horarios" onPress={() =>
+              router.push({
+                pathname: '/empresa/[id]',
+                params: { id: placeId, tab: 'hours' },
+              } as never)
+            } />
           <NavRow label="Galería" onPress={() => router.push(`/empresa/${placeId}` as never)} />
           <NavRow label="Productos" onPress={() => router.push(`/empresa/${placeId}` as never)} />
           <NavRow label="Menú" onPress={() => router.push(`/empresa/${placeId}` as never)} />

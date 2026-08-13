@@ -115,12 +115,23 @@ export function canUseCampaigns(tier: BusinessSubscriptionTier): boolean {
 }
 
 export function tabAllowedForTier(
-  tab: 'home' | 'products' | 'gallery' | 'reviews' | 'dashboard',
+  tab:
+    | 'home'
+    | 'hours'
+    | 'social'
+    | 'products'
+    | 'gallery'
+    | 'reviews'
+    | 'dashboard',
   tier: BusinessSubscriptionTier,
 ): boolean {
   switch (tab) {
     case 'home':
       return tier !== 'none'
+    case 'hours':
+      return canUseBusinessFeature(tier, 'hours')
+    case 'social':
+      return canUseBusinessFeature(tier, 'contact')
     case 'reviews':
       return canUseBusinessFeature(tier, 'reply_reviews')
     case 'products':
