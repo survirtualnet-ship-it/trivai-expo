@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import * as Haptics from 'expo-haptics'
 import { useAppMode } from '@/src/appMode'
 import { useProfileStore } from '@/src/profile/store/useProfileStore'
+import { isBusinessUser } from '@/lib/domain/user'
 import { T, F, S, R } from '@/lib/tokens'
 import { FONT } from '@/lib/typography'
 
@@ -17,11 +18,12 @@ type Props = {
  */
 export const AppModeToggle = memo(function AppModeToggle({ compact }: Props) {
   const role = useProfileStore(s => s.user.role)
-  const companyId = useProfileStore(s => s.user.companyId)
-  const isCompany = role === 'company' && !!companyId
+  const activeBusinessId =
+    useProfileStore(s => s.user.activeBusinessId ?? s.user.companyId)
+  const showToggle = isBusinessUser(role) && !!activeBusinessId
   const { mode, setMode } = useAppMode()
 
-  if (!isCompany) return null
+  if (!showToggle) return null
 
   return (
     <View

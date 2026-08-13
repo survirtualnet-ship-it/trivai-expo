@@ -18,21 +18,26 @@ export async function syncAuthStoreFromSession(
   })
 }
 
-/** Update auth store when onboarding assigns role / companyId. */
+import type { UserRole } from '@/lib/domain/user'
+
+/** Update auth store when onboarding assigns role / activeBusinessId. */
 export function syncAuthStoreFromProfile(patch: {
   id: string
   name?: string
   email?: string
-  role: 'tourist' | 'company'
+  role: UserRole | 'company'
   companyId?: string
+  activeBusinessId?: string
 }): void {
   const current = useAuthStore.getState().user
+  const activeBusinessId = patch.activeBusinessId ?? patch.companyId
   useAuthStore.getState().login({
     id: patch.id,
     name: patch.name ?? current?.name ?? 'Explorador',
     email: patch.email ?? current?.email ?? '',
-    role: patch.role,
-    companyId: patch.companyId,
+    role: patch.role === 'company' ? 'business' : patch.role,
+    companyId: activeBusinessId,
+    activeBusinessId,
     token: useAuthStore.getState().token ?? undefined,
   })
 }

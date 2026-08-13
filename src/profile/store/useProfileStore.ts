@@ -2,10 +2,11 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { DEFAULT_SETTINGS, EMPTY_USER } from '../data/mockProfile'
+import type { UserRole } from '@/lib/domain/user'
+import { normalizeUserRole } from '@/lib/domain/user'
 
+export type { UserRole }
 export type TravelerType = 'Foodie' | 'Cultural' | 'Nightlife' | 'Explorer'
-
-export type UserRole = 'tourist' | 'company'
 
 export type ProfileUser = {
   id: string
@@ -18,7 +19,10 @@ export type ProfileUser = {
   city: string
   travelerType: TravelerType
   role: UserRole
+  /** @deprecated Use activeBusinessId */
   companyId?: string
+  activeBusinessId?: string
+  businessIds?: string[]
   onboardingCompleted: boolean
   locationPermission?: boolean
 }
@@ -57,7 +61,13 @@ export const useProfileStore = create<ProfileStore>()(
       settings: DEFAULT_SETTINGS,
       setUser: patch =>
         set(state => ({
-          user: { ...state.user, ...patch },
+          user: {
+            ...state.user,
+            ...patch,
+            role: patch.role
+              ? normalizeUserRole(patch.role) ?? state.user.role
+              : state.user.role,
+          },
         })),
       completeOnboarding: patch =>
         set(state => ({
@@ -95,7 +105,9 @@ export const useProfileStore = create<ProfileStore>()(
           city: state.user.city,
           travelerType: state.user.travelerType,
           role: state.user.role,
-          companyId: state.user.companyId,
+          companyId: state.user.activeBusinessId ?? state.user.companyId,
+          activeBusinessId: state.user.activeBusinessId ?? state.user.companyId,
+          businessIds: state.user.businessIds ?? [],
           onboardingCompleted: state.user.onboardingCompleted,
           locationPermission: state.user.locationPermission,
         },

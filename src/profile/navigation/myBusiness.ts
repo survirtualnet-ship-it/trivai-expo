@@ -5,7 +5,10 @@ import { useProfileStore } from '@/src/profile/store/useProfileStore'
 export function navigateToMyBusiness() {
   // Prefer synced store only when role is company; otherwise claim flow.
   const user = useProfileStore.getState().user
-  const companyId = user.role === 'company' ? user.companyId : undefined
+  const companyId =
+    user.role === 'business' || user.role === 'company'
+      ? user.activeBusinessId ?? user.companyId
+      : undefined
   if (companyId) {
     router.push(`/empresa/${companyId}`)
     return

@@ -12,6 +12,10 @@ export type TrivaiBusiness = {
   google_place_id: GooglePlaceId
   claimed: boolean
   owner_id: string | null
+  claim_status?: 'unclaimed' | 'claimed' | 'identified'
+  subscription_plan?: 'FREE' | 'PRO' | 'PREMIUM'
+  subscription_status?: 'none' | 'free' | 'pro' | 'premium' | 'active' | 'expired' | 'cancelled'
+  verification_status?: 'unverified' | 'pending' | 'verified'
   created_at: string
   updated_at: string
 }

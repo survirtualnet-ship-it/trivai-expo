@@ -1,4 +1,5 @@
 import { router } from 'expo-router'
+import type { Href } from 'expo-router'
 import { supabase } from '@/lib/supabase'
 import { setOnboardingDone, setBusinessIntent } from '@/lib/onboardingStorage'
 import { useOnboardingStore } from '@/onboarding/store/onboardingStore'
@@ -74,10 +75,13 @@ export async function completeBusinessOnboarding({
   name,
   companyId,
   businessName,
+  destinationOverride,
 }: CompleteBase & {
   /** Supabase places.id UUID — must match profiles.business_place_id */
   companyId: string
   businessName?: string
+  /** Override post-onboarding navigation (e.g. go straight to business dashboard). */
+  destinationOverride?: Href
 }): Promise<void> {
   useOnboardingStore.getState().completeOnboarding()
 
@@ -85,8 +89,9 @@ export async function completeBusinessOnboarding({
     id: userId,
     email,
     name: name ?? useProfileStore.getState().user.name,
-    role: 'company',
+    role: 'business',
     companyId,
+    activeBusinessId: companyId,
     onboardingCompleted: true,
   })
 
@@ -97,8 +102,9 @@ export async function completeBusinessOnboarding({
     id: userId,
     email,
     name: name ?? useProfileStore.getState().user.name,
-    role: 'company',
+    role: 'business',
     companyId,
+    activeBusinessId: companyId,
   })
 
   await supabase
@@ -111,12 +117,15 @@ export async function completeBusinessOnboarding({
     })
     .eq('id', userId)
 
-  const dest = resolvePostAuthDestination({
-    isAuthenticated: true,
-    hasCompletedOnboarding: true,
-    role: 'company',
-    companyId,
-  })
+  const dest =
+    destinationOverride ??
+    resolvePostAuthDestination({
+      isAuthenticated: true,
+      hasCompletedOnboarding: true,
+      role: 'business',
+      companyId,
+      activeBusinessId: companyId,
+    })
   router.replace(dest)
 }
 

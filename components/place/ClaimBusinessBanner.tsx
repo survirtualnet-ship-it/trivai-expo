@@ -35,9 +35,9 @@ export const ClaimBusinessBanner = memo(function ClaimBusinessBanner({
           <Building2 size={22} color={T.surface} />
         </View>
         <View style={styles.headerText}>
-          <Text style={styles.eyebrow}>Sin gestión en Trivai</Text>
+          <Text style={styles.eyebrow}>¿Eres el propietario?</Text>
           <Text style={styles.title}>
-            Este negocio aún no está gestionado en Trivai
+            Este negocio aún no ha sido reclamado
           </Text>
         </View>
       </View>

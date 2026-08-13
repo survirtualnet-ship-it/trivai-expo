@@ -1,6 +1,7 @@
 import type { User } from '@supabase/supabase-js'
 import type { Profile } from '@/lib/supabase'
 import { useProfileStore } from '@/src/profile/store/useProfileStore'
+import { roleFromAccountType, normalizeUserRole } from '@/lib/domain/user'
 import type { UserRole } from './types'
 
 function initialsFromName(name: string): string {
@@ -14,9 +15,9 @@ function initialsFromName(name: string): string {
   )
 }
 
+/** @deprecated Prefer roleFromAccountType from lib/domain/user */
 export function roleFromProfile(profile: Profile | null): UserRole | null {
-  if (!profile?.account_type) return null
-  return profile.account_type === 'business' ? 'company' : 'tourist'
+  return roleFromAccountType(profile?.account_type)
 }
 
 export function isOnboardingCompleteFromProfile(profile: Profile | null): boolean {
@@ -49,14 +50,24 @@ export function syncProfileStoreFromAuth(
   const roleFromDb = roleFromProfile(profile)
   const role: UserRole =
     roleFromDb ??
-    (profile ? 'tourist' : sameUser ? prev.role : 'tourist')
+    normalizeUserRole(profile ? 'tourist' : sameUser ? prev.role : 'tourist') ??
+    'tourist'
 
-  const companyId =
+  const activeBusinessId =
     profile != null
       ? profile.business_place_id ?? undefined
       : sameUser
-        ? prev.companyId
+        ? prev.activeBusinessId ?? prev.companyId
         : undefined
+
+  const businessIds =
+    profile != null
+      ? activeBusinessId
+        ? [activeBusinessId, ...(prev.businessIds ?? []).filter(id => id !== activeBusinessId)]
+        : prev.businessIds
+      : sameUser
+        ? prev.businessIds
+        : []
 
   const onboardingCompleted =
     isOnboardingCompleteFromProfile(profile) ||
@@ -71,7 +82,9 @@ export function syncProfileStoreFromAuth(
     initials: initialsFromName(name),
     city: profile?.city?.trim() || (sameUser ? prev.city : ''),
     role,
-    companyId,
+    companyId: activeBusinessId,
+    activeBusinessId,
+    businessIds: businessIds ?? [],
     onboardingCompleted,
   })
 }

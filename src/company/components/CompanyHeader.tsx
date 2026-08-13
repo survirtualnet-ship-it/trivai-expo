@@ -11,6 +11,7 @@ type Props = {
   company: Company
   editMode: boolean
   isOwner: boolean
+  canEdit?: boolean
   onToggleEdit: () => void
   onSave: () => void
 }
@@ -19,6 +20,7 @@ export const CompanyHeader = memo(function CompanyHeader({
   company,
   editMode,
   isOwner,
+  canEdit = isOwner,
   onToggleEdit,
   onSave,
 }: Props) {
@@ -48,7 +50,7 @@ export const CompanyHeader = memo(function CompanyHeader({
 
       <ActionButtons company={company} />
 
-      {isOwner ? (
+      {canEdit ? (
         <View style={styles.ownerBar}>
           <Pressable
             onPress={() => {

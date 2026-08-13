@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native'
 import { Briefcase, Compass } from 'lucide-react-native'
 import { profileTheme } from '../theme'
 import { useAppMode } from '@/src/appMode'
-import type { UserRole } from '../store/useProfileStore'
+import { isBusinessUser, type UserRole } from '@/lib/domain/user'
 
 type Props = {
   role: UserRole
@@ -16,9 +16,9 @@ export const ModeIndicator = memo(function ModeIndicator({
   companyId,
 }: Props) {
   const { mode } = useAppMode()
-  const isCompany = !!companyId || role === 'company'
+  const isEmpresa = isBusinessUser(role) || !!companyId
 
-  if (isCompany) {
+  if (isEmpresa) {
     const business = mode === 'business'
     return (
       <View style={[styles.wrap, business ? styles.company : styles.tourist]}>

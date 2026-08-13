@@ -6,6 +6,7 @@ type BusinessRoute =
   | 'BusinessVerify'
   | 'BusinessSetup'
   | 'BusinessDone'
+  | 'BusinessPlan'
 
 const ROUTES: Record<BusinessRoute, string> = {
   BusinessGoogleLogin: '/empresa/onboarding/login',
@@ -13,6 +14,7 @@ const ROUTES: Record<BusinessRoute, string> = {
   BusinessVerify: '/empresa/onboarding/verify',
   BusinessSetup: '/empresa/onboarding/setup',
   BusinessDone: '/empresa/onboarding/done',
+  BusinessPlan: '/empresa/plan',
 }
 
 /**

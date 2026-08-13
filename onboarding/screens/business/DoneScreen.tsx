@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
+import { router } from 'expo-router'
 import { OnboardingLayout } from '../../components/OnboardingLayout'
 import { PrimaryButton } from '../../components/PrimaryButton'
 import { useOnboardingStore } from '../../store/onboardingStore'
 import { useCompanyProfileStore } from '@/src/company/store/useCompanyProfileStore'
 import { companyFromBusinessData } from '@/src/company/utils/fromOnboarding'
 import { useUser } from '@/hooks/useUser'
-import { completeBusinessOnboarding } from '@/lib/appBootstrap'
 import { claimBusiness, ClaimBusinessError } from '@/lib/places'
 import { onboardingTheme as t } from '../../lib/theme'
 import type { BusinessDoneProps } from '../types'
@@ -16,8 +16,7 @@ export function BusinessDoneScreen(_props: BusinessDoneProps) {
   const googleUser = useOnboardingStore(s => s.googleUser)
   const registerCompany = useCompanyProfileStore(s => s.registerCompany)
   const loadCompany = useCompanyProfileStore(s => s.loadCompany)
-  const setActiveTab = useCompanyProfileStore(s => s.setActiveTab)
-  const { user, profile } = useUser()
+  const { user } = useUser()
   const [finishing, setFinishing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -46,15 +45,11 @@ export function BusinessDoneScreen(_props: BusinessDoneProps) {
       )
       registerCompany(company)
       loadCompany(company.id)
-      setActiveTab('dashboard')
 
-      await completeBusinessOnboarding({
-        userId: user.id,
-        email: user.email,
-        name: profile?.full_name ?? user.email?.split('@')[0],
-        companyId: claim.placeId,
-        businessName: businessData.name,
-      })
+      router.replace({
+        pathname: '/empresa/plan',
+        params: { placeId: claim.placeId, name: businessData.name },
+      } as never)
     } catch (err) {
       if (err instanceof ClaimBusinessError) {
         setError(err.message)
@@ -71,7 +66,7 @@ export function BusinessDoneScreen(_props: BusinessDoneProps) {
       centered
       footer={
         <PrimaryButton
-          label="Ir al panel"
+          label="Elegir plan Trivai"
           loading={finishing}
           onPress={handleFinish}
         />

@@ -5,10 +5,19 @@ import { router } from 'expo-router'
 import { ChevronLeft } from 'lucide-react-native'
 import { CompanyHeader } from './components/CompanyHeader'
 import { ProfileTabs } from './components/ProfileTabs'
+import { SubscriptionRequiredGate } from './components/SubscriptionRequiredGate'
+import { UpgradePrompt } from './components/UpgradePrompt'
 import { LogoutButton } from '@/components/auth/LogoutButton'
 import { useCompanyProfileStore } from './store/useCompanyProfileStore'
 import { useProfileStore } from '@/src/profile/store/useProfileStore'
 import { useAuthStore } from '@/src/auth/store/useAuthStore'
+import { useBusinessSubscription } from '@/hooks/useBusinessSubscription'
+import {
+  canUseBusinessFeature,
+  tabAllowedForTier,
+  upgradeMessageForFeature,
+} from '@/lib/business/planFeatures'
+import type { CompanyTab } from './types'
 import { HomeTab } from './tabs/HomeTab'
 import { ProductsTab } from './tabs/ProductsTab'
 import { GalleryTab } from './tabs/GalleryTab'
@@ -37,6 +46,11 @@ export function CompanyProfileScreen({ companyId }: Props) {
     userCompanyId === companyId ||
     authCompanyId === companyId
 
+  const { tier, isLoading: subscriptionLoading } = useBusinessSubscription(
+    isOwner ? companyId : null,
+  )
+  const needsPlan = isOwner && tier === 'none'
+
   const loadCompany = useCompanyProfileStore(s => s.loadCompany)
   const setActiveTab = useCompanyProfileStore(s => s.setActiveTab)
   const setEditMode = useCompanyProfileStore(s => s.setEditMode)
@@ -63,6 +77,16 @@ export function CompanyProfileScreen({ companyId }: Props) {
   }, [])
 
   useEffect(() => {
+    if (!isOwner) return
+    if (needsPlan) return
+    if (!tabAllowedForTier(activeTab, tier)) {
+      const fallback: CompanyTab[] = ['home', 'reviews', 'products', 'gallery', 'dashboard']
+      const next = fallback.find(tab => tabAllowedForTier(tab, tier)) ?? 'home'
+      setActiveTab(next)
+    }
+  }, [activeTab, isOwner, needsPlan, setActiveTab, tier])
+
+  useEffect(() => {
     if (activeTab === 'dashboard' && !isOwner) {
       setActiveTab('home')
     }
@@ -87,7 +111,10 @@ export function CompanyProfileScreen({ companyId }: Props) {
     void saveProfile()
   }, [saveProfile])
 
-  if (!storeHydrated || loadingRemote || (!company && !loadError)) {
+  const canEditBasic = isOwner && canUseBusinessFeature(tier, 'edit_basic_info')
+  const canReplyReviews = isOwner && canUseBusinessFeature(tier, 'reply_reviews')
+
+  if (!storeHydrated || loadingRemote || subscriptionLoading || (!company && !loadError)) {
     return (
       <SafeAreaView style={styles.root} edges={['top']}>
         <View style={styles.nav}>
@@ -153,53 +180,84 @@ export function CompanyProfileScreen({ companyId }: Props) {
 
       <CompanyHeader
         company={company}
-        editMode={editMode}
+        editMode={editMode && canEditBasic}
         isOwner={isOwner}
+        canEdit={canEditBasic}
         onToggleEdit={handleToggleEdit}
         onSave={handleSave}
       />
 
-      <ProfileTabs
-        active={activeTab}
-        showDashboard={isOwner}
-        onSelect={setActiveTab}
-      />
-
-      <View style={styles.tabBody}>
-        {activeTab === 'home' ? (
-          <HomeTab
-            company={company}
-            draft={draftCompany}
-            editMode={editMode}
-            featuredProducts={featuredProducts}
-            onUpdateDraft={updateDraft}
+      {needsPlan ? (
+        <SubscriptionRequiredGate placeId={companyId} businessName={company.name} />
+      ) : (
+        <>
+          <ProfileTabs
+            active={activeTab}
+            tier={tier}
+            isOwner={isOwner}
+            onSelect={setActiveTab}
           />
-        ) : null}
 
-        {activeTab === 'products' ? (
-          <ProductsTab
-            products={products}
-            editMode={editMode && isOwner}
-            onAdd={addProduct}
-            onUpdate={updateProduct}
-            onDelete={deleteProduct}
-          />
-        ) : null}
+          <View style={styles.tabBody}>
+            {activeTab === 'home' ? (
+              <HomeTab
+                company={company}
+                draft={draftCompany}
+                editMode={editMode && canEditBasic}
+                featuredProducts={featuredProducts}
+                onUpdateDraft={updateDraft}
+              />
+            ) : null}
 
-        {activeTab === 'gallery' ? <GalleryTab images={gallery} /> : null}
+            {activeTab === 'products' ? (
+              canUseBusinessFeature(tier, 'products') ? (
+                <ProductsTab
+                  products={products}
+                  editMode={editMode && isOwner}
+                  onAdd={addProduct}
+                  onUpdate={updateProduct}
+                  onDelete={deleteProduct}
+                />
+              ) : (
+                <UpgradePrompt
+                  message={upgradeMessageForFeature(tier, 'products')}
+                  placeId={companyId}
+                />
+              )
+            ) : null}
 
-        {activeTab === 'reviews' ? (
-          <ReviewsTab
-            reviews={reviews}
-            canReply={isOwner}
-            onReply={replyToReview}
-          />
-        ) : null}
+            {activeTab === 'gallery' ? (
+              canUseBusinessFeature(tier, 'gallery') ? (
+                <GalleryTab images={gallery} />
+              ) : (
+                <UpgradePrompt
+                  message={upgradeMessageForFeature(tier, 'gallery')}
+                  placeId={companyId}
+                />
+              )
+            ) : null}
 
-        {activeTab === 'dashboard' && stats && isOwner ? (
-          <DashboardTab stats={stats} />
-        ) : null}
-      </View>
+            {activeTab === 'reviews' ? (
+              <ReviewsTab
+                reviews={reviews}
+                canReply={canReplyReviews}
+                onReply={replyToReview}
+              />
+            ) : null}
+
+            {activeTab === 'dashboard' && isOwner ? (
+              canUseBusinessFeature(tier, 'dashboard') && stats ? (
+                <DashboardTab stats={stats} />
+              ) : (
+                <UpgradePrompt
+                  message={upgradeMessageForFeature(tier, 'dashboard')}
+                  placeId={companyId}
+                />
+              )
+            ) : null}
+          </View>
+        </>
+      )}
     </SafeAreaView>
   )
 }

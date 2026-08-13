@@ -1,13 +1,16 @@
 import type { Href } from 'expo-router'
 import type { BootstrapPhase, UserRole } from './types'
 import { isAuthCallbackPath } from '@/lib/auth/completeAuthCallback'
+import { isBusinessUser } from '@/lib/domain/user'
 
 export type DestinationInput = {
   isAuthenticated: boolean
   hasCompletedOnboarding: boolean
   needsLegalAcceptance?: boolean
   role: UserRole | null
+  /** @deprecated Use activeBusinessId */
   companyId: string | null
+  activeBusinessId?: string | null
 }
 
 /** Pure routing — single source of truth for post-bootstrap navigation. */
@@ -23,6 +26,8 @@ export function resolveAppDestination(input: DestinationInput): {
     companyId,
   } = input
 
+  const activeBusinessId = input.activeBusinessId ?? companyId
+
   if (!isAuthenticated) {
     return { phase: 'welcome', destination: '/welcome' }
   }
@@ -35,9 +40,8 @@ export function resolveAppDestination(input: DestinationInput): {
     return { phase: 'onboarding', destination: '/onboarding' }
   }
 
-  // Company owners enter the main app like everyone else.
-  // /empresa/{id} is an advanced panel, not the post-auth entrypoint.
-  if (role === 'company' && !companyId) {
+  // Business users (Empresa) enter main tabs like tourists; Mi Negocio is an extra tab.
+  if (isBusinessUser(role) && !activeBusinessId) {
     return {
       phase: 'company-onboarding',
       destination: '/empresa/onboarding',
@@ -97,7 +101,8 @@ export function isOnboardingPath(pathname: string): boolean {
     path === '/onboarding' ||
     path.startsWith('/onboarding/') ||
     path === '/empresa/onboarding' ||
-    path.startsWith('/empresa/onboarding/')
+    path.startsWith('/empresa/onboarding/') ||
+    path === '/empresa/plan'
   )
 }
 
@@ -126,6 +131,7 @@ export function isPublicBrowsePath(pathname: string): boolean {
     '/activity',
     '/profile',
     '/perfil',
+    '/mi-negocio',
   ])
   if (browseTabs.has(path)) return true
 

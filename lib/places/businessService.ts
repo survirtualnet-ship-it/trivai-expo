@@ -54,6 +54,23 @@ export async function fetchPlaceLiveContent(
   } as PlaceLiveContent
 }
 
+export async function fetchBusinessesByOwnerId(
+  ownerId: string,
+): Promise<TrivaiBusiness[]> {
+  const { data, error } = await supabase
+    .from('trivai_business')
+    .select('*')
+    .eq('owner_id', ownerId)
+    .eq('claimed', true)
+    .order('updated_at', { ascending: false })
+
+  if (error) {
+    console.warn('[trivai_business] list by owner', error.message)
+    return []
+  }
+  return (data ?? []) as TrivaiBusiness[]
+}
+
 export async function findPlaceUuidByGoogleId(
   googlePlaceId: string,
 ): Promise<string | null> {

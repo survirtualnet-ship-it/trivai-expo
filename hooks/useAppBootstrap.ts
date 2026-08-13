@@ -12,6 +12,7 @@ import {
 } from '@/lib/appBootstrap'
 import { syncAuthStoreFromSession } from '@/src/auth/syncAuthStore'
 import { needsLegalAcceptance as checkNeedsLegal } from '@/lib/legal'
+import { normalizeUserRole } from '@/lib/domain/user'
 
 function useStoreHydrated(): boolean {
   const [profileHydrated, setProfileHydrated] = useState(
@@ -71,11 +72,16 @@ export function useAppBootstrap(): BootstrapState {
   const roleFromDb = roleFromProfile(profile)
   const role =
     roleFromDb ??
-    (profile ? 'tourist' : authUser?.role ?? profileUser.role ?? null)
-  const companyId =
-    profile != null
-      ? profile.business_place_id ?? null
-      : authUser?.companyId ?? profileUser.companyId ?? null
+    normalizeUserRole(authUser?.role ?? profileUser.role) ??
+    null
+  const activeBusinessId =
+    profile?.business_place_id ??
+    authUser?.activeBusinessId ??
+    authUser?.companyId ??
+    profileUser.activeBusinessId ??
+    profileUser.companyId ??
+    null
+  const ownedBusinessIds = profileUser.businessIds ?? []
 
   const sameUserLocal = !!user?.id && profileUser.id === user.id
   const hasCompletedOnboarding =
@@ -102,7 +108,8 @@ export function useAppBootstrap(): BootstrapState {
           hasCompletedOnboarding,
           needsLegalAcceptance: needsLegal,
           role,
-          companyId,
+          companyId: activeBusinessId,
+          activeBusinessId,
         })
       : { phase: 'loading' as const, destination: '/welcome' as const }
 
@@ -115,7 +122,9 @@ export function useAppBootstrap(): BootstrapState {
       hasCompletedOnboarding,
       needsLegalAcceptance: needsLegal,
       role,
-      companyId,
+      companyId: activeBusinessId,
+      activeBusinessId,
+      ownedBusinessIds,
       phase,
       destination,
     }
@@ -128,6 +137,7 @@ export function useAppBootstrap(): BootstrapState {
     hasCompletedOnboarding,
     needsLegal,
     role,
-    companyId,
+    activeBusinessId,
+    ownedBusinessIds,
   ])
 }

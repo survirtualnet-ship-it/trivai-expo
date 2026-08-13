@@ -12,11 +12,12 @@ import {
   normalizePath,
 } from '@/lib/appBootstrap'
 import { isAuthCallbackPath } from '@/lib/auth/completeAuthCallback'
+import { isBusinessUser, assertNotMobileAdmin } from '@/lib/domain'
 
 /**
- * Global route protection — redirects unauthenticated users to welcome/login
- * and enforces legal consent + onboarding. Company users are not siloed:
- * they share explore tabs; business tools use AppMode, not forced redirects.
+ * Global route protection.
+ * Anonymous guests: no User, no role — read-only browse via isPublicBrowsePath.
+ * Authenticated: tourist | business | admin (admin → BackOffice only).
  */
 export function AuthGuard() {
   const bootstrap = useAppBootstrap()
@@ -27,6 +28,8 @@ export function AuthGuard() {
 
   useEffect(() => {
     if (!bootstrap.ready || authLoading) return
+
+    assertNotMobileAdmin(bootstrap.role)
 
     const path = normalizePath(pathname || '/')
 
@@ -71,19 +74,22 @@ export function AuthGuard() {
       return
     }
 
-    // Company users share the same explore experience as tourists.
-    // Mode (explore | business) is global UI state — never force /empresa/{id}.
+    // Business users (Empresa) share Inicio/Mapa/Actividad/Perfil + tab Mi Negocio.
+    // AppMode toggles explore vs business UI — never force /empresa/{id} on launch.
 
-    // Regular users (no claimed business) must not stay on /empresa/{id}
-    // after a previous company session left that URL in history/PWA state.
+    const activeBusinessId = bootstrap.activeBusinessId ?? bootstrap.companyId
+
+    // Non-business users must not stay on owner panel URLs from stale history.
     if (
       bootstrap.isAuthenticated &&
       bootstrap.hasCompletedOnboarding &&
       !bootstrap.needsLegalAcceptance &&
       path.startsWith('/empresa/') &&
       !path.startsWith('/empresa/onboarding') &&
+      path !== '/empresa/plan' &&
       path !== '/empresa/mi-negocio' &&
-      !bootstrap.companyId
+      !isBusinessUser(bootstrap.role) &&
+      !activeBusinessId
     ) {
       const dest = '/(tabs)/'
       if (lastRedirect.current !== dest) {
@@ -127,10 +133,10 @@ export function AuthGuard() {
         }
         return
       }
-      // Allow /empresa/onboarding/* for already-onboarded users claiming a business
+      // Allow /empresa/onboarding/* and /empresa/plan for already-onboarded users claiming a business
       if (
         bootstrap.hasCompletedOnboarding
-        && !(path === '/empresa/onboarding' || path.startsWith('/empresa/onboarding/'))
+        && !(path === '/empresa/onboarding' || path.startsWith('/empresa/onboarding/') || path === '/empresa/plan')
       ) {
         const dest = String(bootstrap.destination)
         if (lastRedirect.current !== dest) {
@@ -160,11 +166,11 @@ export function AuthGuard() {
 
     if (
       bootstrap.role === 'tourist' &&
-      (path === '/empresa/onboarding' || path.startsWith('/empresa/onboarding/'))
+      (path === '/empresa/onboarding' ||
+        path.startsWith('/empresa/onboarding/') ||
+        path === '/empresa/plan')
     ) {
-      // Tourists may register a business from Profile — allow the flow.
-      // Only bounce if they somehow landed here without intent while already
-      // fully set as tourist with no company AND not mid-claim: keep accessible.
+      // Tourists may start claim flow → becomes business user after claim + plan.
       return
     }
   }, [bootstrap, authLoading, pathname, router])

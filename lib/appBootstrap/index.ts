@@ -1,5 +1,11 @@
 export type { BootstrapPhase, BootstrapState, UserRole } from './types'
 export {
+  roleFromProfile,
+  isOnboardingCompleteFromProfile,
+  syncProfileStoreFromAuth,
+} from './syncProfile'
+export { roleFromAccountType, normalizeUserRole, isBusinessUser } from '@/lib/domain/user'
+export {
   resolveAppDestination,
   resolvePostAuthDestination,
   destinationMatchesPath,
@@ -10,11 +16,6 @@ export {
   isPublicBrowsePath,
   isLegalPath,
 } from './resolveDestination'
-export {
-  syncProfileStoreFromAuth,
-  roleFromProfile,
-  isOnboardingCompleteFromProfile,
-} from './syncProfile'
 export { clearLocalSessionArtifacts } from './clearLocalSession'
 export {
   completeTouristOnboarding,

@@ -15,8 +15,8 @@ export const MyBusinessEmptyScreen = memo(function MyBusinessEmptyScreen() {
         </View>
         <Text style={styles.title}>Aún no tienes un negocio</Text>
         <Text style={styles.subtitle}>
-          Registra tu empresa en Trivai para aparecer en el mapa, recibir turistas y
-          administrar productos, reseñas y estadísticas.
+        Registra otro local o reclama uno nuevo en Trivai para aparecer en el mapa,
+          responder reseñas y ver estadísticas.
         </Text>
 
         <View style={styles.featureList}>
@@ -33,7 +33,7 @@ export const MyBusinessEmptyScreen = memo(function MyBusinessEmptyScreen() {
           style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
         >
           <Sparkles size={18} color="#fff" />
-          <Text style={styles.primaryLabel}>Registrar mi negocio</Text>
+          <Text style={styles.primaryLabel}>Reclamar un negocio</Text>
         </Pressable>
 
         <Pressable

@@ -16,7 +16,7 @@ export function UserTypeScreen({ navigation }: UserTypeProps) {
     if (!selected) return
     setUserType(selected)
     useProfileStore.getState().setUser({
-      role: selected === 'business' ? 'company' : 'tourist',
+      role: selected === 'business' ? 'business' : 'tourist',
     })
     if (selected === 'tourist') {
       navigation.navigate('TouristInterests')

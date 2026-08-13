@@ -1,6 +1,8 @@
-import { memo } from 'react'
+import { memo, useMemo } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native'
 import * as Haptics from 'expo-haptics'
+import { tabAllowedForTier } from '@/lib/business/planFeatures'
+import type { BusinessSubscriptionTier } from '@/lib/domain/business'
 import { companyTheme as t } from '../theme'
 import type { CompanyTab } from '../types'
 
@@ -9,22 +11,30 @@ const BASE_TABS: { id: CompanyTab; label: string }[] = [
   { id: 'products', label: 'Productos' },
   { id: 'gallery', label: 'Galería' },
   { id: 'reviews', label: 'Reseñas' },
+  { id: 'dashboard', label: 'Dashboard' },
 ]
 
 type Props = {
   active: CompanyTab
-  showDashboard: boolean
+  tier: BusinessSubscriptionTier
+  isOwner: boolean
   onSelect: (tab: CompanyTab) => void
 }
 
 export const ProfileTabs = memo(function ProfileTabs({
   active,
-  showDashboard,
+  tier,
+  isOwner,
   onSelect,
 }: Props) {
-  const tabs = showDashboard
-    ? [...BASE_TABS, { id: 'dashboard' as const, label: 'Dashboard' }]
-    : BASE_TABS
+  const tabs = useMemo(() => {
+    if (!isOwner) {
+      return BASE_TABS.filter(tab => tab.id !== 'dashboard')
+    }
+    return BASE_TABS.filter(tab => tabAllowedForTier(tab.id, tier))
+  }, [isOwner, tier])
+
+  if (tabs.length === 0) return null
 
   return (
     <ScrollView

@@ -17,13 +17,14 @@ export function buildAuthUser(
 
   // Only trust Supabase profile — never leak companyId from a prior local user.
   const role = roleFromProfile(profile) ?? 'tourist'
-  const companyId = profile?.business_place_id ?? undefined
+  const activeBusinessId = profile?.business_place_id ?? undefined
 
   return {
     id: user.id,
     name,
     email: user.email ?? '',
     role,
-    companyId,
+    companyId: activeBusinessId,
+    activeBusinessId,
   }
 }

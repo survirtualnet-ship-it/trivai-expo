@@ -3,15 +3,19 @@ import { View, StyleSheet } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Feather } from '@expo/vector-icons'
 import { colors, fontWeight, radius } from '@/src/theme'
+import { usePermissions } from '@/hooks/usePermissions'
 
 const TAB_CONTENT_HEIGHT = 54
 
 /**
- * Expo Router tabs — Inicio · Actividades · Mapa · Perfil
+ * Expo Router tabs:
+ * Turista → Inicio · Actividades · Mapa · Perfil
+ * Empresa → + Mi Negocio (same explore tabs, not siloed)
  */
 export default function TabsLayout() {
   const insets = useSafeAreaInsets()
   const paddingBottom = Math.max(insets.bottom, 8) + 8
+  const { isBusinessUser } = usePermissions()
 
   return (
     <Tabs
@@ -72,6 +76,19 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size, focused }) => (
             <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
               <Feather name="user" size={size} color={color} />
+            </View>
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="mi-negocio"
+        options={{
+          title: 'Mi Negocio',
+          href: isBusinessUser ? undefined : null,
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+              <Feather name="briefcase" size={size} color={color} />
             </View>
           ),
         }}
