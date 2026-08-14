@@ -41,6 +41,9 @@ import {
 import { useHybridPlace } from '@/hooks/useHybridPlace'
 import { useLocationProfile } from '@/hooks/useLocationProfile'
 import { useUser } from '@/hooks/useUser'
+import { usePermissions } from '@/hooks/usePermissions'
+import { useBusinessSubscription } from '@/hooks/useBusinessSubscription'
+import { userCanSeeClaimPromptOnPlace } from '@/lib/domain/permissions'
 import {
   mapsDirectionsUrl,
   whatsappUrl,
@@ -65,6 +68,10 @@ import { FONT } from '@/lib/typography'
 export default function PlaceDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { user, displayName } = useUser()
+  const permissions = usePermissions()
+  const { tier: ownerPlanTier, isLoading: ownerPlanLoading } = useBusinessSubscription(
+    permissions.isBusinessUser ? permissions.activeBusinessId : null,
+  )
   const { profile } = useLocationProfile()
   const countryCode = profile?.countryCode || ''
   const businessModeActive = useIsBusinessMode()
@@ -254,6 +261,19 @@ export default function PlaceDetailScreen() {
   const tagList = useMemo(() => place?.tags ?? [], [place?.tags])
   const idealFor = useMemo(() => place?.idealFor ?? [], [place?.idealFor])
 
+  const canShowClaimBanner = useMemo(() => {
+    if (hybridQuery.isLoading || ownerPlanLoading) return false
+    if (hybrid?.isOwner || hybrid?.claimed) return false
+    return userCanSeeClaimPromptOnPlace(permissions, ownerPlanTier)
+  }, [
+    hybridQuery.isLoading,
+    ownerPlanLoading,
+    hybrid?.isOwner,
+    hybrid?.claimed,
+    permissions,
+    ownerPlanTier,
+  ])
+
   if (isLoading) return <PlaceDetailSkeleton />
 
   if (isError || !place) {
@@ -369,7 +389,7 @@ export default function PlaceDetailScreen() {
               onRespondReviews={scrollToReviews}
             />
           </FadeInView>
-        ) : (
+        ) : canShowClaimBanner ? (
           <FadeInView delay={85}>
             <ClaimBusinessBanner
               placeName={place.name}
@@ -378,7 +398,7 @@ export default function PlaceDetailScreen() {
               isAuthenticated={!!user}
             />
           </FadeInView>
-        )}
+        ) : null}
 
         <View
           onLayout={e => {

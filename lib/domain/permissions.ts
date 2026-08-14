@@ -98,9 +98,21 @@ export function touristCanCustomizePreferences(ctx: PermissionContext): boolean 
   return ctx.isAuthenticated
 }
 
-/** Tourists may start claim flow; after claim they become business users. */
-export function userCanStartClaimFlow(ctx: PermissionContext): boolean {
-  return ctx.isAuthenticated
+/** Business users on the free plan may see claim prompts on unclaimed places. */
+export function userCanSeeClaimPromptOnPlace(
+  ctx: PermissionContext,
+  subscriptionTier: string | null | undefined,
+): boolean {
+  if (!ctx.isAuthenticated || !isBusinessUser(ctx.role)) return false
+  return subscriptionTier === 'free'
+}
+
+/** @deprecated Prefer userCanSeeClaimPromptOnPlace with subscription tier. */
+export function userCanStartClaimFlow(
+  ctx: PermissionContext,
+  subscriptionTier?: string | null,
+): boolean {
+  return userCanSeeClaimPromptOnPlace(ctx, subscriptionTier ?? null)
 }
 
 // ─── Business user (authenticated + business permissions) ────────────────────

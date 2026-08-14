@@ -187,9 +187,11 @@ export function CompanyProfileScreen({ companyId, initialTab }: Props) {
           >
             <Text style={styles.retryText}>Reintentar</Text>
           </Pressable>
-          <Pressable onPress={() => router.replace('/empresa/onboarding')}>
-            <Text style={styles.linkText}>Registrar negocio</Text>
-          </Pressable>
+          {isOwner ? (
+            <Pressable onPress={() => router.replace('/empresa/onboarding')}>
+              <Text style={styles.linkText}>Registrar negocio</Text>
+            </Pressable>
+          ) : null}
         </View>
       </SafeAreaView>
     )

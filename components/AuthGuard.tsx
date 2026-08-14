@@ -174,7 +174,11 @@ export function AuthGuard() {
         path === '/empresa/suscripcion' ||
         path === '/empresa-plan')
     ) {
-      // Tourists may start claim flow → becomes business user after claim + plan.
+      const dest = '/(tabs)/'
+      if (lastRedirect.current !== dest) {
+        lastRedirect.current = dest
+        router.replace(dest)
+      }
       return
     }
   }, [bootstrap, authLoading, pathname, router])
