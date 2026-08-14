@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import Animated, { FadeIn, FadeOut, Layout } from 'react-native-reanimated'
 import { deferredPush } from '@/lib/deferredNav'
+import { resolveCategoryPlaceRouteId } from '@/lib/places/categoryPlaceRoute'
 import { CategoryHeader } from './components/CategoryHeader'
 import { SubcategoryGrid } from './components/SubcategoryGrid'
 import { ZoneFilters } from './components/ZoneFilters'
@@ -65,7 +66,7 @@ export function CategoryScreen({ categoryId, locale: localeProp = 'ES' }: Props)
   }, [category, locale])
 
   const onPressPlace = useCallback((place: CategoryPlace) => {
-    deferredPush(`/lugares/${place.id}`)
+    deferredPush(`/lugares/${resolveCategoryPlaceRouteId(place.id)}`)
   }, [])
 
   const onClearFilters = useCallback(() => {

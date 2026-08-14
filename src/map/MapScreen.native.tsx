@@ -30,7 +30,7 @@ import { useMapInitialSelection } from './hooks/useMapInitialSelection'
 
 import { useMapStore, DEFAULT_REGION } from './store/useMapStore'
 
-import { MAP_DARK_STYLE } from './mapDarkStyle'
+import { MAP_LIGHT_STYLE } from './mapDarkStyle'
 
 import { mapTheme } from './theme'
 
@@ -292,7 +292,7 @@ export function MapScreen() {
 
         provider={PROVIDER_GOOGLE}
 
-        customMapStyle={[...MAP_DARK_STYLE]}
+        customMapStyle={[...MAP_LIGHT_STYLE]}
 
         initialRegion={INITIAL_REGION}
 

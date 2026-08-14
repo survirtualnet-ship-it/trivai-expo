@@ -1,6 +1,10 @@
 import { supabase } from '@/lib/supabase'
 import { getGooglePlaceDetails, googleResultPhotos } from '@/lib/googlePlacesApi'
 import { findPlaceUuidByGoogleId } from './businessService'
+import {
+  isCategoryPlaceRouteId,
+  isMockApiPlaceRouteId,
+} from './categoryPlaceRoute'
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -68,6 +72,11 @@ async function refreshUuidIfLinked(placeUuid: string): Promise<void> {
  */
 export async function resolvePlaceUuid(routeId: string): Promise<string | null> {
   if (!routeId) return null
+
+  // Demo / category cards — resolved via mock API, not Google enrichment.
+  if (isCategoryPlaceRouteId(routeId) || isMockApiPlaceRouteId(routeId)) {
+    return null
+  }
 
   if (isUuid(routeId)) {
     await refreshUuidIfLinked(routeId)

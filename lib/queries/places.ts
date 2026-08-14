@@ -53,8 +53,11 @@ export async function fetchPlacesList(filters: PlacesListFilters = {}): Promise<
 }
 
 export async function fetchPlaceById(id: string): Promise<Place> {
+  const { resolveCategoryPlaceRouteId } = await import('@/lib/places/categoryPlaceRoute')
+  const routeId = resolveCategoryPlaceRouteId(id)
+
   const { resolvePlaceUuid } = await import('@/lib/places/resolvePlace')
-  const uuid = await resolvePlaceUuid(id)
+  const uuid = await resolvePlaceUuid(routeId)
 
   if (uuid) {
     const { data } = await supabase
@@ -68,15 +71,32 @@ export async function fetchPlaceById(id: string): Promise<Place> {
   const { data, error } = await supabase
     .from('places')
     .select('*')
-    .eq('id', id)
+    .eq('id', routeId)
     .maybeSingle()
 
   if (data) return data as Place
 
+  if (routeId !== id) {
+    const { data: legacy } = await supabase
+      .from('places')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+    if (legacy) return legacy as Place
+  }
+
   try {
     const { fetchPlaceAsSupabase } = await import('@/services/mockApi')
-    return await fetchPlaceAsSupabase(id)
+    return await fetchPlaceAsSupabase(routeId)
   } catch {
+    if (routeId !== id) {
+      try {
+        const { fetchPlaceAsSupabase } = await import('@/services/mockApi')
+        return await fetchPlaceAsSupabase(id)
+      } catch {
+        // fall through
+      }
+    }
     if (error) throw error
     throw new Error(`Place not found: ${id}`)
   }

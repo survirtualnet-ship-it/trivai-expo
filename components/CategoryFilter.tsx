@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { ScrollView, Pressable, Text, StyleSheet } from 'react-native'
 import { FONT } from '@/lib/typography'
+import { T, S, R } from '@/src/design'
 import { EXPLORE_CATEGORIES } from '@/lib/explore/mockPlaces'
 import type { ExploreCategoryId } from '@/lib/explore/types'
 
@@ -50,12 +51,12 @@ export const CategoryFilter = memo(function CategoryFilter({
 const styles = StyleSheet.create({
   scroll: {
     flexGrow: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: T.surface,
   },
   row: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    gap: 8,
+    paddingHorizontal: S.lg,
+    paddingBottom: S.md,
+    gap: S.sm,
   },
   chip: {
     flexDirection: 'row',
@@ -63,11 +64,11 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 999,
-    backgroundColor: '#F2F2F7',
+    borderRadius: R.full,
+    backgroundColor: T.muted,
   },
   chipActive: {
-    backgroundColor: '#111',
+    backgroundColor: T.primary,
   },
   pressed: {
     opacity: 0.88,
@@ -80,9 +81,9 @@ const styles = StyleSheet.create({
     fontFamily: FONT.medium,
     fontSize: 14,
     fontWeight: '500',
-    color: '#333',
+    color: T.fg2,
   },
   labelActive: {
-    color: '#FFFFFF',
+    color: T.onPrimary,
   },
 })

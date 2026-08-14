@@ -23,6 +23,7 @@ import { getCurrentCoords } from '@/lib/geolocation'
 import { deferredPush } from '@/lib/deferredNav'
 import { discoverKeys, STALE } from '@/lib/queries/keys'
 import { FONT } from '@/lib/typography'
+import { T, S, R, SHADOW } from '@/src/design'
 import { useLocationProfile } from '@/hooks/useLocationProfile'
 import { useWeather } from '@/hooks/useWeather'
 import { UNKNOWN_CITY_ES } from '@/lib/constants'
@@ -202,51 +203,47 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: T.bg,
   },
   toggleWrap: {
-    paddingHorizontal: 16,
+    paddingHorizontal: S.lg,
     paddingBottom: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: T.surface,
   },
   toggle: {
     flexDirection: 'row',
-    backgroundColor: '#F2F2F7',
-    borderRadius: 12,
+    backgroundColor: T.muted,
+    borderRadius: R.md,
     padding: 3,
   },
   toggleBtn: {
     flex: 1,
     alignItems: 'center',
     paddingVertical: 9,
-    borderRadius: 10,
+    borderRadius: R.sm,
   },
   toggleActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#111',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 1,
+    backgroundColor: T.surface,
+    ...SHADOW.sm,
   },
   toggleText: {
     fontFamily: FONT.medium,
     fontSize: 14,
     fontWeight: '500',
-    color: '#666',
+    color: T.fg2,
   },
   toggleTextActive: {
-    color: '#111',
+    color: T.fg1,
     fontFamily: FONT.semibold,
     fontWeight: '600',
   },
   listContent: {
     paddingTop: 4,
-    paddingBottom: 32,
+    paddingBottom: S.xxxl,
   },
   mapWrap: {
     flex: 1,
-    backgroundColor: '#E8E8ED',
+    backgroundColor: T.muted,
   },
   previewWrap: {
     position: 'absolute',
@@ -258,17 +255,17 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
+    padding: S.xxxl,
     gap: 6,
   },
   emptyTitle: {
     fontFamily: FONT.semibold,
     fontSize: 17,
-    color: '#111',
+    color: T.fg1,
   },
   emptySub: {
     fontFamily: FONT.regular,
     fontSize: 14,
-    color: '#666',
+    color: T.fg2,
   },
 })

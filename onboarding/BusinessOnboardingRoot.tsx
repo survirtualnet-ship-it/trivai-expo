@@ -25,7 +25,7 @@ export function BusinessOnboardingRoot() {
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <NavigationContainer theme={navTheme} independent>
-          <StatusBar style="light" />
+          <StatusBar style="dark" />
           <OnboardingNavigator initialRouteName="BusinessGoogleLogin" />
         </NavigationContainer>
       </SafeAreaProvider>

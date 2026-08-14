@@ -1,19 +1,20 @@
 import { memo, type ReactNode } from 'react'
 import {
-  TouchableOpacity,
+  Pressable,
   Text,
   StyleSheet,
   ActivityIndicator,
-  type ViewStyle,
   type StyleProp,
+  type ViewStyle,
 } from 'react-native'
-import { T, F, S, R, SHADOW } from '@/lib/tokens'
+import * as Haptics from 'expo-haptics'
+import { T, F, S, R, SHADOW, components, colors } from '@/src/design'
 import { FONT } from '@/lib/typography'
 
-export type ButtonVariant = 'primary' | 'secondary'
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger'
 export type ButtonSize = 'md' | 'lg'
 
-type Props = {
+type ButtonProps = {
   label: string
   onPress: () => void
   variant?: ButtonVariant
@@ -23,9 +24,10 @@ type Props = {
   icon?: ReactNode
   fullWidth?: boolean
   style?: StyleProp<ViewStyle>
+  haptic?: boolean
 }
 
-export const Button = memo(function Button({
+function TrivaiButtonBase({
   label,
   onPress,
   variant = 'primary',
@@ -35,26 +37,43 @@ export const Button = memo(function Button({
   icon,
   fullWidth = false,
   style,
-}: Props) {
+  haptic = true,
+}: ButtonProps) {
   const isPrimary = variant === 'primary'
+  const isDanger = variant === 'danger'
+  const isGhost = variant === 'ghost'
   const isLg = size === 'lg'
 
+  const handlePress = () => {
+    if (disabled || loading) return
+    if (haptic) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
+    onPress()
+  }
+
   return (
-    <TouchableOpacity
-      style={[
+    <Pressable
+      onPress={handlePress}
+      disabled={disabled || loading}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [
         styles.base,
         isLg && styles.baseLg,
-        isPrimary ? styles.primary : styles.secondary,
+        isPrimary && styles.primary,
+        variant === 'secondary' && styles.secondary,
+        isGhost && styles.ghost,
+        isDanger && styles.danger,
         fullWidth && styles.fullWidth,
         (disabled || loading) && styles.disabled,
+        pressed && styles.pressed,
         style,
       ]}
-      onPress={onPress}
-      disabled={disabled || loading}
-      activeOpacity={0.88}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={isPrimary ? '#fff' : T.primary} />
+        <ActivityIndicator
+          size="small"
+          color={isPrimary || isDanger ? colors.onPrimary : T.primary}
+        />
       ) : (
         <>
           {icon}
@@ -62,14 +81,82 @@ export const Button = memo(function Button({
             style={[
               styles.label,
               isLg && styles.labelLg,
-              isPrimary ? styles.labelPrimary : styles.labelSecondary,
+              isPrimary && styles.labelPrimary,
+              variant === 'secondary' && styles.labelSecondary,
+              isGhost && styles.labelGhost,
+              isDanger && styles.labelDanger,
             ]}
           >
             {label}
           </Text>
         </>
       )}
-    </TouchableOpacity>
+    </Pressable>
+  )
+}
+
+/** Official Trivai primary CTA — orange, rounded, consistent height */
+export const PrimaryButton = memo(TrivaiButtonBase)
+
+/** @deprecated Prefer PrimaryButton — kept for existing imports */
+export const Button = PrimaryButton
+
+export const SecondaryButton = memo(function SecondaryButton(
+  props: Omit<ButtonProps, 'variant'>,
+) {
+  return <PrimaryButton {...props} variant="secondary" />
+})
+
+export const GhostButton = memo(function GhostButton(
+  props: Omit<ButtonProps, 'variant'>,
+) {
+  return <PrimaryButton {...props} variant="ghost" />
+})
+
+type IconButtonProps = {
+  onPress: () => void
+  icon: ReactNode
+  disabled?: boolean
+  size?: 'sm' | 'md'
+  variant?: 'surface' | 'ghost'
+  accessibilityLabel: string
+  style?: StyleProp<ViewStyle>
+}
+
+export const IconButton = memo(function IconButton({
+  onPress,
+  icon,
+  disabled = false,
+  size = 'md',
+  variant = 'surface',
+  accessibilityLabel,
+  style,
+}: IconButtonProps) {
+  const dim = size === 'sm' ? components.iconButton.sizeSm : components.iconButton.size
+
+  const handlePress = () => {
+    if (disabled) return
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    onPress()
+  }
+
+  return (
+    <Pressable
+      onPress={handlePress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      style={({ pressed }) => [
+        styles.iconBtn,
+        { width: dim, height: dim },
+        variant === 'surface' && styles.iconBtnSurface,
+        disabled && styles.disabled,
+        pressed && styles.pressed,
+        style,
+      ]}
+    >
+      {icon}
+    </Pressable>
   )
 })
 
@@ -79,14 +166,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: S.sm,
-    paddingHorizontal: S.xl,
-    paddingVertical: 12,
-    borderRadius: R.lg,
-    minHeight: 44,
+    paddingHorizontal: components.button.paddingHorizontal,
+    borderRadius: components.button.borderRadius,
+    minHeight: components.button.height,
   },
   baseLg: {
-    paddingVertical: 16,
-    minHeight: 52,
+    minHeight: components.button.heightLg,
     borderRadius: R.xl,
   },
   fullWidth: {
@@ -101,21 +186,49 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: T.border,
   },
+  ghost: {
+    backgroundColor: 'transparent',
+  },
+  danger: {
+    backgroundColor: T.danger,
+    ...SHADOW.sm,
+  },
   disabled: {
-    opacity: 0.55,
+    opacity: 0.5,
+  },
+  pressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
   },
   label: {
-    fontFamily: FONT.bold,
+    fontFamily: FONT.semibold,
     fontSize: F.size.md,
-    fontWeight: F.weight.bold,
+    fontWeight: F.weight.semibold,
   },
   labelLg: {
     fontSize: F.size.lg,
   },
   labelPrimary: {
-    color: '#fff',
+    color: colors.onPrimary,
   },
   labelSecondary: {
     color: T.fg1,
+  },
+  labelGhost: {
+    color: T.primary,
+  },
+  labelDanger: {
+    color: colors.onPrimary,
+  },
+  iconBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: components.iconButton.borderRadius,
+  },
+  iconBtnSurface: {
+    backgroundColor: T.surface,
+    borderWidth: 1,
+    borderColor: T.border,
+    ...SHADOW.sm,
   },
 })

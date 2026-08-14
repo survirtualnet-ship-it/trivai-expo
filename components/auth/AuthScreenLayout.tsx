@@ -34,7 +34,7 @@ export const AuthScreenLayout = memo(function AuthScreenLayout({
 }: Props) {
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

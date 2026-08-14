@@ -15,7 +15,13 @@ export type { RatingProps, RatingSize } from './Rating'
 export { Tag, TagRow } from './Tag'
 export type { TagProps, TagRowProps, ChipVariant, TagVariant, TagSize } from './Tag'
 
-export { Button } from './Button'
+export {
+  Button,
+  PrimaryButton,
+  SecondaryButton,
+  GhostButton,
+  IconButton,
+} from './Button'
 export type { ButtonVariant, ButtonSize } from './Button'
 
 export { ActionButton } from './ActionButton'

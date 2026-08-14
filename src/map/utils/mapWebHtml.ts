@@ -1,5 +1,5 @@
 import { ENV } from '@/lib/env'
-import { MAP_DARK_STYLE } from '../mapDarkStyle'
+import { MAP_LIGHT_STYLE } from '../mapDarkStyle'
 import { MAP_CITY_CENTER } from '../data/mockPlaces'
 import { mapTheme } from '../theme'
 import type { MapPlace } from '../store/useMapStore'
@@ -19,7 +19,7 @@ export function buildDiscoveryMapHtml(
 ): string {
   const apiKey = ENV.googleMapsKey
   const center = userPos ?? MAP_CITY_CENTER
-  const stylesJson = JSON.stringify([...MAP_DARK_STYLE])
+  const stylesJson = JSON.stringify([...MAP_LIGHT_STYLE])
 
   const markersDataJS = `var __markers = {
 ${places.map(p => `  ${JSON.stringify(p.id)}: ${JSON.stringify({ id: p.id, name: p.name, lat: placeLatitude(p), lng: placeLongitude(p), color: markerColor(p) })}`).join(',\n')}

@@ -1,33 +1,3 @@
-export const mapTheme = {
-  bg: '#0B0F1A',
-  surface: '#151B2B',
-  surfaceElevated: '#1C2438',
-  border: 'rgba(255,255,255,0.08)',
-  text: '#F4F6FB',
-  textSecondary: '#9AA3B5',
-  textMuted: '#6B7289',
-  accent: '#6D5EF7',
-  accentSoft: 'rgba(109,94,247,0.22)',
-  trending: '#FF6B35',
-  recommended: '#F5C542',
-  event: '#E056FD',
-  success: '#34D399',
-  pinDefault: '#5B8DEF',
-  shadow: 'rgba(0,0,0,0.45)',
-  radius: {
-    sm: 12,
-    md: 16,
-    lg: 20,
-    full: 999,
-  },
-  spacing: {
-    xs: 4,
-    sm: 8,
-    md: 12,
-    lg: 16,
-    xl: 20,
-    xxl: 24,
-  },
-} as const
-
-export type MapTheme = typeof mapTheme
+/** Map module — light Trivai theme */
+export { lightModuleTheme as mapTheme } from '@/src/design/theme'
+export type { LightModuleTheme as MapTheme } from '@/src/design/theme'

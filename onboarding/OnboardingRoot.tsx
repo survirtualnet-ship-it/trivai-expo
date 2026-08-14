@@ -37,7 +37,7 @@ export function OnboardingRoot({
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <NavigationContainer theme={navTheme} independent>
-          <StatusBar style="light" />
+          <StatusBar style="dark" />
           <OnboardingNavigator initialRouteName={initialRouteName} />
         </NavigationContainer>
       </SafeAreaProvider>
