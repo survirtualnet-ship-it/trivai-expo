@@ -1,6 +1,6 @@
 # Trivai (Expo)
 
-App móvil y PWA de descubrimiento social para **Santa Cruz de la Sierra**. Comparte backend Supabase con la versión web Next.js en [trivai.vercel.app](https://trivai.vercel.app).
+App móvil y PWA de descubrimiento social para **Santa Cruz de la Sierra**. Backend de datos en **Supabase**; APIs serverless (`/api/google-places`, `/api/country-news`) en el mismo deploy de Vercel.
 
 **Producción:** [trivai-expo.vercel.app](https://trivai-expo.vercel.app)
 

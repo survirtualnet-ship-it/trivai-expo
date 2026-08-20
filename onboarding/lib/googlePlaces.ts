@@ -16,7 +16,7 @@ export type PlaceDetails = {
 }
 
 /**
- * Prefer same-origin Expo API, then appUrl, then webApiUrl.
+ * Prefer same-origin Expo API, then configured appUrl.
  * Never call maps.googleapis.com from the client (CORS + key restrictions).
  */
 function apiBases(): string[] {
@@ -25,7 +25,6 @@ function apiBases(): string[] {
     bases.push(window.location.origin)
   }
   if (ENV.appUrl) bases.push(ENV.appUrl)
-  if (ENV.webApiUrl) bases.push(ENV.webApiUrl)
   return bases.filter((url, i, list) => url && list.indexOf(url) === i)
 }
 

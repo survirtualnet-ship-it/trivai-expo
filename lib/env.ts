@@ -6,7 +6,6 @@ export const ENV = {
   supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? '',
   googleMapsKey:   process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY?.trim() ?? '',
   appUrl:          (process.env.EXPO_PUBLIC_APP_URL?.trim() || 'https://trivai-expo.vercel.app').replace(/\/$/, ''),
-  webApiUrl:       (process.env.EXPO_PUBLIC_WEB_API_URL?.trim() || 'https://trivai.vercel.app').replace(/\/$/, ''),
 } as const
 
 if (!ENV.supabaseUrl || !ENV.supabaseAnonKey) {

@@ -44,7 +44,7 @@ Configurar en **Vercel → Environment Variables** (build time). Plantilla: `.en
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Anon key de Supabase |
 | `EXPO_PUBLIC_GOOGLE_MAPS_KEY` | Google Maps API key |
 | `EXPO_PUBLIC_APP_URL` | URL pública (default: trivai-expo.vercel.app) |
-| `EXPO_PUBLIC_WEB_API_URL` | Backend Next.js (default: trivai.vercel.app) |
+| `GOOGLE_PLACES_KEY` | Google Places (server-only en Vercel `/api/google-places`) |
 
 Las variables `EXPO_PUBLIC_*` se embeben en el bundle en build time — deben existir en Vercel antes del deploy.
 
@@ -79,7 +79,7 @@ Validación en runtime: `lib/env.ts` · URLs de share: `lib/appUrl.ts` · Auth r
 
 ### Supabase
 
-El cliente usa `AsyncStorage` para persistir sesiones entre reinicios. Mismo proyecto Supabase que la web — mismas tablas, misma auth, mismas RLS policies. Las llamadas a la API de Google Places se hacen a través de los API routes del proyecto web (`https://trivai.vercel.app/api/google-places`) — no duplicar lógica.
+El cliente usa `AsyncStorage` para persistir sesiones entre reinicios. Datos y auth en Supabase (RLS). Google Places y noticias pasan por rutas serverless en este mismo proyecto (`/api/google-places`, `/api/country-news` en Vercel) — la API key no va al cliente.
 
 ### Navegación (Expo Router)
 

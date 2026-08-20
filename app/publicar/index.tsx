@@ -14,7 +14,7 @@ export default function Publicar() {
       Icon: MapPin, titulo: 'Agregar mi negocio',
       desc: 'Registra tu negocio con los datos de Google',
       tone: { bg: T.purpleSoft, fg: T.purple },
-      onPress: () => router.push('/perfil/mi-negocio'),
+      onPress: () => router.push('/empresa/onboarding'),
     }] : []),
     {
       Icon: Ticket, titulo: 'Publicar un evento',

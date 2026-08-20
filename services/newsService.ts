@@ -13,7 +13,6 @@ function newsApiBases(): string[] {
     bases.push(window.location.origin)
   }
   if (ENV.appUrl) bases.push(ENV.appUrl)
-  if (ENV.webApiUrl) bases.push(ENV.webApiUrl)
   return bases.filter((url, index, list) => url && list.indexOf(url) === index)
 }
 

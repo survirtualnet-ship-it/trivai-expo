@@ -17,14 +17,13 @@ export type GooglePlaceResult = {
   photos?: string[]
 }
 
-/** Prefer same-origin Expo API, then appUrl, then webApiUrl. */
+/** Prefer same-origin Expo API, then configured appUrl. */
 function apiBases(): string[] {
   const bases: string[] = []
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     bases.push(window.location.origin)
   }
   if (ENV.appUrl) bases.push(ENV.appUrl)
-  if (ENV.webApiUrl) bases.push(ENV.webApiUrl)
   return bases.filter((url, i, list) => url && list.indexOf(url) === i)
 }
 
